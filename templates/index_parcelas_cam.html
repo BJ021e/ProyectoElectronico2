@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parcelas Cam - Inicio</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        .hero-section {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        .hero-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary-color) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .info-box {
+            background: var(--dark-bg-light);
+            border: 1px solid var(--dark-border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+        .info-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 12px;
+            color: var(--text-color);
+        }
+        .info-icon { font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container navbar-content">
+            <a href="{{ url_for('index_parcelas_cam') }}" class="navbar-brand">
+                <div class="icon">📹</div>
+                <span>Diagnóstico + Live</span>
+            </a>
+            <div class="navbar-nav">
+                <a href="{{ url_for('logout_parcelas_cam') }}" class="btn btn-secondary">
+                    <span>🚪</span><span>Cerrar Sesión</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container" style="padding-top: 4rem;">
+        
+        <div class="hero-section fade-in">
+            <h1 class="hero-title">Diagnóstico con Cámara en Vivo</h1>
+            <p style="color: var(--text-muted); font-size: 1.2rem; max-width: 600px; margin: 0 auto;">
+                Sistema integrado para el análisis de parcelas agrícolas con monitoreo visual en tiempo real.
+            </p>
+        </div>
+
+        <div class="card fade-in" style="max-width: 500px; margin: 0 auto;">
+            <form method="POST" action="{{ url_for('iniciar_parcelas_cam') }}">
+                
+                <div class="info-box">
+                    <div style="margin-bottom: 1rem; font-size: 0.9rem; color: var(--text-secondary); text-transform: uppercase; font-weight: bold;">
+                        Estado del Sistema
+                    </div>
+                    
+                    <div class="info-item">
+                        <span class="info-icon">📡</span>
+                        <div>
+                            <strong>Servidor RPi:</strong> <span style="color: var(--primary-light);">{{ rpi_ip }}</span>
+                            <div style="font-size: 0.85rem; color: var(--text-muted);">Conexión establecida</div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-item">
+                        <span class="info-icon">📂</span>
+                        <div>
+                            <strong>Modo de Datos:</strong> Automático
+                            <div style="font-size: 0.85rem; color: var(--text-muted);">Escaneo de carpetas remotas</div>
+                        </div>
+                    </div>
+
+                    <div class="info-item">
+                        <span class="info-icon">📷</span>
+                        <div>
+                            <strong>Cámara:</strong> Habilitada (Manual)
+                            <div style="font-size: 0.85rem; color: var(--text-muted);">Banda NIR disponible</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-success btn-lg" style="width: 100%; justify-content: center;">
+                    <span>🚀</span>
+                    <span>Iniciar Diagnóstico y Monitoreo</span>
+                </button>
+            </form>
+        </div>
+        
+        <p style="text-align: center; margin-top: 3rem; color: var(--text-muted); font-size: 0.9rem;">
+            Asegúrese de que el dron y la cámara estén encendidos antes de iniciar.
+        </p>
+    </div>
+</body>
+</html>

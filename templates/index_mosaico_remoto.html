@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mosaico Remoto - Carga RPi</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container navbar-content">
+            <a href="{{ url_for('index_mosaico_remoto') }}" class="navbar-brand">
+                <div class="icon">🛰️</div>
+                <span>Mosaico Remoto (Carga RPi)</span>
+            </a>
+            <div class="navbar-nav">
+                 <a href="{{ url_for('logout_mosaico_remoto') }}" class="btn btn-secondary">
+                    <span>🚪</span>
+                    <span>Cerrar Sesión</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container" style="padding-top: 3rem; padding-bottom: 3rem;">
+        
+        <div style="text-align: center; margin-bottom: 3rem;" class="fade-in">
+            <h1 style="font-size: 2.5rem; margin-bottom: 1rem; background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary-color) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                Procesamiento Automático Remoto
+            </h1>
+            <p style="color: var(--text-muted); font-size: 1.125rem;">
+                El sistema descargará automáticamente las 5 bandas TIF de la carpeta fija de la Raspberry Pi.
+            </p>
+        </div>
+
+        <div class="process-steps">
+            <div class="process-step active"><div class="step-icon">1</div><h3 class="step-title">Iniciar Descarga</h3><p class="step-description">Conexión a RPi y listado de archivos</p></div>
+            <div class="process-step"><div class="step-icon">2</div><h3 class="step-title">Procesamiento</h3><p class="step-description">Cálculo de índices</p></div>
+            <div class="process-step"><div class="step-icon">3</div><h3 class="step-title">Resultados</h3><p class="step-description">Visualización y PDF</p></div>
+        </div>
+
+        <div class="card fade-in" style="margin-top: 3rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+            <form method="POST" action="{{ url_for('iniciar_mosaico_remoto') }}" style="text-align: center;">
+
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                    Archivos listados y procesados desde: **http://{{ rpi_ip }}:5000**
+                </p>
+                
+                <p style="color: var(--danger-color); font-size: 0.9em; margin-bottom: 2rem;">
+                    ⚠️ Asegúrese de que 5 archivos TIF estén en la carpeta configurada del RPi.
+                </p>
+
+                <button type="submit" class="btn btn-success btn-lg">
+                    <span>🚀</span>
+                    <span>Iniciar Procesamiento Automático</span>
+                </button>
+            </form>
+        </div>
+        
+        </div>
+</body>
+</html>

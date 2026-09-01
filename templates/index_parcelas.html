@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subir Parcelas - Diagnóstico Multiespectral</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container navbar-content">
+            
+            <a href="{{ url_for('index_parcelas') }}" class="navbar-brand">
+                <div class="icon">🔬</div>
+                <span>Diagnóstico por Parcela</span>
+            </a>
+            
+            <div class="navbar-nav">
+                <a href="{{ url_for('logout_parcelas') }}" class="btn btn-secondary">
+                    <span>🚪</span>
+                    <span>Cerrar Sesión</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container" style="padding-top: 3rem; padding-bottom: 3rem;">
+
+        <div style="text-align: center; margin-bottom: 3rem;" class="fade-in">
+            <h1 style="font-size: 2.5rem; margin-bottom: 1rem; background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary-color) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                Diagnóstico de Virus Mosaico en Zucchini
+            </h1>
+            <p style="color: var(--text-muted); font-size: 1.125rem;">
+                Sube un archivo ZIP que contenga todas las carpetas de parcelas (`IMG_0000`, `IMG_0001`, etc.)
+            </p>
+        </div>
+
+        {% if error %}
+        <div class="alert alert-error fade-in">
+            <span style="font-size: 1.5rem;">⚠️</span>
+            <span>{{ error }}</span>
+        </div>
+        {% endif %}
+
+        <div class="process-steps">
+            <div class="process-step active">
+                <div class="step-icon">1</div>
+                <h3 class="step-title">Subir ZIP</h3>
+                <p class="step-description">Carpetas con 5 bandas TIF c/u</p>
+            </div>
+            <div class="process-step">
+                <div class="step-icon">2</div>
+                <h3 class="step-title">Análisis GNDVI</h3>
+                <p class="step-description">Cálculo de índices y diagnóstico</p>
+            </div>
+            <div class="process-step">
+                <div class="step-icon">3</div>
+                <h3 class="step-title">Reporte</h3>
+                <p class="step-description">Estado de cada zona y PDF</p>
+            </div>
+        </div>
+
+        <div class="card fade-in" style="margin-top: 3rem; max-width: 900px; margin-left: auto; margin-right: auto;">
+            <form id="uploadForm" method="POST" action="{{ url_for('upload_parcelas') }}" enctype="multipart/form-data">
+
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📦</div>
+                    <h3 style="margin-bottom: 0.5rem; font-size: 1.5rem;">Arrastra el archivo ZIP aquí</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+                        o haz clic para seleccionar el ZIP (Contiene todas las parcelas)
+                    </p>
+                    <input
+                        type="file"
+                        id="fileInput"
+                        name="zip_file"
+                        accept=".zip"
+                        required
+                        style="display: none;"
+                    >
+                    <button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                        <span>📂</span>
+                        <span>Seleccionar Archivo ZIP</span>
+                    </button>
+                </div>
+
+                <div id="fileInfo" style="margin-top: 2rem; padding: 1.5rem; background: var(--dark-bg); border-radius: 8px; border: 1px solid var(--dark-border); display: none;">
+                    <h4 style="margin-bottom: 1rem; color: var(--text-secondary);">Archivo: <span id="fileNameDisplay" style="color: var(--primary-light);"></span></h4>
+                </div>
+                
+                <div style="margin-top: 2rem; padding: 1.5rem; background: var(--dark-bg); border-radius: 8px; border: 1px solid var(--dark-border);">
+                    <h4 style="margin-bottom: 1rem; color: var(--text-secondary);">🌳 Estructura Esperada:</h4>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">
+                        El ZIP debe contener carpetas llamadas **IMG_XXXX**, y cada carpeta debe tener 5 archivos TIF:
+                    </p>
+                    <pre style="background: var(--dark-bg-light); padding: 10px; border-radius: 4px; overflow-x: auto; color: var(--text-color);">
+parcelas.zip
+├── IMG_0000/
+│   ├── archivo_1.tif (Blue)
+│   ├── archivo_2.tif (Green)
+│   ├── archivo_3.tif (Red)
+│   ├── archivo_4.tif (RedEdge)
+│   └── archivo_5.tif (NIR)
+├── IMG_0001/
+│   ├── ... (5 TIFs)
+└── ...
+                    </pre>
+                </div>
+
+
+                <div id="submitSection" style="display: none; margin-top: 2rem; text-align: center;">
+                    <button type="submit" class="btn btn-success btn-lg" id="submitBtn">
+                        <span>🚀</span>
+                        <span>Iniciar Diagnóstico</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="stats-grid" style="margin-top: 3rem;">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon stat-icon-primary">🔬</div>
+                    <div>
+                        <div class="stat-label">Enfermedad Objetivo</div>
+                        <div class="stat-value">Virus Mosaico</div>
+                    </div>
+                </div>
+                <p style="color: var(--text-muted); font-size: 0.875rem;">
+                    Monitoreo basado en el índice **GNDVI**, sensible a la clorofila.
+                </p>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon stat-icon-danger">📉</div>
+                    <div>
+                        <div class="stat-label">Métrica Clave</div>
+                        <div class="stat-value">GNDVI</div>
+                    </div>
+                </div>
+                <p style="color: var(--text-muted); font-size: 0.875rem;">
+                    Valores bajos o negativos indican estrés o clorosis severa.
+                </p>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon stat-icon-warning">🌡️</div>
+                    <div>
+                        <div class="stat-label">Rango Estrés (GNDVI)</div>
+                        <div class="stat-value">0.10 - 0.35</div>
+                    </div>
+                </div>
+                <p style="color: var(--text-muted); font-size: 0.875rem;">
+                    Requiere inspección visual inmediata en el campo.
+                </p>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon stat-icon-success">📄</div>
+                    <div>
+                        <div class="stat-label">Salida</div>
+                        <div class="stat-value">Reporte PDF</div>
+                    </div>
+                </div>
+                <p style="color: var(--text-muted); font-size: 0.875rem;">
+                    Resultados de índices y diagnóstico por cada parcela.
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const uploadArea = document.getElementById('uploadArea');
+        const submitSection = document.getElementById('submitSection');
+        const submitBtn = document.getElementById('submitBtn');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+
+        function updateFileInfo() {
+            const files = fileInput.files;
+            if (files.length === 1 && files[0].name.toLowerCase().endsWith('.zip')) {
+                fileNameDisplay.textContent = files[0].name;
+                fileInfo.style.display = 'block';
+                submitSection.style.display = 'block';
+            } else {
+                fileInfo.style.display = 'none';
+                submitSection.style.display = 'none';
+            }
+        }
+
+        fileInput.addEventListener('change', updateFileInfo);
+
+        // Eventos de drag and drop (Simplificado para ZIP)
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            fileInput.files = e.dataTransfer.files;
+            updateFileInfo();
+        });
+
+        // Validación antes de enviar
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            if (fileInput.files.length !== 1 || !fileInput.files[0].name.toLowerCase().endsWith('.zip')) {
+                e.preventDefault();
+                alert('⚠️ Debes seleccionar exactamente 1 archivo ZIP.');
+                return false;
+            }
+
+            // Mostrar loading
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="loading"></div><span>Procesando...</span>';
+        });
+    </script>
+</body>
+</html>

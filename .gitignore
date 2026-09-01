@@ -1,0 +1,55 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# =========================
+# Entorno virtual
+# =========================
+.venv/
+venv/
+env/
+
+# =========================
+# Variables de entorno
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# IDE / editor
+# =========================
+.vscode/
+.idea/
+
+# =========================
+# Sistema operativo
+# =========================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# =========================
+# Logs
+# =========================
+*.log
+
+# =========================
+# Archivos temporales Python
+# =========================
+*.tmp
+*.temp
+
+# =========================
+# Caché de la aplicación
+# =========================
+static/ground_cache/
+
+# =========================
+# Datos temporales de misión
+# =========================
+static/ground_mission/raw_bands/
+static/ground_mission/results/

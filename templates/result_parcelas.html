@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultados - Diagnóstico por Parcela</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        .result-table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 8px; overflow: hidden; }
+        .result-table th, .result-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--dark-border); }
+        .result-table th { background-color: var(--dark-bg); color: var(--text-secondary); font-weight: 600; text-transform: uppercase; font-size: 0.9rem; }
+        .result-table tr:hover { background-color: var(--dark-bg-light); }
+        .result-table td { color: var(--text-color); background-color: var(--card-bg); vertical-align: top; }
+        .status-badge { padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 0.85rem; display: inline-block; }
+        .status-badge.sano { background-color: #10b981; color: white; }
+        .status-badge.riesgo { background-color: #f59e0b; color: #1f2937; }
+        .status-badge.infectado { background-color: #ef4444; color: white; }
+        .parcel-img-thumb { 
+            width: 100px; height: 100px; object-fit: cover; border-radius: 4px; 
+            border: 1px solid var(--dark-border); cursor: zoom-in; /* Habilita el zoom */
+            transition: transform 0.2s;
+        }
+        
+        /* Estilos del Modal de Zoom */
+        .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.9); align-items: center; justify-content: center; overflow: hidden; }
+        .modal.active { display: flex !important; }
+        .modal-content { background: transparent; padding: 0; border: none; max-width: 100%; max-height: 100%; display: flex; justify-content: center; align-items: center; }
+        #modalImage { max-width: 90vw; max-height: 90vh; object-fit: contain; border-radius: 4px; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
+        .modal-close { position: absolute; top: 20px; right: 30px; color: white; font-size: 40px; font-weight: bold; cursor: pointer; background: none; border: none; z-index: 10001; }
+    </style>
+</head>     
+<body>
+    <nav class="navbar">
+        <div class="container navbar-content">
+            <a href="{{ url_for('index_parcelas') }}" class="navbar-brand">
+                <div class="icon">🔬</div>
+                <span>Diagnóstico por Parcela</span>
+            </a>
+            <div class="navbar-nav">
+                <a href="{{ url_for('descargar_pdf_parcelas') }}" class="btn btn-success">
+                    <span>📄</span>
+                    <span>Descargar PDF</span>
+                </a>
+                <a href="{{ url_for('index_parcelas') }}" class="btn btn-primary">
+                    <span>🔄</span>
+                    <span>Nuevo Análisis</span>
+                </a>
+                <a href="{{ url_for('logout_parcelas') }}" class="btn btn-secondary">
+                    <span>🚪</span>
+                    <span>Salir</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container" style="padding-top: 3rem; padding-bottom: 3rem;">
+        
+        <div style="text-align: center; margin-bottom: 3rem;" class="fade-in">
+            <div style="width: 80px; height: 80px; margin: 0 auto 1rem; background: linear-gradient(135deg, var(--secondary-color) 0%, #059669 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 3rem;">
+                ✅
+            </div>
+            <h1 style="font-size: 2.5rem; margin-bottom: 1rem; background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary-color) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                Análisis de Parcela Completado
+            </h1>
+            <p style="color: var(--text-muted); font-size: 1.125rem;">
+                Se han analizado {{ num_parcelas }} parcelas.
+            </p>
+        </div>
+
+        <div class="card fade-in" style="margin-top: 3rem;">
+            <h2 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
+                <span style="font-size: 2rem;">🛸</span>
+                <span>Telemetría Final del Vuelo</span>
+            </h2>
+            {% set tv = telemetria_resumen %}
+            {% if tv.error %}
+            <div class="alert alert-error">
+                <span style="font-size: 1.5rem;">❌</span>
+                <span>Conexión RPi fallida: **{{ tv.modo }}**. Los datos mostrados son N/A.</span>
+            </div>
+            {% endif %}
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon stat-icon-primary">🌍</div>
+                        <div><div class="stat-label">Latitud Promedio</div><div class="stat-value">{{ tv.latitud if tv.latitud and tv.latitud != 'N/A' else 'None' }}</div></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon stat-icon-primary">🌎</div>
+                        <div><div class="stat-label">Longitud Promedio</div><div class="stat-value">{{ tv.longitud if tv.longitud and tv.longitud != 'N/A' else 'None' }}</div></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon stat-icon-warning">📏</div>
+                        <div><div class="stat-label">Altitud Promedio</div><div class="stat-value">{{ tv.altitud if tv.altitud and tv.altitud != 'N/A' else 'N/A' }} m</div></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon stat-icon-danger">⚡</div>
+                        <div><div class="stat-label">Velocidad Promedio</div><div class="stat-value">{{ tv.velocidad if tv.velocidad and tv.velocidad != 'N/A' else 'N/A' }} m/s</div></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon stat-icon-success">🔋</div>
+                        <div><div class="stat-label">Batería Final</div><div class="stat-value">{{ tv.bateria }}</div></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon {% if tv.armado %}stat-icon-danger{% else %}stat-icon-success{% endif %}">🚁</div>
+                        <div><div class="stat-label">Estado Final</div><div class="stat-value">{{ tv.modo }}</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card fade-in" style="margin-top: 3rem;">
+            <h2 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
+                <span style="font-size: 2rem;">📋</span>
+                <span>Resultados Detallados por Parcela</span>
+            </h2>
+
+            <table class="result-table">
+                <thead>
+                    <tr>
+                        <th style="width: 150px;">Muestra Visual (Banda Blue)</th>
+                        <th>Parcela</th>
+                        <th>GNDVI Promedio</th>
+                        <th>Diagnóstico</th>
+                        <th>Otros Índices</th>
+                        <th>Recomendación</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for nombre, datos in resultados.items() %}
+                    <tr>
+                        <td>
+                            <img src="{{ url_for('static', filename='resultados_parcelas/' + datos['imagen_muestra']) }}" 
+                                 alt="Banda Blue {{ nombre }}" 
+                                 class="parcel-img-thumb"
+                                 onclick="openModal(this.src)">
+                        </td>
+                        <td><strong>{{ nombre }}</strong></td>
+                        <td>{{ "%.4f"|format(datos['indices']['GNDVI']) }}</td>
+                        <td>
+                            {% set diag = datos['diagnostico'] %}
+                            <span class="status-badge 
+                                {% if 'SANO' in diag %}sano{% elif 'RIESGO' in diag %}riesgo{% elif 'INFECTADO' in diag %}infectado{% endif %}">
+                                {{ diag }}
+                            </span>
+                        </td>
+                        <td>
+                            NDVI: {{ "%.4f"|format(datos['indices']['NDVI']) }}<br>
+                            NDRE: {{ "%.4f"|format(datos['indices']['NDRE']) }}<br>
+                            EVI: {{ "%.4f"|format(datos['indices']['EVI']) }}
+                        </td>
+                        <td>{{ datos['recomendacion'] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card fade-in" style="margin-top: 3rem;">
+            <h2 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
+                <span style="font-size: 2rem;">📉</span>
+                <span>Rangos de Clasificación (GNDVI)</span>
+            </h2>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon stat-icon-success">🟢</div>
+                        <div>
+                            <div class="stat-label">SANO</div>
+                            <div class="stat-value">{{ rangos_diag.Rango_Sano[0] }} a {{ rangos_diag.Rango_Sano[1] }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon stat-icon-warning">🟡</div>
+                        <div>
+                            <div class="stat-label">RIESGO / ESTRÉS</div>
+                            <div class="stat-value">{{ rangos_diag.Rango_Estres[0] }} a {{ rangos_diag.Rango_Estres[1] }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon stat-icon-danger">🔴</div>
+                        <div>
+                            <div class="stat-label">INFECTADO / SEVERO</div>
+                            <div class="stat-value">{{ rangos_diag.Rango_Infectado[0] }} a {{ rangos_diag.Rango_Infectado[1] }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="imageModal" class="modal" onclick="closeModal()">
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <img id="modalImage" src="" alt="Vista ampliada">
+        </div>
+    </div>
+
+    <script>
+        // Funciones del Modal (Zoom)
+        function openModal(src) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            modal.classList.add('active');
+            modalImg.src = src;
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('imageModal');
+            modal.classList.remove('active');
+        }
+
+        // Cerrar con tecla ESC
+        document.addEventListener('keydown', function(event) {
+            if (event.key === "Escape") {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

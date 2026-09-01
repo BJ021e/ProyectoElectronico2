@@ -1,0 +1,521 @@
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Resultados - Análisis Multiespectral</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+        <style>
+            /* =========================================
+                ESTILOS DEL MODAL (CORREGIDOS)
+                ========================================= */
+            .modal {
+                display: none; /* Oculto por defecto */
+                position: fixed;
+                z-index: 9999; /* Muy por encima de todo */
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.9); /* Fondo oscuro opaco */
+                /* Centrado Perfecto con Flexbox */
+                align-items: center;
+                justify-content: center;
+                overflow: hidden; /* Evita scroll en el contenedor gris */
+            }
+
+            /* Clase que añade JS para mostrarlo */
+            .modal.active {
+                display: flex !important; /* Fuerza el uso de flexbox al abrir */
+            }
+
+            .modal-content {
+                /* Eliminamos fondos blancos y paddings innecesarios */
+                background: transparent;
+                padding: 0;
+                border: none;
+                box-shadow: none;
+                max-width: 100%;
+                max-height: 100%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+
+            /* LA CLAVE: Restricciones de la imagen */
+            #modalImage {
+                max-width: 90vw;  /* Máximo 90% del ancho de la pantalla */
+                max-height: 90vh; /* Máximo 90% del alto de la pantalla */
+                width: auto;
+                height: auto;
+                object-fit: contain; /* Mantiene la proporción sin estirar */
+                border-radius: 4px;
+                box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            }
+
+            /* Botón de cerrar más visible */
+            .modal-close {
+                position: absolute;
+                top: 20px;
+                right: 30px;
+                color: white;
+                font-size: 40px;
+                font-weight: bold;
+                cursor: pointer;
+                z-index: 10001;
+                background: none;
+                border: none;
+                transition: color 0.3s;
+            }
+            .modal-close:hover {
+                color: #ef4444; /* Rojo al pasar el mouse */
+            }
+
+            /* Estilos adicionales para la funcionalidad de tabs */
+            .image-display-container {
+                margin-top: 1.5rem;
+                border-radius: 12px;
+                overflow: hidden;
+                background-color: var(--dark-bg);
+                text-align: center;
+                min-height: 400px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .main-display-img {
+                max-width: 100%;
+                max-height: 500px; /* Altura máxima para evitar imágenes gigantes */
+                height: auto;
+                width: auto;
+                object-fit: contain;
+                cursor: zoom-in;
+                transition: opacity 0.3s ease-in-out; /* Transición suave al cambiar */
+            }
+            .image-selector-tabs {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                margin-bottom: 1rem;
+                justify-content: center;
+            }
+    .selector-tab {
+            padding: 10px 20px;
+            border: 1px solid var(--dark-border);
+            border-radius: 20px;
+            background: var(--dark-bg-light); 
+            color: var(--text-color);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            box-shadow: none; 
+            /* === CORRECCIÓN DEL BORDE BLANCO EN EMOJIS === */
+            /* Aseguramos que el emoji no tenga un halo blanco indeseado */
+            text-shadow: 0 0 1px rgba(0, 0, 0, 0.5); /* Sombra sutil oscura */
+            -webkit-font-smoothing: antialiased; /* Mejor renderizado de fuente */
+            -moz-osx-font-smoothing: grayscale; /* Mejor renderizado de fuente */
+        }
+        
+        .selector-tab:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+            /* Quitar la sombra de texto al pasar el ratón para un aspecto más limpio */
+            text-shadow: none; 
+        }
+
+        .selector-tab.active {
+            background-color: var(--active-color, var(--primary-color)); 
+            color: white;
+            border-color: transparent;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(var(--active-color-rgb, 5, 150, 105), 0.4); 
+            /* Quitar la sombra de texto cuando está activo */
+            text-shadow: none; 
+        }
+
+        /* Estilos para el texto de la leyenda debajo de la imagen */
+        .image-caption {
+            margin-top: 1rem;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.4;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 0 15px; /* Pequeño padding para móviles */
+            text-align: left; /* Alineación del texto de la leyenda */
+        }
+        /* Asegurar que las imágenes en el modal no tengan ese problema */
+        #modalImage {
+            /* ... tus estilos actuales para modalImage ... */
+            background-color: transparent; /* Por si el emoji tuviera fondo */
+        }
+    </style>
+
+    </head>     
+    <body>
+        <nav class="navbar">
+            <div class="container navbar-content">
+                <a href="{{ url_for('index_mosaico_remoto') }}" class="navbar-brand">
+                    <div class="icon">🛰️</div>
+                    <span>Análisis Multiespectral</span>
+                </a>
+                <div class="navbar-nav">
+                    <a href="{{ url_for('descargar_pdf_mosaico_remoto') }}" class="btn btn-success">
+                        <span>📄</span>
+                        <span>Descargar PDF</span>
+                    </a>
+                    <a href="{{ url_for('index_mosaico_remoto') }}" class="btn btn-primary">
+                        <span>🔄</span>
+                        <span>Nuevo Análisis</span>
+                    </a>
+                    <a href="{{ url_for('logout_mosaico_remoto') }}" class="btn btn-secondary">
+                        <span>🚪</span>
+                        <span>Salir</span>
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container" style="padding-top: 3rem; padding-bottom: 3rem;">
+
+            <div style="text-align: center; margin-bottom: 3rem;" class="fade-in">
+                <div style="width: 80px; height: 80px; margin: 0 auto 1rem; background: linear-gradient(135deg, var(--secondary-color) 0%, #059669 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 3rem;">
+                    ✅
+                </div>
+                <h1 style="font-size: 2.5rem; margin-bottom: 1rem; background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary-color) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                    Análisis Completado
+                </h1>
+                <p style="color: var(--text-muted); font-size: 1.125rem;">
+                    Procesamiento multiespectral finalizado exitosamente
+                </p>
+            </div>
+
+            <div class="alert alert-success fade-in">
+                <span style="font-size: 1.5rem;">✨</span>
+                <span>Las imágenes han sido procesadas correctamente. Todos los índices espectrales han sido calculados.</span>
+            </div>
+
+            <div class="card fade-in" style="margin-top: 3rem;">
+                <h2 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
+                    <span style="font-size: 2rem;">📊</span>
+                    <span>Índices Espectrales Calculados</span>
+                </h2>
+
+                <div class="stats-grid">
+                    {% for nombre, valor in promedios.items() %}
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon
+                                {% if nombre == 'NDVI' %}stat-icon-success
+                                {% elif nombre == 'GNDVI' %}stat-icon-primary
+                                {% elif nombre == 'NDRE' %}stat-icon-warning
+                                {% elif nombre == 'SAVI' %}stat-icon-danger
+                                {% else %}stat-icon-primary{% endif %}">
+                                {% if nombre == 'NDVI' %}🌿
+                                {% elif nombre == 'GNDVI' %}🌱
+                                {% elif nombre == 'NDRE' %}🍂
+                                {% elif nombre == 'SAVI' %}🌾
+                                {% elif nombre == 'EVI' %}🌳
+                                {% endif %}
+                            </div>
+                            <div style="flex: 1;">
+                                <div class="stat-label">{{ nombre }}</div>
+                                <div class="stat-value">{{ "%.4f"|format(valor) }}</div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--dark-border);">
+                            <div style="background: var(--dark-bg); height: 8px; border-radius: 4px; overflow: hidden;">
+                                <div style="background: linear-gradient(90deg, var(--danger-color) 0%, var(--accent-color) 50%, var(--secondary-color) 100%); height: 100%; width: {{ (valor * 100)|round(2) }}%; transition: width 1s ease-out;"></div>
+                            </div>
+                            <p style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.5rem;">
+                                {% if nombre == 'NDVI' %}Índice de Vegetación Normalizado
+                                {% elif nombre == 'GNDVI' %}Índice Verde Normalizado
+                                {% elif nombre == 'NDRE' %}Índice Red Edge Normalizado
+                                {% elif nombre == 'SAVI' %}Índice Ajustado de Vegetación del Suelo
+                                {% elif nombre == 'EVI' %}Índice de Vegetación Mejorado
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="card fade-in" style="margin-top: 3rem;">
+                <h2 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
+                    <span style="font-size: 2rem;">🛸</span>
+                    <span>Telemetría del Dron</span>
+                </h2>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon stat-icon-primary">🌍</div>
+                            <div>
+                                <div class="stat-label">Latitud Promedio</div>
+                                <div class="stat-value" style="font-size: 1.25rem;">
+                                    {{ datos_vuelo.latitud }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon stat-icon-primary">🌎</div>
+                            <div>
+                                <div class="stat-label">Longitud Promedio</div>
+                                <div class="stat-value" style="font-size: 1.25rem;">
+                                    {{ datos_vuelo.longitud }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon stat-icon-warning">📏</div>
+                            <div>
+                                <div class="stat-label">Altitud Promedio</div>
+                                <div class="stat-value">
+                                    {{ "%.2f"|format(datos_vuelo.altitud) if datos_vuelo.altitud else 'N/A' }}
+                                    {% if datos_vuelo.altitud %}<span style="font-size: 1rem; color: var(--text-muted);">m</span>{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon stat-icon-danger">⚡</div>
+                            <div>
+                                <div class="stat-label">Velocidad Promedio</div>
+                                <div class="stat-value">
+                                    {{ "%.2f"|format(datos_vuelo.velocidad) if datos_vuelo.velocidad else 'N/A' }}
+                                    {% if datos_vuelo.velocidad %}<span style="font-size: 1rem; color: var(--text-muted);">m/s</span>{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon stat-icon-success">🔋</div>
+                            <div>
+                                <div class="stat-label">Batería Final</div>
+                                <div class="stat-value" style="font-size: 1.5rem;">
+                                    {{ datos_vuelo.bateria }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon {% if datos_vuelo.armado %}stat-icon-danger{% else %}stat-icon-success{% endif %}">
+                                {% if datos_vuelo.armado %}🚁{% else %}🛬{% endif %}
+                            </div>
+                            <div>
+                                <div class="stat-label">Estado Final</div>
+                                <div>
+                                    <span class="badge {% if datos_vuelo.armado %}badge-danger{% else %}badge-success{% endif %}">
+                                        {% if datos_vuelo.armado %}
+                                            ⚠️ Armado
+                                        {% else %}
+                                            ✓ Desarmado
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card fade-in" style="margin-top: 3rem;">
+                <h2 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
+                    <span style="font-size: 2rem;">🎨</span>
+                    <span>Bandas Espectrales Procesadas</span>
+                </h2>
+
+                <div class="image-selector-tabs" id="tabs-bandas">
+                    {% for img in lista_bandas %}
+                        {% set band_name = img.replace('banda_', '').replace('.png', '') %}
+                        {% set color = '#3b82f6' %}
+                        {% set icon = '🔵' %}
+                        
+                        {% if 'Green' in img %}{% set color = '#10b981' %}{% set icon = '🟢' %}
+                        {% elif 'RedEdge' in img %}{% set color = '#f59e0b' %}{% set icon = '🟤' %}
+                        {% elif 'Red' in img and 'RedEdge' not in img %}{% set color = '#ef4444' %}{% set icon = '🔴' %}
+                        {% elif 'NIR' in img %}{% set color = '#8b5cf6' %}{% set icon = '🟣' %}
+                        {% endif %}
+                        
+                        <button class="selector-tab {% if loop.first %}active{% endif %}"
+                                onclick = "switchImage('banda', {{ loop.index0 }}, this, '{{ color }}')"
+                                style = "--active-color: {{ color }}">
+                            <span class="tab-icon">{{ icon }}</span> <span class="tab-label">{{ band_name }}</span>
+                        </button>
+                    {% endfor %}
+                </div>
+
+                <div class="image-display-container">
+                    {% if lista_bandas %}
+                    <img id="img-display-banda" 
+                        src="{{ url_for('static', filename='resultados_remoto_mosaico/' + lista_bandas[0]) }}" 
+                        class="main-display-img"
+                        alt="Banda Espectral"
+                        onclick="openModal(this.src)">
+                    {% else %}
+                    <p style="color: var(--text-muted);">No hay imágenes de banda disponibles.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+
+            <div class="card fade-in" style="margin-top: 3rem;">
+                <h2 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
+                    <span style="font-size: 2rem;">🌿</span>
+                    <span>Visualización de Índices Espectrales</span>
+                </h2>
+
+                <div class="image-selector-tabs" id="tabs-indices">
+                    {% for img in lista_indices %}
+                        {% set index_name = img.replace('indice_', '').replace('.png', '') %}
+                        {% set color = '#059669' %}
+                        {% set icon = '🟢' %}
+                        
+                        {% if 'NDVI' in img %}{% set color = '#10b981' %}{% set icon = '🌿' %}
+                        {% elif 'GNDVI' in img %}{% set color = '#2563eb' %}{% set icon = '🌱' %}
+                        {% elif 'NDRE' in img %}{% set color = '#d97706' %}{% set icon = '🍂' %}
+                        {% elif 'SAVI' in img %}{% set color = '#06b6d4' %}{% set icon = '🌾' %}
+                        {% elif 'EVI' in img %}{% set color = '#8b5cf6' %}{% set icon = '🌳' %}
+                        {% endif %}
+                        
+                        <button class="selector-tab {% if loop.first %}active{% endif %}"
+                                onclick="switchImage('indice', {{ loop.index0 }}, this, '{{ color }}')"
+                                style="--active-color: {{ color }}">
+                            <span class="tab-icon">{{ icon }}</span> <span class="tab-label">{{ index_name }}</span>
+                        </button>
+                    {% endfor %}
+                </div>
+
+                <div class="image-display-container">
+                    {% if lista_indices %}
+                    <img id="img-display-indice" 
+                        src="{{ url_for('static', filename='resultados_remoto_mosaico/' + lista_indices[0]) }}" 
+                        class="main-display-img"
+                        alt="Índice Espectral"
+                        onclick="openModal(this.src)">
+                    {% else %}
+                    <p style="color: var(--text-muted);">No hay imágenes de índice disponibles.</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card fade-in" style="margin-top: 3rem;">
+                <h2 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
+                    <span style="font-size: 2rem;">📷</span>
+                    <span>Reconstrucción RGB Mejorada</span>
+                </h2>
+                <div class="image-display-container" style="background-color: transparent;">
+                    <img src="{{ url_for('static', filename='resultados_remoto_mosaico/RGB_reconstruido.png') }}" 
+                        class="main-display-img" 
+                        alt="RGB Reconstruido"
+                        style="max-height: 550px;"
+                        onclick="openModal(this.src)">
+                </div>
+            </div>
+
+        </div> <div id="imageModal" class="modal" onclick="closeModal()">
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+            <div class="modal-content" onclick="event.stopPropagation()"> <img id="modalImage" src="" alt="Vista ampliada">
+            </div>
+        </div>
+
+        <script>
+            // 1. Construimos los Arrays de rutas usando Jinja2
+            const bandasImages = [
+                {% for img in lista_bandas %}
+                    "{{ url_for('static', filename='resultados_remoto_mosaico/' + img) }}",
+                {% endfor %}
+            ];
+
+            const indicesImages = [
+                {% for img in lista_indices %}
+                    "{{ url_for('static', filename='resultados_remoto_mosaico/' + img) }}",
+                {% endfor %}
+            ];
+
+            /**
+             * Función para cambiar la imagen mostrada en el contenedor de tabs.
+             * @param {string} type - 'banda' o 'indice'
+             * @param {number} index - Índice de la imagen en el array de rutas.
+             * @param {HTMLElement} tabElement - El botón (tab) clickeado.
+             * @param {string} color - Color de acento para el tab.
+             */
+            function switchImage(type, index, tabElement, color) {
+                let imgElementId = '';
+                let containerTabsId = '';
+                let sourceArray = [];
+
+                if (type === 'banda') {
+                    imgElementId = 'img-display-banda';
+                    containerTabsId = 'tabs-bandas';
+                    sourceArray = bandasImages;
+                } else {
+                    imgElementId = 'img-display-indice';
+                    containerTabsId = 'tabs-indices';
+                    sourceArray = indicesImages;
+                }
+
+                // Animación de opacidad (Fade out)
+                const imgElement = document.getElementById(imgElementId);
+                imgElement.style.opacity = '0.4'; // Hace un fade out suave
+
+                // Cambiar clases activas en los botones
+                const container = document.getElementById(containerTabsId);
+                const tabs = container.getElementsByClassName('selector-tab');
+                for (let tab of tabs) {
+                    tab.classList.remove('active');
+                }
+
+                // Activar el botón clickeado
+                tabElement.classList.add('active');
+
+                // Cambiar la fuente de la imagen después de un breve retraso para la animación
+                setTimeout(() => {
+                    imgElement.src = sourceArray[index];
+                    imgElement.onload = () => {
+                        imgElement.style.opacity = '1'; // Fade in
+                    };
+                }, 150); // Ajuste de tiempo para una transición más rápida
+            }
+
+            // 2. Funciones del Modal (Zoom)
+            function openModal(src) {
+                const modal = document.getElementById('imageModal');
+                const modalImg = document.getElementById('modalImage');
+                modal.classList.add('active');
+                modalImg.src = src;
+            }
+
+            function closeModal() {
+                const modal = document.getElementById('imageModal');
+                modal.classList.remove('active');
+            }
+
+            // Cerrar con tecla ESC
+            document.addEventListener('keydown', function(event) {
+                if (event.key === "Escape") {
+                    closeModal();
+                }
+            });
+        </script>
+    </body>
+    </html>
