@@ -1,3 +1,4 @@
+from __future__ import annotations
 from datetime import datetime, timezone
 from enum import Enum as PyEnum
 
@@ -8,10 +9,13 @@ from sqlalchemy import (
     String,
     Text,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import Base
+from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from models.waypoint import Waypoint
 
 class RouteStatus(str, PyEnum):
     DRAFT = "DRAFT"
@@ -66,6 +70,13 @@ class Route(Base):
         nullable=False,
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc)
+    )
+    
+    waypoints: Mapped[list["Waypoint"]] = relationship(
+    "Waypoint",
+    back_populates="route",
+    cascade="all, delete-orphan",
+    order_by="Waypoint.sequence"
     )
 
     def __repr__(self) -> str:
