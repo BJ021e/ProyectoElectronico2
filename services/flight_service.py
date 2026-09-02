@@ -252,3 +252,40 @@ class FlightService:
 
         finally:
             session.close()
+            
+    @staticmethod
+    def list_flights(
+        limit: int = 50
+    ) -> list[dict]:
+        """
+        Recupera los vuelos más recientes.
+
+        El resultado se ordena desde el vuelo más reciente
+        hacia el más antiguo.
+        """
+        session = SessionLocal()
+
+        try:
+            # Protección básica para evitar consultas excesivas
+            limit = max(1, min(limit, 500))
+
+            statement = (
+                select(Flight)
+                .order_by(Flight.id.desc())
+                .limit(limit)
+            )
+
+            flights = session.scalars(statement).all()
+
+            return [
+                FlightService._serialize(flight)
+                for flight in flights
+            ]
+
+        except SQLAlchemyError as exc:
+            raise FlightPersistenceError(
+                f"No fue posible listar los vuelos: {exc}"
+            ) from exc
+
+        finally:
+            session.close()

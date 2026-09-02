@@ -179,6 +179,111 @@ def api_ground_telemetry():
     except RaspberryConnectionError:
         return jsonify({"error": True})
 
+@app.route("/api/flights", methods=["GET"])
+def api_list_flights():
+    try:
+        limit = request.args.get(
+            "limit",
+            default=50,
+            type=int
+        )
+
+        flights = FlightService.list_flights(
+            limit=limit
+        )
+
+        return jsonify({
+            "flights": flights,
+            "count": len(flights)
+        })
+
+    except FlightPersistenceError as e:
+        return jsonify({
+            "error": True,
+            "msg": str(e)
+        }), 500
+        
+@app.route("/api/flights/<int:flight_id>", methods=["GET"])
+def api_get_flight(flight_id):
+    try:
+        flight = FlightService.get_flight(
+            flight_id
+        )
+
+        if flight is None:
+            return jsonify({
+                "error": True,
+                "msg": "Vuelo no encontrado."
+            }), 404
+
+        points = TelemetryService.get_flight_points(
+            flight_id
+        )
+
+        return jsonify({
+            "flight": flight,
+            "telemetry_count": len(points)
+        })
+
+    except (
+        FlightPersistenceError,
+        TelemetryPersistenceError
+    ) as e:
+        return jsonify({
+            "error": True,
+            "msg": str(e)
+        }), 500
+        
+@app.route(
+    "/api/flights/<int:flight_id>/trajectory",
+    methods=["GET"]
+)
+def api_get_flight_trajectory(flight_id):
+    try:
+        flight = FlightService.get_flight(
+            flight_id
+        )
+
+        if flight is None:
+            return jsonify({
+                "error": True,
+                "msg": "Vuelo no encontrado."
+            }), 404
+
+        points = TelemetryService.get_flight_points(
+            flight_id
+        )
+
+        trajectory = [
+            {
+                "latitude": point["latitude"],
+                "longitude": point["longitude"],
+                "altitude": point["altitude"],
+                "recorded_at": point["recorded_at"]
+            }
+            for point in points
+            if (
+                point["latitude"] is not None
+                and point["longitude"] is not None
+            )
+        ]
+
+        return jsonify({
+            "flight_id": flight_id,
+            "flight_code": flight["flight_code"],
+            "points": trajectory,
+            "count": len(trajectory)
+        })
+
+    except (
+        FlightPersistenceError,
+        TelemetryPersistenceError
+    ) as e:
+        return jsonify({
+            "error": True,
+            "msg": str(e)
+        }), 500
+        
 @app.route("/api/ground_trigger", methods=["POST"])
 def api_ground_trigger():
     try:
