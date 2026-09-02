@@ -15,9 +15,10 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 from reportlab.lib.utils import ImageReader
+from config import Config
 
 app = Flask(__name__)
-app.secret_key = "ground_test_super_secret"
+app.secret_key = Config.SECRET_KEY
 
 # ---------------- CONFIGURACIÓN ----------------
 BASE_DIR = "static/ground_mission"
@@ -29,9 +30,9 @@ for f in [UPLOAD_FOLDER, RESULT_FOLDER, CACHE_FOLDER]:
     if os.path.exists(f): shutil.rmtree(f)
     os.makedirs(f, exist_ok=True)
 
-RPI_IP = "172.20.10.3" 
-RPI_API_URL = f"http://{RPI_IP}:5000"
-ACCESS_CODE = "1234"
+RPI_IP = Config.RPI_IP
+RPI_API_URL = Config.RPI_API_URL
+ACCESS_CODE = Config.ACCESS_CODE
 EPSILON = 1e-10
 
 # ---------------- ESTADO GLOBAL ----------------
@@ -328,4 +329,8 @@ def generar_pdf_parcelas(resultados_parcelas, telemetria_resumen):
     return pdf_path
 
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0', port=5050)
+    app.run(
+        debug=Config.FLASK_DEBUG,
+        host=Config.FLASK_HOST,
+        port=Config.FLASK_PORT
+    )
