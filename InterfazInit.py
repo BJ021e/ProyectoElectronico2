@@ -4,7 +4,6 @@
 # ====================================================
 from flask import Flask, render_template, request, redirect, url_for, session, send_file, jsonify
 import os
-import requests
 import threading
 import shutil
 import time
@@ -16,6 +15,10 @@ from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 from reportlab.lib.utils import ImageReader
 from config import Config
+from services.raspberry_service import (
+    RaspberryService,
+    RaspberryConnectionError
+)
 
 app = Flask(__name__)
 app.secret_key = Config.SECRET_KEY
@@ -34,6 +37,7 @@ RPI_IP = Config.RPI_IP
 RPI_API_URL = Config.RPI_API_URL
 ACCESS_CODE = Config.ACCESS_CODE
 EPSILON = 1e-10
+raspberry_service = RaspberryService(RPI_API_URL)
 
 # ---------------- ESTADO GLOBAL ----------------
 session_state = {
@@ -95,27 +99,27 @@ def ground_capture_interface():
 # --- TELEMETRÍA CON REGISTRO DE HISTORIAL ---
 @app.route("/api/ground_telemetry")
 def api_ground_telemetry():
-    try: 
-        resp = requests.get(f"{RPI_API_URL}/api/telemetry", timeout=1)
-        data = resp.json()
-        
+    try:
+        data = raspberry_service.get_telemetry(timeout=1)
+
         # Si estamos capturando, guardamos la altitud para el promedio
         if session_state["status"] == "capturing" and "altitud" in data:
             try:
                 alt = float(data["altitud"])
                 session_state["altitude_history"].append(alt)
-            except: pass
-            
+            except (TypeError, ValueError):
+                pass
+
         return jsonify(data)
-    except: return jsonify({"error": True})
+
+    except RaspberryConnectionError:
+        return jsonify({"error": True})
 
 @app.route("/api/ground_trigger", methods=["POST"])
 def api_ground_trigger():
     try:
-        r = requests.get(f"{RPI_API_URL}/api/trigger_only", timeout=45)
-        if r.status_code!=200: return jsonify({"status":"error", "msg":"Fallo RPi"})
-        
-        data = r.json()
+        data = raspberry_service.trigger_capture(timeout=45)
+
         blue_path = data.get("blue_path")
         
         if not blue_path: return jsonify({"status":"error", "msg":"No path"})
@@ -146,13 +150,24 @@ def api_ground_trigger():
             log_msg(f"📸 Captura Guardada: {base_name}")
             
         local_tmp = os.path.join(CACHE_FOLDER, "temp.tif")
-        with requests.get(f"{RPI_API_URL}/api/proxy_download", params={'path':blue_path}, stream=True) as r_img:
-            with open(local_tmp, 'wb') as f: shutil.copyfileobj(r_img.raw, f)
+
+        raspberry_service.download_file(
+            remote_path=blue_path,
+            local_path=local_tmp,
+            timeout=15
+        )
         
         img_url = f"prev_{len(session_state['captured_samples'])}.png"
         web_path = process_preview_image(local_tmp, img_url)
         
         return jsonify({"status":"success", "count":len(session_state["captured_samples"]), "img_url": web_path, "last_parcel": base_name})
+        
+    except RaspberryConnectionError as e:
+        log_msg(f"Error de comunicación con Raspberry: {e}")
+        return jsonify({
+            "status": "error",
+            "msg": "Fallo RPi"
+        })
         
     except Exception as e: 
         log_msg(f"Error trigger: {e}")
@@ -193,10 +208,16 @@ def processing_worker():
         log_msg("📥 Iniciando procesamiento...")
         
         # 1. Obtener Telemetría Final (Snapshot)
-        try: 
-            final_telem = requests.get(f"{RPI_API_URL}/api/telemetry", timeout=2).json()
-        except: 
-            final_telem = {"bateria":"N/A", "modo":"N/A", "altitud":0, "latitud":0, "longitud":0}
+        try:
+            final_telem = raspberry_service.get_telemetry(timeout=2)
+        except RaspberryConnectionError:
+            final_telem = {
+                "bateria": "N/A",
+                "modo": "N/A",
+                "altitud": 0,
+                "latitud": 0,
+                "longitud": 0
+            }
 
         # 2. Calcular Altitud Promedio
         historia = session_state["altitude_history"]
@@ -225,17 +246,26 @@ def processing_worker():
             bands_arrays = {}
             valid_sample = True
             
-            for band_name, band_idx in band_indices.items():
-                remote_file = f"{base_remote}_{band_idx}.tif"
-                local_file = os.path.join(local_dir, f"{band_name}.tif")
-                try:
-                    with requests.get(f"{RPI_API_URL}/api/proxy_download", params={'path': remote_file}, stream=True, timeout=15) as r:
-                        if r.status_code != 200: raise Exception(f"HTTP {r.status_code}")
-                        with open(local_file, 'wb') as f: shutil.copyfileobj(r.raw, f)
-                    with rasterio.open(local_file) as src: bands_arrays[band_name] = src.read(1).astype(np.float32)
-                except Exception as e:
-                    log_msg(f"⚠️ Fallo banda {band_name}: {e}")
-                    valid_sample = False; break
+        for band_name, band_idx in band_indices.items():
+            remote_file = f"{base_remote}_{band_idx}.tif"
+            local_file = os.path.join(local_dir, f"{band_name}.tif")
+
+            try:
+                raspberry_service.download_file(
+                    remote_path=remote_file,
+                    local_path=local_file,
+                    timeout=15
+                )
+
+                with rasterio.open(local_file) as src:
+                    bands_arrays[band_name] = (
+                        src.read(1).astype(np.float32)
+                    )
+
+            except Exception as e:
+                log_msg(f"⚠️ Fallo banda {band_name}: {e}")
+                valid_sample = False
+                break
             
             if not valid_sample: continue
 
