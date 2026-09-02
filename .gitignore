@@ -53,3 +53,10 @@ static/ground_cache/
 # =========================
 static/ground_mission/raw_bands/
 static/ground_mission/results/
+
+# =========================
+# Base de datos local
+# =========================
+data/*.db
+data/*.sqlite
+data/*.sqlite3

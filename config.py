@@ -59,3 +59,9 @@ class Config:
         "ACCESS_CODE",
         "1234"
     )
+    
+    # Base de datos
+    DATABASE_URL = os.getenv(
+        "DATABASE_URL",
+        "sqlite:///data/ground_control.db"
+    )

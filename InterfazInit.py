@@ -15,9 +15,23 @@ from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 from reportlab.lib.utils import ImageReader
 from config import Config
+from models import TelemetrySource
+
 from services.raspberry_service import (
     RaspberryService,
     RaspberryConnectionError
+)
+
+from services.flight_service import (
+    FlightService,
+    FlightPersistenceError,
+    InvalidFlightTransitionError,
+)
+
+from services.telemetry_service import (
+    TelemetryService,
+    TelemetryPersistenceError,
+    InvalidTelemetryError,
 )
 
 app = Flask(__name__)
@@ -47,7 +61,9 @@ session_state = {
     "results": {},
     "telemetria_final": {},
     "last_set_detected": None,
-    "altitude_history": []  # NUEVO: Lista para guardar historial de alturas
+    "altitude_history": [],  
+    "active_flight_id": None,
+    "active_flight_code": None,
 }
 
 def log_msg(msg):
@@ -86,8 +102,35 @@ def ground_init():
         "logs": ["Sistema Iniciado."], 
         "results": {},
         "last_set_detected": None,
-        "altitude_history": [] # Reiniciar historial
+        "altitude_history": [], # Reiniciar historial
+        "active_flight_id": None,
+        "active_flight_code": None,
     })
+    
+    try:
+        flight = FlightService.create_flight(
+            name="Sesión de captura multiespectral"
+        )
+
+        flight = FlightService.start_flight(
+            flight["id"]
+        )
+
+        session_state["active_flight_id"] = flight["id"]
+        session_state["active_flight_code"] = flight["flight_code"]
+
+        log_msg(
+            f"Vuelo iniciado: {flight['flight_code']}"
+        )
+
+    except (
+        FlightPersistenceError,
+        InvalidFlightTransitionError
+    ) as e:
+        log_msg(
+            f"Error al iniciar vuelo persistente: {e}"
+        )
+        
     for f in [UPLOAD_FOLDER, RESULT_FOLDER, CACHE_FOLDER]:
         if os.path.exists(f): shutil.rmtree(f); os.makedirs(f, exist_ok=True)
     return redirect(url_for("ground_capture_interface"))
@@ -109,12 +152,138 @@ def api_ground_telemetry():
                 session_state["altitude_history"].append(alt)
             except (TypeError, ValueError):
                 pass
+        
+        active_flight_id = session_state.get(
+            "active_flight_id"
+        )
 
+        if (
+            session_state["status"] == "capturing"
+            and active_flight_id is not None
+        ):
+            try:
+                TelemetryService.add_from_rpi_payload(
+                    active_flight_id,
+                    data
+                )
+
+            except (
+                TelemetryPersistenceError,
+                InvalidTelemetryError
+            ) as e:
+                log_msg(
+                    f"Error guardando telemetría: {e}"
+                )
         return jsonify(data)
 
     except RaspberryConnectionError:
         return jsonify({"error": True})
 
+@app.route("/api/flights", methods=["GET"])
+def api_list_flights():
+    try:
+        limit = request.args.get(
+            "limit",
+            default=50,
+            type=int
+        )
+
+        flights = FlightService.list_flights_summary(
+            limit=limit
+        )
+
+        return jsonify({
+            "flights": flights,
+            "count": len(flights)
+        })
+
+    except FlightPersistenceError as e:
+        return jsonify({
+            "error": True,
+            "msg": str(e)
+        }), 500
+        
+@app.route("/api/flights/<int:flight_id>", methods=["GET"])
+def api_get_flight(flight_id):
+    try:
+        flight = FlightService.get_flight(
+            flight_id
+        )
+
+        if flight is None:
+            return jsonify({
+                "error": True,
+                "msg": "Vuelo no encontrado."
+            }), 404
+
+        points = TelemetryService.get_flight_points(
+            flight_id
+        )
+
+        return jsonify({
+            "flight": flight,
+            "telemetry_count": len(points)
+        })
+
+    except (
+        FlightPersistenceError,
+        TelemetryPersistenceError
+    ) as e:
+        return jsonify({
+            "error": True,
+            "msg": str(e)
+        }), 500
+        
+@app.route(
+    "/api/flights/<int:flight_id>/trajectory",
+    methods=["GET"]
+)
+def api_get_flight_trajectory(flight_id):
+    try:
+        flight = FlightService.get_flight(
+            flight_id
+        )
+
+        if flight is None:
+            return jsonify({
+                "error": True,
+                "msg": "Vuelo no encontrado."
+            }), 404
+
+        points = TelemetryService.get_flight_points(
+            flight_id
+        )
+
+        trajectory = [
+            {
+                "latitude": point["latitude"],
+                "longitude": point["longitude"],
+                "altitude": point["altitude"],
+                "recorded_at": point["recorded_at"]
+            }
+            for point in points
+            if (
+                point["latitude"] is not None
+                and point["longitude"] is not None
+            )
+        ]
+
+        return jsonify({
+            "flight_id": flight_id,
+            "flight_code": flight["flight_code"],
+            "points": trajectory,
+            "count": len(trajectory)
+        })
+
+    except (
+        FlightPersistenceError,
+        TelemetryPersistenceError
+    ) as e:
+        return jsonify({
+            "error": True,
+            "msg": str(e)
+        }), 500
+        
 @app.route("/api/ground_trigger", methods=["POST"])
 def api_ground_trigger():
     try:
@@ -175,6 +344,28 @@ def api_ground_trigger():
 
 @app.route("/ground_start_process", methods=["POST"])
 def ground_start_process():
+    active_flight_id = session_state.get(
+    "active_flight_id"
+    )
+
+    if active_flight_id is not None:
+        try:
+            flight = FlightService.finish_flight(
+                active_flight_id
+            )
+
+            log_msg(
+                f"Vuelo finalizado: {flight['flight_code']}"
+            )
+
+        except (
+            FlightPersistenceError,
+            InvalidFlightTransitionError
+        ) as e:
+            log_msg(
+                f"Error al finalizar vuelo: {e}"
+            )
+            
     session_state["status"] = "processing"
     threading.Thread(target=processing_worker).start()
     return jsonify({"status": "success", "redirect": url_for("ground_processing_view")})
@@ -357,6 +548,19 @@ def generar_pdf_parcelas(resultados_parcelas, telemetria_resumen):
 
     c.save()
     return pdf_path
+
+@app.route("/flight_history")
+def flight_history():
+    return render_template(
+        "flight_history.html"
+    )
+
+@app.route("/flight_history/<int:flight_id>")
+def flight_detail(flight_id):
+    return render_template(
+        "flight_detail.html",
+        flight_id=flight_id
+    )
 
 if __name__ == "__main__":
     app.run(

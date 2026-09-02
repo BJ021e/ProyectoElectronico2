@@ -5,3 +5,4 @@ opencv-python==5.0.0.93
 rasterio==1.5.1
 reportlab==5.0.1
 python-dotenv==1.2.3
+SQLAlchemy==2.0.52
