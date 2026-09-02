@@ -58,6 +58,7 @@ class DroneService:
     """
 
     _provider: DroneProvider | None = None
+    _active_route_id: int | None = None
 
     _lock = RLock()
 
@@ -240,11 +241,20 @@ class DroneService:
         cls.set_provider(
             simulator
         )
-
+        
+        with cls._lock:
+            cls._active_route_id = route_id
 
         return simulator.get_state()
 
+    @classmethod
+    def get_active_route_id(
+        cls
+    ) -> int | None:
 
+        with cls._lock:
+            return cls._active_route_id
+        
     @classmethod
     def _require_simulator(
         cls
@@ -493,6 +503,9 @@ class DroneService:
 
                 "last_error":
                     cls._simulation_last_error,
+                
+                "route_id": 
+                    cls._active_route_id,
             }
             
     @classmethod
@@ -629,3 +642,5 @@ class DroneService:
 
 
         return cls.simulator_auto_status()
+    
+    

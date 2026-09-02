@@ -501,10 +501,10 @@
 
 
                 <button
-                    id="advanceButton"
+                    id="stopButton"
                     class="control-button"
                 >
-                    Avanzar
+                    Detener
                 </button>
 
 
@@ -773,6 +773,11 @@ let droneMarker = null;
 
 let activeRoute = null;
 
+let pollingActive = false;
+
+let pollingTimer = null;
+
+const STATE_POLL_INTERVAL_MS = 500;
 
 /* ===============================================
    UTILIDADES
@@ -1207,6 +1212,119 @@ async function getDroneState() {
     return data;
 }
 
+async function pollDroneState() {
+
+    if (!pollingActive) {
+        return;
+    }
+
+
+    try {
+
+        const payload =
+            await getDroneState();
+
+
+        /*
+         * Si existe proveedor pero la aeronave
+         * terminó en HOLD, podemos consultar
+         * también el estado del runner.
+         */
+
+        if (
+            payload.configured &&
+            payload.state
+        ) {
+
+            const state =
+                payload.state;
+
+
+            if (
+                state.flight_mode === "HOLD"
+            ) {
+
+                const statusResponse =
+                    await fetch(
+                        "/api/drone/simulator/auto/status"
+                    );
+
+
+                if (statusResponse.ok) {
+
+                    const runtime =
+                        await statusResponse.json();
+
+
+                    if (
+                        !runtime.auto_running &&
+                        !runtime.simulator_running
+                    ) {
+
+                        setMessage(
+                            "La misión simulada fue completada.",
+                            "success"
+                        );
+
+                        stopStatePolling();
+
+                        return;
+                    }
+                }
+            }
+        }
+
+
+    } catch (error) {
+
+        console.error(
+            "Error consultando estado del dron:",
+            error
+        );
+
+    }
+
+
+    if (pollingActive) {
+
+        pollingTimer =
+            setTimeout(
+                pollDroneState,
+                STATE_POLL_INTERVAL_MS
+            );
+    }
+
+}
+
+function startStatePolling() {
+
+    if (pollingActive) {
+        return;
+    }
+
+
+    pollingActive = true;
+
+
+    pollDroneState();
+
+}
+
+function stopStatePolling() {
+
+    pollingActive = false;
+
+
+    if (pollingTimer !== null) {
+
+        clearTimeout(
+            pollingTimer
+        );
+
+        pollingTimer = null;
+    }
+
+}
 
 async function sendSimulatorCommand(
     endpoint,
@@ -1412,6 +1530,8 @@ async function setupSimulator() {
 
     try {
 
+        stopStatePolling();
+
         await sendSimulatorCommand(
             "/api/drone/simulator/setup",
             {
@@ -1474,21 +1594,41 @@ async function connectSimulator() {
 
 }
 
-
 async function startSimulator() {
 
     try {
+
+        /*
+         * Primero cambiamos DroneSimulator
+         * STANDBY -> AUTO.
+         */
 
         await sendSimulatorCommand(
             "/api/drone/simulator/start"
         );
 
 
+        /*
+         * Después arrancamos el worker
+         * independiente del backend.
+         */
+
+        await sendSimulatorCommand(
+            "/api/drone/simulator/auto/start",
+            {
+                interval_seconds: 0.5
+            }
+        );
+
+
         await getDroneState();
 
 
+        startStatePolling();
+
+
         setMessage(
-            "Misión simulada iniciada.",
+            "Misión simulada en ejecución.",
             "success"
         );
 
@@ -1503,37 +1643,25 @@ async function startSimulator() {
 
 }
 
-
-async function advanceSimulator() {
+async function stopSimulator() {
 
     try {
 
-        const result =
-            await sendSimulatorCommand(
-                "/api/drone/simulator/advance"
-            );
+        await sendSimulatorCommand(
+            "/api/drone/simulator/auto/stop"
+        );
+
+
+        stopStatePolling();
 
 
         await getDroneState();
 
 
-        if (
-            result.status
-            === "completed"
-        ) {
-
-            setMessage(
-                "La ruta simulada fue completada.",
-                "success"
-            );
-
-        } else {
-
-            setMessage(
-                "Simulación avanzada un paso.",
-                "success"
-            );
-        }
+        setMessage(
+            "Simulación automática detenida.",
+            "success"
+        );
 
 
     } catch (error) {
@@ -1546,10 +1674,12 @@ async function advanceSimulator() {
 
 }
 
-
 async function resetSimulator() {
 
     try {
+
+        stopStatePolling();
+
 
         await sendSimulatorCommand(
             "/api/drone/simulator/reset"
@@ -1575,10 +1705,12 @@ async function resetSimulator() {
 
 }
 
-
 async function disconnectSimulator() {
 
     try {
+
+        stopStatePolling();
+
 
         await sendSimulatorCommand(
             "/api/drone/simulator/disconnect"
@@ -1603,7 +1735,6 @@ async function disconnectSimulator() {
     }
 
 }
-
 
 /* ===============================================
    EVENTOS
@@ -1632,14 +1763,12 @@ document.getElementById(
     startSimulator
 );
 
-
 document.getElementById(
-    "advanceButton"
+    "stopButton"
 ).addEventListener(
     "click",
-    advanceSimulator
+    stopSimulator
 );
-
 
 document.getElementById(
     "resetButton"
@@ -1669,7 +1798,95 @@ document.addEventListener(
 
         await loadRoutes();
 
-        await getDroneState();
+
+        try {
+
+            /*
+             * Estado actual del dron.
+             */
+
+            const payload =
+                await getDroneState();
+
+
+            /*
+             * Contexto operacional del simulador.
+             */
+
+            const runtimeResponse =
+                await fetch(
+                    "/api/drone/simulator/auto/status"
+                );
+
+
+            if (runtimeResponse.ok) {
+
+                const runtime =
+                    await runtimeResponse.json();
+
+
+                /*
+                 * =====================================
+                 * RECUPERAR RUTA PLANIFICADA
+                 * =====================================
+                 */
+
+                if (runtime.route_id) {
+
+                    await loadRouteDetail(
+                        runtime.route_id
+                    );
+
+
+                    /*
+                     * Sincronizamos también visualmente
+                     * el selector con la ruta realmente
+                     * activa en backend.
+                     */
+
+                    const routeSelect =
+                        document.getElementById(
+                            "routeSelect"
+                        );
+
+
+                    routeSelect.value =
+                        String(
+                            runtime.route_id
+                        );
+
+                }
+
+
+                /*
+                 * =====================================
+                 * RECUPERAR SEGUIMIENTO
+                 * =====================================
+                 */
+
+                if (runtime.auto_running) {
+
+                    startStatePolling();
+
+
+                    setMessage(
+                        "Seguimiento de misión activa recuperado.",
+                        "success"
+                    );
+
+                }
+
+            }
+
+
+        } catch (error) {
+
+            console.error(
+                "Error recuperando contexto operacional:",
+                error
+            );
+
+        }
 
     }
 );

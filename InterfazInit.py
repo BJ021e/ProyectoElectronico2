@@ -962,13 +962,6 @@ def drone_operation():
         "drone_operation.html"
     )
 
-if __name__ == "__main__":
-    app.run(
-        debug=Config.FLASK_DEBUG,
-        host=Config.FLASK_HOST,
-        port=Config.FLASK_PORT
-    )
-
 @app.route(
     "/api/drone/simulator/auto/status",
     methods=["GET"]
@@ -1059,3 +1052,10 @@ def api_drone_simulator_auto_stop():
             "error": True,
             "msg": str(e)
         }), 400
+        
+if __name__ == "__main__":
+    app.run(
+        debug=Config.FLASK_DEBUG,
+        host=Config.FLASK_HOST,
+        port=Config.FLASK_PORT
+    )
