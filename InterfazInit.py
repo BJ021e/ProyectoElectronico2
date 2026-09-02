@@ -188,7 +188,7 @@ def api_list_flights():
             type=int
         )
 
-        flights = FlightService.list_flights(
+        flights = FlightService.list_flights_summary(
             limit=limit
         )
 

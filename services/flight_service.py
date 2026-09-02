@@ -1,12 +1,15 @@
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from database import SessionLocal
-from models import Flight, FlightStatus
-
+from models import (
+    Flight,
+    FlightStatus,
+    TelemetryPoint
+)
 
 class FlightPersistenceError(Exception):
     """
@@ -37,6 +40,14 @@ class FlightService:
         Convierte una entidad Flight en una estructura
         independiente de la sesión de SQLAlchemy.
         """
+        
+        duration_seconds = None
+
+        if flight.started_at and flight.finished_at:
+            duration_seconds = (
+                flight.finished_at - flight.started_at
+            ).total_seconds()
+            
         return {
             "id": flight.id,
             "flight_code": flight.flight_code,
@@ -57,6 +68,8 @@ class FlightService:
                 if flight.created_at
                 else None
             ),
+            
+            "duration_seconds": duration_seconds,
             "notes": flight.notes,
         }
 
@@ -285,6 +298,57 @@ class FlightService:
         except SQLAlchemyError as exc:
             raise FlightPersistenceError(
                 f"No fue posible listar los vuelos: {exc}"
+            ) from exc
+
+        finally:
+            session.close()
+            
+    @staticmethod
+    def list_flights_summary(
+        limit: int = 50
+    ) -> list[dict]:
+        """
+        Recupera un resumen de los vuelos más recientes
+        incluyendo cantidad de puntos de telemetría.
+        """
+        session = SessionLocal()
+
+        try:
+            limit = max(1, min(limit, 500))
+
+            statement = (
+                select(
+                    Flight,
+                    func.count(
+                        TelemetryPoint.id
+                    ).label("telemetry_count")
+                )
+                .outerjoin(
+                    TelemetryPoint,
+                    TelemetryPoint.flight_id == Flight.id
+                )
+                .group_by(Flight.id)
+                .order_by(Flight.id.desc())
+                .limit(limit)
+            )
+
+            rows = session.execute(statement).all()
+
+            result = []
+
+            for flight, telemetry_count in rows:
+                item = FlightService._serialize(flight)
+
+                item["telemetry_count"] = telemetry_count
+
+                result.append(item)
+
+            return result
+
+        except SQLAlchemyError as exc:
+            raise FlightPersistenceError(
+                f"No fue posible obtener el resumen "
+                f"de vuelos: {exc}"
             ) from exc
 
         finally:
