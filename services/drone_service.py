@@ -545,9 +545,19 @@ class DroneService:
                 ) from exc
 
 
+            simulator_still_running = (
+                simulator.is_running
+            )
+
+
         cls._persist_active_flight_state(
             state
         )
+
+
+        if not simulator_still_running:
+
+            cls._complete_active_flight()
 
 
         return state
@@ -741,7 +751,18 @@ class DroneService:
 
 
                     if not simulator_still_running:
+
+                        try:
+
+                            cls._complete_active_flight()
+
+                        except DroneServiceError as exc:
+
+                            with cls._lock:
+                                cls._simulation_last_error = str(exc)
+
                         break
+                    
         finally:
 
             with cls._lock:
@@ -940,5 +961,71 @@ class DroneService:
 
 
         return cls.simulator_auto_status()
+    
+    @classmethod
+    def _complete_active_flight(
+        cls
+    ) -> dict | None:
+        """
+        Finaliza el Flight operacional actualmente asociado.
+
+        Si no existe Flight activo en el contexto,
+        no realiza ninguna operación.
+        """
+
+        with cls._lock:
+            flight_id = cls._active_flight_id
+
+
+        if flight_id is None:
+            return None
+
+
+        try:
+
+            flight = FlightService.get_flight(
+                flight_id
+            )
+
+
+            if flight is None:
+
+                raise DroneServiceError(
+                    f"El Flight con ID {flight_id} "
+                    "no existe."
+                )
+
+
+            status = flight["status"]
+
+
+            if status == "COMPLETED":
+
+                return flight
+
+
+            if status != "ACTIVE":
+
+                raise DroneServiceError(
+                    f"No se puede completar el vuelo "
+                    f"{flight['flight_code']} "
+                    f"desde el estado {status}."
+                )
+
+
+            return FlightService.finish_flight(
+                flight_id
+            )
+
+
+        except (
+            FlightPersistenceError,
+            InvalidFlightTransitionError,
+        ) as exc:
+
+            raise DroneServiceError(
+                "No fue posible finalizar "
+                f"el Flight {flight_id}: {exc}"
+            ) from exc
     
     
