@@ -116,10 +116,8 @@ def api_ground_telemetry():
 @app.route("/api/ground_trigger", methods=["POST"])
 def api_ground_trigger():
     try:
-        r = requests.get(f"{RPI_API_URL}/api/trigger_only", timeout=45)
-        if r.status_code!=200: return jsonify({"status":"error", "msg":"Fallo RPi"})
-        
-        data = r.json()
+        data = raspberry_service.trigger_capture(timeout=45)
+
         blue_path = data.get("blue_path")
         
         if not blue_path: return jsonify({"status":"error", "msg":"No path"})
@@ -157,6 +155,13 @@ def api_ground_trigger():
         web_path = process_preview_image(local_tmp, img_url)
         
         return jsonify({"status":"success", "count":len(session_state["captured_samples"]), "img_url": web_path, "last_parcel": base_name})
+        
+    except requests.RequestException as e:
+        log_msg(f"Error de comunicación con Raspberry: {e}")
+        return jsonify({
+            "status": "error",
+            "msg": "Fallo RPi"
+        })
         
     except Exception as e: 
         log_msg(f"Error trigger: {e}")

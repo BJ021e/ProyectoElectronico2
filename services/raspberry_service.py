@@ -20,3 +20,20 @@ class RaspberryService:
         response.raise_for_status()
 
         return response.json()
+    
+    def trigger_capture(self, timeout: float = 45.0) -> dict:
+        """
+        Solicita a la Raspberry Pi el disparo de la cámara
+        y devuelve la información de la captura realizada.
+
+        Lanza requests.RequestException si existe un problema
+        de comunicación HTTP.
+        """
+        response = requests.get(
+            f"{self.base_url}/api/trigger_only",
+            timeout=timeout
+        )
+
+        response.raise_for_status()
+
+        return response.json()
