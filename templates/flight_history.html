@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Historial de Vuelos</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/styles.css') }}"
+    >
+
+    <style>
+        .history-page {
+            min-height: 100vh;
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 32px;
+        }
+
+        .history-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            gap: 24px;
+        }
+
+        .history-title h1 {
+            margin: 0;
+            font-size: 2rem;
+        }
+
+        .history-title p {
+            margin-top: 8px;
+            color: #94a3b8;
+        }
+
+        .back-button {
+            text-decoration: none;
+            color: #e2e8f0;
+            border: 1px solid #334155;
+            padding: 10px 16px;
+            border-radius: 8px;
+        }
+
+        .history-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .history-table th,
+        .history-table td {
+            padding: 16px 18px;
+            text-align: left;
+            border-bottom: 1px solid #334155;
+        }
+
+        .history-table th {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .history-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .flight-code {
+            font-weight: 700;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .status-completed {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+        }
+
+        .status-active {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+        }
+
+        .status-created {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+        }
+
+        .status-other {
+            background: rgba(148, 163, 184, 0.15);
+            color: #cbd5e1;
+        }
+
+        .view-button {
+            border: 1px solid #3b82f6;
+            background: transparent;
+            color: #60a5fa;
+            padding: 7px 12px;
+            border-radius: 7px;
+            cursor: pointer;
+        }
+
+        .empty-state,
+        .loading-state,
+        .error-state {
+            padding: 40px;
+            text-align: center;
+            color: #94a3b8;
+        }
+
+        @media (max-width: 900px) {
+            .history-card {
+                overflow-x: auto;
+            }
+
+            .history-table {
+                min-width: 850px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="history-page">
+
+    <div class="history-container">
+
+        <header class="history-header">
+
+            <div class="history-title">
+                <h1>Historial de vuelos</h1>
+                <p>
+                    Consulta las operaciones registradas
+                    y su información de vuelo.
+                </p>
+            </div>
+
+            <a
+                href="{{ url_for('ground_capture_interface') }}"
+                class="back-button"
+            >
+                Volver a operación
+            </a>
+
+        </header>
+
+
+        <section class="history-card">
+
+            <div
+                id="historyLoading"
+                class="loading-state"
+            >
+                Cargando vuelos...
+            </div>
+
+
+            <table
+                id="historyTable"
+                class="history-table"
+                style="display: none;"
+            >
+
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Estado</th>
+                        <th>Inicio</th>
+                        <th>Duración</th>
+                        <th>Telemetría</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody id="historyBody">
+                </tbody>
+
+            </table>
+
+        </section>
+
+    </div>
+
+</div>
+
+
+<script>
+
+function formatDuration(seconds) {
+
+    if (
+        seconds === null ||
+        seconds === undefined
+    ) {
+        return "--";
+    }
+
+    const totalSeconds = Math.round(seconds);
+
+    const hours = Math.floor(
+        totalSeconds / 3600
+    );
+
+    const minutes = Math.floor(
+        (totalSeconds % 3600) / 60
+    );
+
+    const secs = totalSeconds % 60;
+
+    if (hours > 0) {
+
+        return [
+            hours,
+            minutes.toString().padStart(2, "0"),
+            secs.toString().padStart(2, "0")
+        ].join(":");
+    }
+
+    return [
+        minutes,
+        secs.toString().padStart(2, "0")
+    ].join(":");
+}
+
+
+function formatDate(value) {
+
+    if (!value) {
+        return "--";
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return value;
+    }
+
+    return date.toLocaleString();
+}
+
+
+function getStatusClass(status) {
+
+    switch (status) {
+
+        case "COMPLETED":
+            return "status-completed";
+
+        case "ACTIVE":
+            return "status-active";
+
+        case "CREATED":
+            return "status-created";
+
+        default:
+            return "status-other";
+    }
+}
+
+
+function renderFlights(flights) {
+
+    const loading =
+        document.getElementById("historyLoading");
+
+    const table =
+        document.getElementById("historyTable");
+
+    const body =
+        document.getElementById("historyBody");
+
+    body.innerHTML = "";
+
+
+    if (!flights.length) {
+
+        loading.textContent =
+            "Todavía no existen vuelos registrados.";
+
+        return;
+    }
+
+
+    flights.forEach((flight) => {
+
+        const row =
+            document.createElement("tr");
+
+        row.innerHTML = `
+            <td class="flight-code">
+                ${flight.flight_code}
+            </td>
+
+            <td>
+                ${flight.name ?? "--"}
+            </td>
+
+            <td>
+                <span
+                    class="
+                        status-badge
+                        ${getStatusClass(flight.status)}
+                    "
+                >
+                    ${flight.status}
+                </span>
+            </td>
+
+            <td>
+                ${formatDate(flight.started_at)}
+            </td>
+
+            <td>
+                ${formatDuration(
+                    flight.duration_seconds
+                )}
+            </td>
+
+            <td>
+                ${flight.telemetry_count}
+                punto${flight.telemetry_count === 1 ? "" : "s"}
+            </td>
+
+            <td>
+                <button
+                    class="view-button"
+                    data-flight-id="${flight.id}"
+                >
+                    Ver
+                </button>
+            </td>
+        `;
+
+        body.appendChild(row);
+    });
+
+
+    loading.style.display = "none";
+    table.style.display = "table";
+}
+
+
+async function loadFlights() {
+
+    const loading =
+        document.getElementById("historyLoading");
+
+    try {
+
+        const response =
+            await fetch("/api/flights");
+
+        if (!response.ok) {
+            throw new Error(
+                `HTTP ${response.status}`
+            );
+        }
+
+        const data =
+            await response.json();
+
+        renderFlights(
+            data.flights ?? []
+        );
+
+    } catch (error) {
+
+        console.error(error);
+
+        loading.className =
+            "error-state";
+
+        loading.textContent =
+            "No fue posible cargar el historial.";
+    }
+}
+
+
+document.addEventListener(
+    "DOMContentLoaded",
+    loadFlights
+);
+
+</script>
+
+</body>
+</html>

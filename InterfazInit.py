@@ -549,6 +549,12 @@ def generar_pdf_parcelas(resultados_parcelas, telemetria_resumen):
     c.save()
     return pdf_path
 
+@app.route("/flight_history")
+def flight_history():
+    return render_template(
+        "flight_history.html"
+    )
+
 if __name__ == "__main__":
     app.run(
         debug=Config.FLASK_DEBUG,
