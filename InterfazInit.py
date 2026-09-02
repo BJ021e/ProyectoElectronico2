@@ -39,6 +39,12 @@ from services.route_service import (
     RoutePersistenceError,
 )
 
+from services.mission_service import (
+    MissionService,
+    MissionPersistenceError,
+    MissionNotFoundError,
+)
+
 app = Flask(__name__)
 app.secret_key = Config.SECRET_KEY
 
@@ -629,7 +635,41 @@ def mission_route_detail(route_id):
         "mission_route_detail.html",
         route_id=route_id
     )
-            
+
+@app.route(
+    "/api/flights/<int:flight_id>/mission",
+    methods=["GET"]
+)
+def api_get_flight_mission(flight_id):
+
+    try:
+
+        mission = (
+            MissionService.get_mission(
+                flight_id
+            )
+        )
+
+        return jsonify(
+            mission
+        )
+
+
+    except MissionNotFoundError as e:
+
+        return jsonify({
+            "error": True,
+            "msg": str(e)
+        }), 404
+
+
+    except MissionPersistenceError as e:
+
+        return jsonify({
+            "error": True,
+            "msg": str(e)
+        }), 500
+              
 if __name__ == "__main__":
     app.run(
         debug=Config.FLASK_DEBUG,
