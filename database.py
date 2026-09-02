@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from config import Config
@@ -40,6 +40,15 @@ engine = create_engine(
     future=True
 )
 
+if DATABASE_URL.startswith("sqlite"):
+    @event.listens_for(engine, "connect")
+    def _enable_sqlite_foreign_keys(
+        dbapi_connection,
+        connection_record
+    ):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 SessionLocal = sessionmaker(
     bind=engine,
@@ -61,8 +70,8 @@ def test_database_connection() -> bool:
 def init_database() -> None:
     """
     Crea las tablas registradas en los modelos SQLAlchemy
-    que todavía no existan en la base de datos.
+    que todavía no existan.
     """
-    from models.flight import Flight  # noqa: F401
+    import models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)

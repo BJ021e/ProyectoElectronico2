@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
 from database import SessionLocal
-from models.flight import Flight, FlightStatus
+from models import Flight, FlightStatus
 
 
 class FlightPersistenceError(Exception):

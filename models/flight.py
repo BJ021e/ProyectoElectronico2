@@ -1,10 +1,17 @@
+from __future__ import annotations
+
 from enum import Enum as PyEnum
 from datetime import datetime, timezone
 
 from sqlalchemy import DateTime, Enum, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import Base
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from models.telemetry import TelemetryPoint
 
 class FlightStatus(str, PyEnum):
     CREATED = "CREATED"
@@ -65,6 +72,12 @@ class Flight(Base):
         nullable=True
     )
 
+    telemetry_points: Mapped[list["TelemetryPoint"]] = relationship(
+        "TelemetryPoint",
+        back_populates="flight",
+        cascade="all, delete-orphan"
+    )
+    
     def __repr__(self) -> str:
         return (
             f"<Flight "
