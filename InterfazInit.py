@@ -206,10 +206,16 @@ def processing_worker():
         log_msg("📥 Iniciando procesamiento...")
         
         # 1. Obtener Telemetría Final (Snapshot)
-        try: 
-            final_telem = requests.get(f"{RPI_API_URL}/api/telemetry", timeout=2).json()
-        except: 
-            final_telem = {"bateria":"N/A", "modo":"N/A", "altitud":0, "latitud":0, "longitud":0}
+        try:
+            final_telem = raspberry_service.get_telemetry(timeout=2)
+        except requests.RequestException:
+            final_telem = {
+                "bateria": "N/A",
+                "modo": "N/A",
+                "altitud": 0,
+                "latitud": 0,
+                "longitud": 0
+            }
 
         # 2. Calcular Altitud Promedio
         historia = session_state["altitude_history"]
