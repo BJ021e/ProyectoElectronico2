@@ -1,13 +1,15 @@
 from pathlib import Path
 
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from config import Config
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 
+class Base(DeclarativeBase):
+    pass
 
 def _prepare_database_url(database_url: str) -> str:
     """
@@ -55,3 +57,12 @@ def test_database_connection() -> bool:
         connection.execute(text("SELECT 1"))
 
     return True
+
+def init_database() -> None:
+    """
+    Crea las tablas registradas en los modelos SQLAlchemy
+    que todavía no existan en la base de datos.
+    """
+    from models.flight import Flight  # noqa: F401
+
+    Base.metadata.create_all(bind=engine)
