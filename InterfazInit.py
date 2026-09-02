@@ -16,6 +16,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 from reportlab.lib.utils import ImageReader
 from config import Config
+from services.raspberry_service import RaspberryService
 
 app = Flask(__name__)
 app.secret_key = Config.SECRET_KEY
@@ -34,6 +35,7 @@ RPI_IP = Config.RPI_IP
 RPI_API_URL = Config.RPI_API_URL
 ACCESS_CODE = Config.ACCESS_CODE
 EPSILON = 1e-10
+raspberry_service = RaspberryService(RPI_API_URL)
 
 # ---------------- ESTADO GLOBAL ----------------
 session_state = {
@@ -95,19 +97,21 @@ def ground_capture_interface():
 # --- TELEMETRÍA CON REGISTRO DE HISTORIAL ---
 @app.route("/api/ground_telemetry")
 def api_ground_telemetry():
-    try: 
-        resp = requests.get(f"{RPI_API_URL}/api/telemetry", timeout=1)
-        data = resp.json()
-        
+    try:
+        data = raspberry_service.get_telemetry(timeout=1)
+
         # Si estamos capturando, guardamos la altitud para el promedio
         if session_state["status"] == "capturing" and "altitud" in data:
             try:
                 alt = float(data["altitud"])
                 session_state["altitude_history"].append(alt)
-            except: pass
-            
+            except (TypeError, ValueError):
+                pass
+
         return jsonify(data)
-    except: return jsonify({"error": True})
+
+    except requests.RequestException:
+        return jsonify({"error": True})
 
 @app.route("/api/ground_trigger", methods=["POST"])
 def api_ground_trigger():
