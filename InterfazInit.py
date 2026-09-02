@@ -4,7 +4,6 @@
 # ====================================================
 from flask import Flask, render_template, request, redirect, url_for, session, send_file, jsonify
 import os
-import requests
 import threading
 import shutil
 import time
@@ -16,7 +15,10 @@ from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 from reportlab.lib.utils import ImageReader
 from config import Config
-from services.raspberry_service import RaspberryService
+from services.raspberry_service import (
+    RaspberryService,
+    RaspberryConnectionError
+)
 
 app = Flask(__name__)
 app.secret_key = Config.SECRET_KEY
@@ -110,7 +112,7 @@ def api_ground_telemetry():
 
         return jsonify(data)
 
-    except requests.RequestException:
+    except RaspberryConnectionError:
         return jsonify({"error": True})
 
 @app.route("/api/ground_trigger", methods=["POST"])
@@ -160,7 +162,7 @@ def api_ground_trigger():
         
         return jsonify({"status":"success", "count":len(session_state["captured_samples"]), "img_url": web_path, "last_parcel": base_name})
         
-    except requests.RequestException as e:
+    except RaspberryConnectionError as e:
         log_msg(f"Error de comunicación con Raspberry: {e}")
         return jsonify({
             "status": "error",
@@ -208,7 +210,7 @@ def processing_worker():
         # 1. Obtener Telemetría Final (Snapshot)
         try:
             final_telem = raspberry_service.get_telemetry(timeout=2)
-        except requests.RequestException:
+        except RaspberryConnectionError:
             final_telem = {
                 "bateria": "N/A",
                 "modo": "N/A",
