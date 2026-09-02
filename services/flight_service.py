@@ -15,6 +15,20 @@ class FlightPersistenceError(Exception):
     """
     pass
 
+class InvalidFlightTransitionError(Exception):
+    """
+    Error producido cuando se intenta realizar una transición
+    de estado no permitida sobre un vuelo.
+    """
+    pass
+
+    @staticmethod
+    def _get_flight_entity(session, flight_id: int) -> Flight | None:
+        statement = select(Flight).where(
+            Flight.id == flight_id
+        )
+
+        return session.scalar(statement)
 
 class FlightService:
     @staticmethod
@@ -117,6 +131,123 @@ class FlightService:
         except SQLAlchemyError as exc:
             raise FlightPersistenceError(
                 f"No fue posible consultar el vuelo: {exc}"
+            ) from exc
+
+        finally:
+            session.close()
+            
+    @staticmethod
+    def _get_flight_entity(
+        session,
+        flight_id: int
+    ) -> Flight | None:
+        statement = select(Flight).where(
+            Flight.id == flight_id
+        )
+
+        return session.scalar(statement)
+    
+    @staticmethod
+    def start_flight(flight_id: int) -> dict:
+        """
+        Inicia un vuelo creado previamente.
+
+        Transición válida:
+        CREATED -> ACTIVE
+        """
+        session = SessionLocal()
+
+        try:
+            flight = FlightService._get_flight_entity(
+                session,
+                flight_id
+            )
+
+            if flight is None:
+                raise ValueError(
+                    f"El vuelo con ID {flight_id} no existe."
+                )
+
+            if flight.status != FlightStatus.CREATED:
+                raise InvalidFlightTransitionError(
+                    f"No se puede iniciar el vuelo "
+                    f"{flight.flight_code} desde el estado "
+                    f"{flight.status.value}."
+                )
+
+            flight.status = FlightStatus.ACTIVE
+            flight.started_at = datetime.now(timezone.utc)
+
+            session.commit()
+            session.refresh(flight)
+
+            return FlightService._serialize(flight)
+
+        except (
+            ValueError,
+            InvalidFlightTransitionError
+        ):
+            session.rollback()
+            raise
+
+        except SQLAlchemyError as exc:
+            session.rollback()
+
+            raise FlightPersistenceError(
+                f"No fue posible iniciar el vuelo: {exc}"
+            ) from exc
+
+        finally:
+            session.close()
+            
+    @staticmethod
+    def finish_flight(flight_id: int) -> dict:
+        """
+        Finaliza un vuelo activo.
+
+        Transición válida:
+        ACTIVE -> COMPLETED
+        """
+        session = SessionLocal()
+
+        try:
+            flight = FlightService._get_flight_entity(
+                session,
+                flight_id
+            )
+
+            if flight is None:
+                raise ValueError(
+                    f"El vuelo con ID {flight_id} no existe."
+                )
+
+            if flight.status != FlightStatus.ACTIVE:
+                raise InvalidFlightTransitionError(
+                    f"No se puede finalizar el vuelo "
+                    f"{flight.flight_code} desde el estado "
+                    f"{flight.status.value}."
+                )
+
+            flight.status = FlightStatus.COMPLETED
+            flight.finished_at = datetime.now(timezone.utc)
+
+            session.commit()
+            session.refresh(flight)
+
+            return FlightService._serialize(flight)
+
+        except (
+            ValueError,
+            InvalidFlightTransitionError
+        ):
+            session.rollback()
+            raise
+
+        except SQLAlchemyError as exc:
+            session.rollback()
+
+            raise FlightPersistenceError(
+                f"No fue posible finalizar el vuelo: {exc}"
             ) from exc
 
         finally:
