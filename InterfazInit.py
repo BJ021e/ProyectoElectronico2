@@ -622,6 +622,13 @@ def mission_routes():
     return render_template(
         "mission_routes.html"
     )
+    
+@app.route("/mission_routes/<int:route_id>")
+def mission_route_detail(route_id):
+    return render_template(
+        "mission_route_detail.html",
+        route_id=route_id
+    )
             
 if __name__ == "__main__":
     app.run(

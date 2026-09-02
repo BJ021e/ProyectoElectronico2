@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Detalle de Ruta</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/styles.css') }}"
+    >
+
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    >
+
+    <style>
+
+        .route-detail-page {
+            min-height: 100vh;
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 32px;
+        }
+
+        .route-detail-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .route-detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .route-title h1 {
+            margin: 0;
+            font-size: 2rem;
+        }
+
+        .route-title p {
+            margin-top: 8px;
+            color: #94a3b8;
+        }
+
+        .back-button {
+            text-decoration: none;
+            color: #e2e8f0;
+            border: 1px solid #334155;
+            padding: 10px 16px;
+            border-radius: 8px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .summary-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 18px;
+        }
+
+        .summary-label {
+            color: #94a3b8;
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .summary-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .status-ready {
+            color: #34d399;
+            background: rgba(16, 185, 129, 0.15);
+        }
+
+        .status-draft {
+            color: #fbbf24;
+            background: rgba(245, 158, 11, 0.15);
+        }
+
+        .status-archived {
+            color: #cbd5e1;
+            background: rgba(148, 163, 184, 0.15);
+        }
+
+        .section-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 14px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            margin: 0 0 18px 0;
+            font-size: 1.2rem;
+        }
+
+        .route-map {
+            width: 100%;
+            height: 460px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .waypoint-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .waypoint-table th,
+        .waypoint-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid #334155;
+            text-align: left;
+        }
+
+        .waypoint-table th {
+            color: #94a3b8;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        .waypoint-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .loading-state,
+        .error-state {
+            padding: 50px;
+            text-align: center;
+            color: #94a3b8;
+        }
+
+        .waypoint-number {
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            color: #ffffff;
+            font-weight: 700;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<div class="route-detail-page">
+
+    <div class="route-detail-container">
+
+        <header class="route-detail-header">
+
+            <div class="route-title">
+
+                <h1 id="routeCode">
+                    Detalle de ruta
+                </h1>
+
+                <p id="routeName">
+                    Cargando información...
+                </p>
+
+            </div>
+
+
+            <a
+                href="/mission_routes"
+                class="back-button"
+            >
+                Volver a rutas
+            </a>
+
+        </header>
+
+
+        <div
+            id="loadingState"
+            class="loading-state"
+        >
+            Cargando ruta...
+        </div>
+
+
+        <main
+            id="routeContent"
+            style="display: none;"
+        >
+
+            <section class="summary-grid">
+
+                <div class="summary-card">
+
+                    <div class="summary-label">
+                        Estado
+                    </div>
+
+                    <div
+                        class="summary-value"
+                        id="routeStatus"
+                    >
+                        --
+                    </div>
+
+                </div>
+
+
+                <div class="summary-card">
+
+                    <div class="summary-label">
+                        Waypoints
+                    </div>
+
+                    <div
+                        class="summary-value"
+                        id="waypointCount"
+                    >
+                        --
+                    </div>
+
+                </div>
+
+
+                <div class="summary-card">
+
+                    <div class="summary-label">
+                        Altitud objetivo
+                    </div>
+
+                    <div
+                        class="summary-value"
+                        id="routeAltitude"
+                    >
+                        --
+                    </div>
+
+                </div>
+
+
+                <div class="summary-card">
+
+                    <div class="summary-label">
+                        Velocidad objetivo
+                    </div>
+
+                    <div
+                        class="summary-value"
+                        id="routeSpeed"
+                    >
+                        --
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <section class="section-card">
+
+                <h2 class="section-title">
+                    Ruta planificada
+                </h2>
+
+                <div
+                    id="routeMap"
+                    class="route-map"
+                ></div>
+
+            </section>
+
+
+            <section class="section-card">
+
+                <h2 class="section-title">
+                    Waypoints
+                </h2>
+
+
+                <table class="waypoint-table">
+
+                    <thead>
+
+                        <tr>
+                            <th>#</th>
+                            <th>Latitud</th>
+                            <th>Longitud</th>
+                            <th>Altitud</th>
+                            <th>Velocidad</th>
+                            <th>Heading</th>
+                            <th>Acción</th>
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody id="waypointBody">
+                    </tbody>
+
+                </table>
+
+            </section>
+
+        </main>
+
+    </div>
+
+</div>
+
+
+<script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+</script>
+
+
+<script>
+
+const ROUTE_ID = {{ route_id | tojson }};
+
+
+function getStatusClass(status) {
+
+    switch (status) {
+
+        case "READY":
+            return "status-ready";
+
+        case "DRAFT":
+            return "status-draft";
+
+        default:
+            return "status-archived";
+    }
+}
+
+
+function getUniformValue(
+    waypoints,
+    field
+) {
+
+    const values = waypoints
+        .map(
+            waypoint => waypoint[field]
+        )
+        .filter(
+            value =>
+                value !== null &&
+                value !== undefined
+        );
+
+
+    if (!values.length) {
+        return null;
+    }
+
+
+    const first =
+        values[0];
+
+
+    const allEqual =
+        values.every(
+            value => value === first
+        );
+
+
+    if (!allEqual) {
+        return "VARIABLE";
+    }
+
+
+    return first;
+}
+
+
+function renderWaypointTable(
+    waypoints
+) {
+
+    const body =
+        document.getElementById(
+            "waypointBody"
+        );
+
+
+    body.innerHTML = "";
+
+
+    waypoints.forEach(
+        waypoint => {
+
+            const row =
+                document.createElement(
+                    "tr"
+                );
+
+
+            row.innerHTML = `
+
+                <td>
+                    ${waypoint.sequence}
+                </td>
+
+                <td>
+                    ${waypoint.latitude}
+                </td>
+
+                <td>
+                    ${waypoint.longitude}
+                </td>
+
+                <td>
+                    ${waypoint.altitude ?? "--"} m
+                </td>
+
+                <td>
+                    ${waypoint.speed ?? "--"} m/s
+                </td>
+
+                <td>
+                    ${waypoint.heading ?? "--"}
+                </td>
+
+                <td>
+                    ${waypoint.action ?? "--"}
+                </td>
+
+            `;
+
+
+            body.appendChild(
+                row
+            );
+        }
+    );
+}
+
+
+function renderRouteMap(
+    waypoints
+) {
+
+    const coordinates =
+        waypoints.map(
+            waypoint => [
+                Number(
+                    waypoint.latitude
+                ),
+                Number(
+                    waypoint.longitude
+                )
+            ]
+        );
+
+
+    if (!coordinates.length) {
+        return;
+    }
+
+
+    const map =
+        L.map("routeMap");
+
+
+    L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+            maxZoom: 19,
+            attribution:
+                "&copy; OpenStreetMap contributors"
+        }
+    ).addTo(map);
+
+
+    /*
+     * Línea de la ruta planificada
+     */
+    const routeLine =
+        L.polyline(
+            coordinates,
+            {
+                weight: 4,
+                opacity: 0.9
+            }
+        )
+        .addTo(map);
+
+
+    /*
+     * Cada waypoint tendrá
+     * un marcador numerado.
+     */
+    waypoints.forEach(
+        waypoint => {
+
+            const coordinate = [
+                Number(
+                    waypoint.latitude
+                ),
+                Number(
+                    waypoint.longitude
+                )
+            ];
+
+
+            const marker =
+                L.circleMarker(
+                    coordinate,
+                    {
+                        radius: 8,
+                        weight: 2,
+                        fillOpacity: 0.9
+                    }
+                )
+                .addTo(map);
+
+
+            marker.bindTooltip(
+                String(
+                    waypoint.sequence
+                ),
+                {
+                    permanent: true,
+                    direction: "center",
+                    className:
+                        "waypoint-number"
+                }
+            );
+
+
+            marker.bindPopup(`
+                <strong>
+                    Waypoint ${waypoint.sequence}
+                </strong>
+                <br>
+
+                Lat:
+                ${waypoint.latitude}
+                <br>
+
+                Lon:
+                ${waypoint.longitude}
+                <br>
+
+                Altitud:
+                ${waypoint.altitude ?? "--"} m
+                <br>
+
+                Velocidad:
+                ${waypoint.speed ?? "--"} m/s
+            `);
+
+        }
+    );
+
+
+    map.fitBounds(
+        routeLine.getBounds(),
+        {
+            padding: [40, 40]
+        }
+    );
+
+
+    requestAnimationFrame(
+        () => {
+            map.invalidateSize();
+        }
+    );
+}
+
+
+async function loadRoute() {
+
+    const loading =
+        document.getElementById(
+            "loadingState"
+        );
+
+    const content =
+        document.getElementById(
+            "routeContent"
+        );
+
+
+    try {
+
+        const response =
+            await fetch(
+                `/api/routes/${ROUTE_ID}`
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                `HTTP ${response.status}`
+            );
+        }
+
+
+        const data =
+            await response.json();
+
+
+        const route =
+            data.route;
+
+
+        const waypoints =
+            route.waypoints ?? [];
+
+
+        document.getElementById(
+            "routeCode"
+        ).textContent =
+            route.route_code;
+
+
+        document.getElementById(
+            "routeName"
+        ).textContent =
+            route.name;
+
+
+        document.getElementById(
+            "waypointCount"
+        ).textContent =
+            route.waypoint_count;
+
+
+        const statusElement =
+            document.getElementById(
+                "routeStatus"
+            );
+
+
+        statusElement.innerHTML = `
+
+            <span
+                class="
+                    status-badge
+                    ${getStatusClass(
+                        route.status
+                    )}
+                "
+            >
+                ${route.status}
+            </span>
+
+        `;
+
+
+        const altitude =
+            getUniformValue(
+                waypoints,
+                "altitude"
+            );
+
+
+        document.getElementById(
+            "routeAltitude"
+        ).textContent =
+            altitude === "VARIABLE"
+                ? "Variable"
+                : altitude !== null
+                    ? `${altitude} m`
+                    : "--";
+
+
+        const speed =
+            getUniformValue(
+                waypoints,
+                "speed"
+            );
+
+
+        document.getElementById(
+            "routeSpeed"
+        ).textContent =
+            speed === "VARIABLE"
+                ? "Variable"
+                : speed !== null
+                    ? `${speed} m/s`
+                    : "--";
+
+
+        renderWaypointTable(
+            waypoints
+        );
+
+
+        /*
+         * Primero mostramos el contenedor.
+         * Después inicializamos Leaflet.
+         */
+        loading.style.display =
+            "none";
+
+        content.style.display =
+            "block";
+
+
+        requestAnimationFrame(
+            () => {
+
+                renderRouteMap(
+                    waypoints
+                );
+
+            }
+        );
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        loading.className =
+            "error-state";
+
+        loading.textContent =
+            "No fue posible cargar la ruta.";
+    }
+
+}
+
+
+document.addEventListener(
+    "DOMContentLoaded",
+    loadRoute
+);
+
+</script>
+
+
+</body>
+
+</html>
