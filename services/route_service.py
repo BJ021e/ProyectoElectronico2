@@ -73,6 +73,159 @@ class RouteService:
         }
 
     @staticmethod
+    def _validate_coordinates(
+        latitude: float,
+        longitude: float
+    ) -> None:
+        if not (-90 <= latitude <= 90):
+            raise InvalidRouteError(
+                "La latitud debe estar entre -90 y 90."
+            )
+
+        if not (-180 <= longitude <= 180):
+            raise InvalidRouteError(
+                "La longitud debe estar entre -180 y 180."
+            )
+
+
+    @staticmethod
+    def _validate_waypoint_values(
+        altitude: float | None,
+        speed: float | None,
+        heading: float | None
+    ) -> None:
+        if altitude is not None and altitude < 0:
+            raise InvalidRouteError(
+                "La altitud objetivo no puede ser negativa."
+            )
+
+        if speed is not None and speed < 0:
+            raise InvalidRouteError(
+                "La velocidad objetivo no puede ser negativa."
+            )
+
+        if heading is not None and not (0 <= heading <= 360):
+            raise InvalidRouteError(
+                "El heading debe estar entre 0 y 360 grados."
+            )
+    @staticmethod
+    
+    @staticmethod
+    def add_waypoint(
+        route_id: int,
+        latitude: float,
+        longitude: float,
+        altitude: float | None = None,
+        speed: float | None = None,
+        heading: float | None = None,
+        action: str | None = None,
+        sequence: int | None = None,
+    ) -> dict:
+        """
+        Añade un waypoint a una ruta DRAFT.
+
+        Si no se especifica sequence, se coloca
+        automáticamente al final de la ruta.
+        """
+
+        RouteService._validate_coordinates(
+            latitude,
+            longitude
+        )
+
+        RouteService._validate_waypoint_values(
+            altitude,
+            speed,
+            heading
+        )
+
+        session = SessionLocal()
+
+        try:
+            statement = (
+                select(Route)
+                .options(
+                    selectinload(Route.waypoints)
+                )
+                .where(Route.id == route_id)
+            )
+
+            route = session.scalar(statement)
+
+            if route is None:
+                raise InvalidRouteError(
+                    f"La ruta con ID {route_id} no existe."
+                )
+
+            if route.status != RouteStatus.DRAFT:
+                raise InvalidRouteError(
+                    f"No se pueden modificar waypoints de "
+                    f"{route.route_code} porque está en estado "
+                    f"{route.status.value}."
+                )
+
+            if sequence is None:
+                if route.waypoints:
+                    sequence = (
+                        max(
+                            waypoint.sequence
+                            for waypoint in route.waypoints
+                        )
+                        + 1
+                    )
+                else:
+                    sequence = 1
+
+            if sequence < 1:
+                raise InvalidRouteError(
+                    "La secuencia debe ser mayor o igual a 1."
+                )
+
+            if any(
+                waypoint.sequence == sequence
+                for waypoint in route.waypoints
+            ):
+                raise InvalidRouteError(
+                    f"Ya existe un waypoint con "
+                    f"sequence={sequence} en esta ruta."
+                )
+
+            waypoint = Waypoint(
+                route_id=route_id,
+                sequence=sequence,
+                latitude=latitude,
+                longitude=longitude,
+                altitude=altitude,
+                speed=speed,
+                heading=heading,
+                action=(
+                    action.strip()
+                    if action
+                    else None
+                ),
+            )
+
+            session.add(waypoint)
+            session.commit()
+            session.refresh(waypoint)
+
+            return RouteService._serialize_waypoint(
+                waypoint
+            )
+
+        except InvalidRouteError:
+            session.rollback()
+            raise
+
+        except SQLAlchemyError as exc:
+            session.rollback()
+
+            raise RoutePersistenceError(
+                f"No fue posible añadir el waypoint: {exc}"
+            ) from exc
+
+        finally:
+            session.close()
     def create_route(
         name: str,
         description: str | None = None
@@ -177,6 +330,167 @@ class RouteService:
         except SQLAlchemyError as exc:
             raise RoutePersistenceError(
                 f"No fue posible consultar la ruta: {exc}"
+            ) from exc
+
+        finally:
+            session.close()
+            
+    @staticmethod
+    def _validate_route_ready(route: Route) -> None:
+        """
+        Verifica que una ruta cumpla las condiciones mínimas
+        necesarias para pasar a estado READY.
+        """
+
+        waypoints = route.waypoints
+
+        if len(waypoints) < 2:
+            raise InvalidRouteError(
+                "La ruta necesita al menos 2 waypoints."
+            )
+
+        # -------------------------------------------------
+        # Secuencias continuas
+        # -------------------------------------------------
+
+        sequences = [
+            waypoint.sequence
+            for waypoint in waypoints
+        ]
+
+        expected_sequences = list(
+            range(1, len(waypoints) + 1)
+        )
+
+        if sequences != expected_sequences:
+            raise InvalidRouteError(
+                "Las secuencias de los waypoints deben ser "
+                "continuas desde 1 hasta N."
+            )
+
+        # -------------------------------------------------
+        # Validación individual
+        # -------------------------------------------------
+
+        for waypoint in waypoints:
+
+            RouteService._validate_coordinates(
+                waypoint.latitude,
+                waypoint.longitude
+            )
+
+            if waypoint.altitude is None:
+                raise InvalidRouteError(
+                    f"El waypoint {waypoint.sequence} "
+                    "no tiene altitud objetivo."
+                )
+
+            if waypoint.altitude <= 0:
+                raise InvalidRouteError(
+                    f"La altitud del waypoint "
+                    f"{waypoint.sequence} debe ser mayor que 0."
+                )
+
+            if (
+                waypoint.speed is not None
+                and waypoint.speed <= 0
+            ):
+                raise InvalidRouteError(
+                    f"La velocidad del waypoint "
+                    f"{waypoint.sequence} debe ser mayor que 0."
+                )
+
+            if (
+                waypoint.heading is not None
+                and not (0 <= waypoint.heading <= 360)
+            ):
+                raise InvalidRouteError(
+                    f"El heading del waypoint "
+                    f"{waypoint.sequence} debe estar "
+                    "entre 0 y 360 grados."
+                )
+
+        # -------------------------------------------------
+        # Coordenadas consecutivas duplicadas
+        # -------------------------------------------------
+
+        for previous, current in zip(
+            waypoints,
+            waypoints[1:]
+        ):
+            if (
+                previous.latitude == current.latitude
+                and
+                previous.longitude == current.longitude
+            ):
+                raise InvalidRouteError(
+                    f"Los waypoints {previous.sequence} y "
+                    f"{current.sequence} tienen las mismas "
+                    "coordenadas."
+                )
+                
+    @staticmethod
+    def publish_route(
+        route_id: int
+    ) -> dict:
+        """
+        Valida una ruta DRAFT y, si cumple todas las
+        condiciones, la cambia a READY.
+        """
+
+        session = SessionLocal()
+
+        try:
+
+            statement = (
+                select(Route)
+                .options(
+                    selectinload(Route.waypoints)
+                )
+                .where(
+                    Route.id == route_id
+                )
+            )
+
+            route = session.scalar(statement)
+
+            if route is None:
+                raise InvalidRouteError(
+                    f"La ruta con ID {route_id} no existe."
+                )
+
+            if route.status != RouteStatus.DRAFT:
+                raise InvalidRouteError(
+                    f"La ruta {route.route_code} no puede "
+                    f"publicarse desde el estado "
+                    f"{route.status.value}."
+                )
+
+            RouteService._validate_route_ready(
+                route
+            )
+
+            route.status = RouteStatus.READY
+            route.updated_at = datetime.now(
+                timezone.utc
+            )
+
+            session.commit()
+            session.refresh(route)
+
+            return RouteService._serialize(
+                route
+            )
+
+        except InvalidRouteError:
+            session.rollback()
+            raise
+
+        except SQLAlchemyError as exc:
+            session.rollback()
+
+            raise RoutePersistenceError(
+                f"No fue posible publicar la ruta: {exc}"
             ) from exc
 
         finally:
