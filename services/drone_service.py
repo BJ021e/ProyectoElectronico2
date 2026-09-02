@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from threading import RLock
+from threading import (
+    Event,
+    RLock,
+    Thread,
+    current_thread,
+)
 
 from drone import (
     DroneProvider,
@@ -56,7 +61,14 @@ class DroneService:
 
     _lock = RLock()
 
+    _simulation_thread: Thread | None = None
 
+    _simulation_stop_event = Event()
+
+    _simulation_interval: float = 1.0
+
+    _simulation_last_error: str | None = None
+    
     @classmethod
     def set_provider(
         cls,
@@ -178,7 +190,8 @@ class DroneService:
         El simulador queda configurado pero todavía
         desconectado.
         """
-
+        cls.simulator_stop_auto()
+        
         try:
 
             route = RouteService.get_route(
@@ -276,6 +289,9 @@ class DroneService:
         cls
     ) -> DroneState:
 
+        cls.simulator_stop_auto()
+
+
         with cls._lock:
 
             simulator = (
@@ -334,6 +350,9 @@ class DroneService:
         cls
     ) -> DroneState:
 
+        cls.simulator_stop_auto()
+
+
         with cls._lock:
 
             simulator = (
@@ -355,3 +374,258 @@ class DroneService:
             )
 
             return simulator.is_running
+    
+    @classmethod
+    def _simulation_worker(cls) -> None:
+        """
+        Worker interno que hace avanzar el simulador
+        periódicamente.
+
+        El frontend no controla cada tick.
+        """
+
+        try:
+
+            while True:
+
+                # Esperamos antes del siguiente tick.
+                # Event.wait() permite interrumpir
+                # inmediatamente la espera.
+                should_stop = (
+                    cls._simulation_stop_event.wait(
+                        cls._simulation_interval
+                    )
+                )
+
+
+                if should_stop:
+                    break
+
+
+                with cls._lock:
+
+                    provider = cls._provider
+
+
+                    if not isinstance(
+                        provider,
+                        DroneSimulator
+                    ):
+                        break
+
+
+                    if not provider.is_running:
+                        break
+
+
+                    try:
+
+                        provider.advance()
+
+                    except DroneSimulatorError as exc:
+
+                        cls._simulation_last_error = (
+                            str(exc)
+                        )
+
+                        break
+
+
+                    # advance() puede haber alcanzado
+                    # el waypoint final.
+                    if not provider.is_running:
+                        break
+
+
+        finally:
+
+            with cls._lock:
+
+                if (
+                    cls._simulation_thread
+                    is current_thread()
+                ):
+                    cls._simulation_thread = None
+                    
+    @classmethod
+    def simulator_auto_status(
+        cls
+    ) -> dict:
+        """
+        Estado del mecanismo automático de simulación.
+        """
+
+        with cls._lock:
+
+            thread = (
+                cls._simulation_thread
+            )
+
+
+            auto_running = (
+                thread is not None
+                and thread.is_alive()
+            )
+
+
+            simulator_running = False
+
+
+            if isinstance(
+                cls._provider,
+                DroneSimulator
+            ):
+
+                simulator_running = (
+                    cls._provider.is_running
+                )
+
+
+            return {
+                "auto_running":
+                    auto_running,
+
+                "simulator_running":
+                    simulator_running,
+
+                "interval_seconds":
+                    cls._simulation_interval,
+
+                "last_error":
+                    cls._simulation_last_error,
+            }
+            
+    @classmethod
+    def simulator_start_auto(
+        cls,
+        interval_seconds: float = 1.0
+    ) -> dict:
+        """
+        Inicia el worker automático que hace avanzar
+        periódicamente el DroneSimulator.
+        """
+
+        try:
+
+            interval_seconds = float(
+                interval_seconds
+            )
+
+        except (
+            TypeError,
+            ValueError
+        ) as exc:
+
+            raise DroneServiceError(
+                "interval_seconds debe ser numérico."
+            ) from exc
+
+
+        if interval_seconds <= 0:
+
+            raise DroneServiceError(
+                "interval_seconds debe ser mayor que 0."
+            )
+
+
+        with cls._lock:
+
+            simulator = (
+                cls._require_simulator()
+            )
+
+
+            if not simulator.is_running:
+
+                raise DroneServiceError(
+                    "El simulador debe estar iniciado "
+                    "antes de activar el avance automático."
+                )
+
+
+            if (
+                cls._simulation_thread
+                is not None
+                and
+                cls._simulation_thread.is_alive()
+            ):
+
+                raise DroneServiceError(
+                    "La simulación automática "
+                    "ya está ejecutándose."
+                )
+
+
+            cls._simulation_interval = (
+                interval_seconds
+            )
+
+
+            cls._simulation_last_error = (
+                None
+            )
+
+
+            # Creamos un Event limpio.
+            cls._simulation_stop_event = (
+                Event()
+            )
+
+
+            thread = Thread(
+                target=cls._simulation_worker,
+                name="DroneSimulatorWorker",
+                daemon=True,
+            )
+
+
+            cls._simulation_thread = thread
+
+
+            thread.start()
+
+
+        return cls.simulator_auto_status()
+
+    @classmethod
+    def simulator_stop_auto(
+        cls
+    ) -> dict:
+        """
+        Detiene el worker automático sin resetear
+        la posición actual del simulador.
+        """
+
+        with cls._lock:
+
+            thread = (
+                cls._simulation_thread
+            )
+
+
+            if (
+                thread is None
+                or
+                not thread.is_alive()
+            ):
+
+                return cls.simulator_auto_status()
+
+
+            stop_event = (
+                cls._simulation_stop_event
+            )
+
+
+        # No hacemos join() dentro del lock.
+        # El worker podría necesitar el mismo lock
+        # para finalizar.
+        stop_event.set()
+
+
+        thread.join(
+            timeout=2.0
+        )
+
+
+        return cls.simulator_auto_status()

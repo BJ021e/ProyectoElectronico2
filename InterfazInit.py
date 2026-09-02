@@ -968,3 +968,94 @@ if __name__ == "__main__":
         host=Config.FLASK_HOST,
         port=Config.FLASK_PORT
     )
+
+@app.route(
+    "/api/drone/simulator/auto/status",
+    methods=["GET"]
+)
+def api_drone_simulator_auto_status():
+
+    try:
+
+        return jsonify(
+            DroneService
+            .simulator_auto_status()
+        )
+
+
+    except DroneServiceError as e:
+
+        return jsonify({
+            "error": True,
+            "msg": str(e)
+        }), 400
+        
+@app.route(
+    "/api/drone/simulator/auto/start",
+    methods=["POST"]
+)
+def api_drone_simulator_auto_start():
+
+    data = (
+        request.get_json(
+            silent=True
+        )
+        or {}
+    )
+
+
+    interval_seconds = data.get(
+        "interval_seconds",
+        1.0
+    )
+
+
+    try:
+
+        result = (
+            DroneService
+            .simulator_start_auto(
+                interval_seconds
+            )
+        )
+
+
+        return jsonify({
+            "status": "auto_started",
+            "runtime": result
+        })
+
+
+    except DroneServiceError as e:
+
+        return jsonify({
+            "error": True,
+            "msg": str(e)
+        }), 400
+
+@app.route(
+    "/api/drone/simulator/auto/stop",
+    methods=["POST"]
+)
+def api_drone_simulator_auto_stop():
+
+    try:
+
+        result = (
+            DroneService
+            .simulator_stop_auto()
+        )
+
+
+        return jsonify({
+            "status": "auto_stopped",
+            "runtime": result
+        })
+
+
+    except DroneServiceError as e:
+
+        return jsonify({
+            "error": True,
+            "msg": str(e)
+        }), 400
