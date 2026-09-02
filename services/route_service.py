@@ -73,6 +73,39 @@ class RouteService:
         }
 
     @staticmethod
+    def _serialize_summary(
+        route: Route
+    ) -> dict:
+        """
+        Convierte una Route en una representación resumida,
+        adecuada para listados.
+        """
+
+        return {
+            "id": route.id,
+            "route_code": route.route_code,
+            "name": route.name,
+            "description": route.description,
+            "status": route.status.value,
+
+            "created_at": (
+                route.created_at.isoformat()
+                if route.created_at
+                else None
+            ),
+
+            "updated_at": (
+                route.updated_at.isoformat()
+                if route.updated_at
+                else None
+            ),
+
+            "waypoint_count": len(
+                route.waypoints
+            ),
+        }
+    
+    @staticmethod
     def _validate_coordinates(
         latitude: float,
         longitude: float
@@ -538,7 +571,7 @@ class RouteService:
             ).all()
 
             return [
-                RouteService._serialize(route)
+                RouteService._serialize_summary(route)
                 for route in routes
             ]
 

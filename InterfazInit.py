@@ -616,7 +616,13 @@ def api_get_route(route_id):
             "error": True,
             "msg": str(e)
         }), 500
-        
+ 
+@app.route("/mission_routes")
+def mission_routes():
+    return render_template(
+        "mission_routes.html"
+    )
+            
 if __name__ == "__main__":
     app.run(
         debug=Config.FLASK_DEBUG,

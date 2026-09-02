@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Rutas Predefinidas</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/styles.css') }}"
+    >
+
+    <style>
+
+        .routes-page {
+            min-height: 100vh;
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 32px;
+        }
+
+        .routes-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .routes-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .routes-title h1 {
+            margin: 0;
+            font-size: 2rem;
+        }
+
+        .routes-title p {
+            margin-top: 8px;
+            color: #94a3b8;
+        }
+
+        .back-button {
+            text-decoration: none;
+            color: #e2e8f0;
+            border: 1px solid #334155;
+            padding: 10px 16px;
+            border-radius: 8px;
+        }
+
+        .routes-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .routes-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .routes-table th,
+        .routes-table td {
+            padding: 16px 18px;
+            text-align: left;
+            border-bottom: 1px solid #334155;
+        }
+
+        .routes-table th {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .routes-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .route-code {
+            font-weight: 700;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .status-ready {
+            color: #34d399;
+            background: rgba(16, 185, 129, 0.15);
+        }
+
+        .status-draft {
+            color: #fbbf24;
+            background: rgba(245, 158, 11, 0.15);
+        }
+
+        .status-archived {
+            color: #cbd5e1;
+            background: rgba(148, 163, 184, 0.15);
+        }
+
+        .view-button {
+            display: inline-block;
+
+            text-decoration: none;
+
+            border: 1px solid #3b82f6;
+            background: transparent;
+            color: #60a5fa;
+
+            padding: 7px 12px;
+            border-radius: 7px;
+        }
+
+        .loading-state,
+        .error-state,
+        .empty-state {
+            padding: 40px;
+            text-align: center;
+            color: #94a3b8;
+        }
+
+        @media (max-width: 900px) {
+
+            .routes-card {
+                overflow-x: auto;
+            }
+
+            .routes-table {
+                min-width: 850px;
+            }
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<div class="routes-page">
+
+    <div class="routes-container">
+
+        <header class="routes-header">
+
+            <div class="routes-title">
+
+                <h1>
+                    Rutas predefinidas
+                </h1>
+
+                <p>
+                    Consulta las rutas disponibles
+                    para las operaciones de vuelo.
+                </p>
+
+            </div>
+
+
+            <a
+                href="{{ url_for('ground_capture_interface') }}"
+                class="back-button"
+            >
+                Volver a operación
+            </a>
+
+        </header>
+
+
+        <section class="routes-card">
+
+            <div
+                id="routesLoading"
+                class="loading-state"
+            >
+                Cargando rutas...
+            </div>
+
+
+            <table
+                id="routesTable"
+                class="routes-table"
+                style="display: none;"
+            >
+
+                <thead>
+
+                    <tr>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Estado</th>
+                        <th>Waypoints</th>
+                        <th>Actualización</th>
+                        <th></th>
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="routesBody">
+                </tbody>
+
+            </table>
+
+        </section>
+
+    </div>
+
+</div>
+
+
+<script>
+
+function formatDate(value) {
+
+    if (!value) {
+        return "--";
+    }
+
+    const date =
+        new Date(value);
+
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+        return value;
+    }
+
+    return date.toLocaleString();
+}
+
+
+function getStatusClass(status) {
+
+    switch (status) {
+
+        case "READY":
+            return "status-ready";
+
+        case "DRAFT":
+            return "status-draft";
+
+        case "ARCHIVED":
+            return "status-archived";
+
+        default:
+            return "status-archived";
+    }
+}
+
+
+function renderRoutes(routes) {
+
+    const loading =
+        document.getElementById(
+            "routesLoading"
+        );
+
+    const table =
+        document.getElementById(
+            "routesTable"
+        );
+
+    const body =
+        document.getElementById(
+            "routesBody"
+        );
+
+
+    body.innerHTML = "";
+
+
+    if (!routes.length) {
+
+        loading.className =
+            "empty-state";
+
+        loading.textContent =
+            "Todavía no existen rutas registradas.";
+
+        return;
+    }
+
+
+    routes.forEach((route) => {
+
+        const row =
+            document.createElement("tr");
+
+
+        row.innerHTML = `
+
+            <td class="route-code">
+                ${route.route_code}
+            </td>
+
+            <td>
+                ${route.name}
+            </td>
+
+            <td>
+
+                <span
+                    class="
+                        status-badge
+                        ${getStatusClass(route.status)}
+                    "
+                >
+                    ${route.status}
+                </span>
+
+            </td>
+
+            <td>
+                ${route.waypoint_count}
+            </td>
+
+            <td>
+                ${formatDate(route.updated_at)}
+            </td>
+
+            <td>
+
+                <a
+                    class="view-button"
+                    href="/mission_routes/${route.id}"
+                >
+                    Ver
+                </a>
+
+            </td>
+
+        `;
+
+
+        body.appendChild(row);
+    });
+
+
+    loading.style.display =
+        "none";
+
+    table.style.display =
+        "table";
+}
+
+
+async function loadRoutes() {
+
+    const loading =
+        document.getElementById(
+            "routesLoading"
+        );
+
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/routes"
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                `HTTP ${response.status}`
+            );
+        }
+
+
+        const data =
+            await response.json();
+
+
+        renderRoutes(
+            data.routes ?? []
+        );
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        loading.className =
+            "error-state";
+
+        loading.textContent =
+            "No fue posible cargar las rutas.";
+    }
+}
+
+
+document.addEventListener(
+    "DOMContentLoaded",
+    loadRoutes
+);
+
+</script>
+
+</body>
+
+</html>
