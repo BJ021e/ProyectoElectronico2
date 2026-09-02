@@ -555,6 +555,13 @@ def flight_history():
         "flight_history.html"
     )
 
+@app.route("/flight_history/<int:flight_id>")
+def flight_detail(flight_id):
+    return render_template(
+        "flight_detail.html",
+        flight_id=flight_id
+    )
+
 if __name__ == "__main__":
     app.run(
         debug=Config.FLASK_DEBUG,

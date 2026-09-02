@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Detalle del Vuelo</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/styles.css') }}"
+    >
+
+    <style>
+
+        .detail-page {
+            min-height: 100vh;
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 32px;
+        }
+
+        .detail-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .detail-title h1 {
+            margin: 0;
+            font-size: 2rem;
+        }
+
+        .detail-title p {
+            margin-top: 8px;
+            color: #94a3b8;
+        }
+
+        .back-button {
+            text-decoration: none;
+            color: #e2e8f0;
+            border: 1px solid #334155;
+            padding: 10px 16px;
+            border-radius: 8px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .summary-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 18px;
+        }
+
+        .summary-label {
+            color: #94a3b8;
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .summary-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .section-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 14px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            margin: 0 0 18px 0;
+            font-size: 1.2rem;
+        }
+
+        .telemetry-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+        }
+
+        .telemetry-item {
+            background: #111827;
+            border: 1px solid #334155;
+            border-radius: 9px;
+            padding: 14px;
+        }
+
+        .route-placeholder {
+            min-height: 260px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+
+            border: 1px dashed #475569;
+            border-radius: 10px;
+
+            color: #94a3b8;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 0.8rem;
+        }
+
+        .status-completed {
+            color: #34d399;
+            background: rgba(16, 185, 129, 0.15);
+        }
+
+        .status-active {
+            color: #60a5fa;
+            background: rgba(59, 130, 246, 0.15);
+        }
+
+        .status-created {
+            color: #fbbf24;
+            background: rgba(245, 158, 11, 0.15);
+        }
+
+        .status-other {
+            color: #cbd5e1;
+            background: rgba(148, 163, 184, 0.15);
+        }
+
+        .loading-state,
+        .error-state {
+            padding: 50px;
+            text-align: center;
+            color: #94a3b8;
+        }
+
+    </style>
+</head>
+
+
+<body>
+
+<div class="detail-page">
+
+    <div class="detail-container">
+
+        <header class="detail-header">
+
+            <div class="detail-title">
+
+                <h1 id="flightCode">
+                    Detalle del vuelo
+                </h1>
+
+                <p id="flightName">
+                    Cargando información...
+                </p>
+
+            </div>
+
+            <a
+                href="/flight_history"
+                class="back-button"
+            >
+                Volver al historial
+            </a>
+
+        </header>
+
+
+        <div
+            id="loadingState"
+            class="loading-state"
+        >
+            Cargando vuelo...
+        </div>
+
+
+        <main
+            id="flightContent"
+            style="display: none;"
+        >
+
+            <section class="summary-grid">
+
+                <div class="summary-card">
+                    <div class="summary-label">
+                        Estado
+                    </div>
+
+                    <div
+                        class="summary-value"
+                        id="flightStatus"
+                    >
+                        --
+                    </div>
+                </div>
+
+
+                <div class="summary-card">
+                    <div class="summary-label">
+                        Inicio
+                    </div>
+
+                    <div
+                        class="summary-value"
+                        id="flightStart"
+                    >
+                        --
+                    </div>
+                </div>
+
+
+                <div class="summary-card">
+                    <div class="summary-label">
+                        Fin
+                    </div>
+
+                    <div
+                        class="summary-value"
+                        id="flightEnd"
+                    >
+                        --
+                    </div>
+                </div>
+
+
+                <div class="summary-card">
+                    <div class="summary-label">
+                        Duración
+                    </div>
+
+                    <div
+                        class="summary-value"
+                        id="flightDuration"
+                    >
+                        --
+                    </div>
+                </div>
+
+
+                <div class="summary-card">
+                    <div class="summary-label">
+                        Puntos de telemetría
+                    </div>
+
+                    <div
+                        class="summary-value"
+                        id="telemetryCount"
+                    >
+                        --
+                    </div>
+                </div>
+
+            </section>
+
+
+            <section class="section-card">
+
+                <h2 class="section-title">
+                    Recorrido del vuelo
+                </h2>
+
+                <div
+                    id="routePlaceholder"
+                    class="route-placeholder"
+                >
+                    Preparando información del recorrido...
+                </div>
+
+            </section>
+
+        </main>
+
+    </div>
+
+</div>
+
+
+<script>
+
+const FLIGHT_ID = {{ flight_id | tojson }};
+
+
+function formatDate(value) {
+
+    if (!value) {
+        return "--";
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return value;
+    }
+
+    return date.toLocaleString();
+}
+
+
+function formatDuration(seconds) {
+
+    if (
+        seconds === null ||
+        seconds === undefined
+    ) {
+        return "--";
+    }
+
+    const totalSeconds =
+        Math.round(seconds);
+
+    const hours =
+        Math.floor(totalSeconds / 3600);
+
+    const minutes =
+        Math.floor(
+            (totalSeconds % 3600) / 60
+        );
+
+    const secs =
+        totalSeconds % 60;
+
+
+    if (hours > 0) {
+
+        return [
+            hours,
+            minutes
+                .toString()
+                .padStart(2, "0"),
+            secs
+                .toString()
+                .padStart(2, "0")
+        ].join(":");
+    }
+
+
+    return [
+        minutes,
+        secs
+            .toString()
+            .padStart(2, "0")
+    ].join(":");
+}
+
+
+function getStatusClass(status) {
+
+    switch (status) {
+
+        case "COMPLETED":
+            return "status-completed";
+
+        case "ACTIVE":
+            return "status-active";
+
+        case "CREATED":
+            return "status-created";
+
+        default:
+            return "status-other";
+    }
+}
+
+
+async function loadFlight() {
+
+    const loading =
+        document.getElementById(
+            "loadingState"
+        );
+
+    const content =
+        document.getElementById(
+            "flightContent"
+        );
+
+    try {
+
+        const [
+            detailResponse,
+            trajectoryResponse
+        ] = await Promise.all([
+
+            fetch(
+                `/api/flights/${FLIGHT_ID}`
+            ),
+
+            fetch(
+                `/api/flights/${FLIGHT_ID}/trajectory`
+            )
+        ]);
+
+
+        if (!detailResponse.ok) {
+            throw new Error(
+                `Detalle HTTP ${detailResponse.status}`
+            );
+        }
+
+        if (!trajectoryResponse.ok) {
+            throw new Error(
+                `Trayectoria HTTP ${trajectoryResponse.status}`
+            );
+        }
+
+
+        const detail =
+            await detailResponse.json();
+
+        const trajectory =
+            await trajectoryResponse.json();
+
+
+        const flight =
+            detail.flight;
+
+
+        document.getElementById(
+            "flightCode"
+        ).textContent =
+            flight.flight_code;
+
+
+        document.getElementById(
+            "flightName"
+        ).textContent =
+            flight.name ?? "Vuelo sin nombre";
+
+
+        const statusElement =
+            document.getElementById(
+                "flightStatus"
+            );
+
+        statusElement.innerHTML = `
+            <span
+                class="
+                    status-badge
+                    ${getStatusClass(flight.status)}
+                "
+            >
+                ${flight.status}
+            </span>
+        `;
+
+
+        document.getElementById(
+            "flightStart"
+        ).textContent =
+            formatDate(
+                flight.started_at
+            );
+
+
+        document.getElementById(
+            "flightEnd"
+        ).textContent =
+            formatDate(
+                flight.finished_at
+            );
+
+
+        document.getElementById(
+            "flightDuration"
+        ).textContent =
+            formatDuration(
+                flight.duration_seconds
+            );
+
+
+        document.getElementById(
+            "telemetryCount"
+        ).textContent =
+            detail.telemetry_count;
+
+
+        const routePlaceholder =
+            document.getElementById(
+                "routePlaceholder"
+            );
+
+
+        if (trajectory.count === 0) {
+
+            routePlaceholder.textContent =
+                "Este vuelo no contiene puntos GPS válidos.";
+
+        } else {
+
+            routePlaceholder.textContent =
+                `${trajectory.count} punto` +
+                `${trajectory.count === 1 ? "" : "s"} ` +
+                "GPS disponibles para representar el recorrido.";
+        }
+
+
+        loading.style.display =
+            "none";
+
+        content.style.display =
+            "block";
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        loading.className =
+            "error-state";
+
+        loading.textContent =
+            "No fue posible cargar el vuelo.";
+    }
+}
+
+
+document.addEventListener(
+    "DOMContentLoaded",
+    loadFlight
+);
+
+</script>
+
+</body>
+</html>

@@ -121,6 +121,9 @@
             padding: 7px 12px;
             border-radius: 7px;
             cursor: pointer;
+
+            text-decoration: none;
+            display: inline-block;
         }
 
         .empty-state,
@@ -346,12 +349,12 @@ function renderFlights(flights) {
             </td>
 
             <td>
-                <button
+                <a
                     class="view-button"
-                    data-flight-id="${flight.id}"
+                    href="/flight_history/${flight.id}"
                 >
                     Ver
-                </button>
+                </a>
             </td>
         `;
 
