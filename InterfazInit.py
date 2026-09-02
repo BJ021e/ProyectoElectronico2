@@ -955,6 +955,12 @@ def api_drone_simulator_disconnect():
             "error": True,
             "msg": str(e)
         }), 400
+    
+@app.route("/drone_operation")
+def drone_operation():
+    return render_template(
+        "drone_operation.html"
+    )
 
 if __name__ == "__main__":
     app.run(

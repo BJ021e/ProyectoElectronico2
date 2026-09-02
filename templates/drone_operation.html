@@ -1,0 +1,1681 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Operación de Vuelo</title>
+
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/styles.css') }}"
+    >
+
+
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    >
+
+
+    <style>
+
+        body {
+            margin: 0;
+            background: #0f172a;
+            color: #f8fafc;
+            font-family: Arial, sans-serif;
+        }
+
+
+        .operation-page {
+            min-height: 100vh;
+            padding: 28px;
+        }
+
+
+        .operation-container {
+            max-width: 1500px;
+            margin: 0 auto;
+        }
+
+
+        /* =========================================
+           HEADER
+           ========================================= */
+
+        .operation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+
+        .operation-header h1 {
+            margin: 0;
+            font-size: 2rem;
+        }
+
+
+        .operation-header p {
+            margin-top: 8px;
+            color: #94a3b8;
+        }
+
+
+        .connection-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+
+        .provider-badge {
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+
+        .connection-badge {
+            padding: 8px 14px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+
+        .connection-online {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+        }
+
+
+        .connection-offline {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+        }
+
+
+        /* =========================================
+           TOP GRID
+           ========================================= */
+
+        .operation-grid {
+            display: grid;
+
+            grid-template-columns:
+                minmax(0, 1.6fr)
+                minmax(360px, 0.8fr);
+
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+
+        .panel {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 14px;
+            padding: 20px;
+        }
+
+
+        .panel-title {
+            margin: 0 0 16px 0;
+            font-size: 1.15rem;
+        }
+
+
+        /* =========================================
+           STREAM
+           ========================================= */
+
+        .stream-frame {
+            min-height: 390px;
+
+            background: #020617;
+
+            border: 1px solid #334155;
+            border-radius: 10px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            position: relative;
+            overflow: hidden;
+        }
+
+
+        .stream-placeholder {
+            text-align: center;
+            color: #64748b;
+        }
+
+
+        .stream-placeholder strong {
+            color: #cbd5e1;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+
+        .stream-status {
+            position: absolute;
+            top: 14px;
+            left: 14px;
+
+            padding: 6px 10px;
+            border-radius: 999px;
+
+            background: rgba(15, 23, 42, 0.88);
+            color: #94a3b8;
+
+            font-size: 0.78rem;
+        }
+
+
+        /* =========================================
+           TELEMETRY
+           ========================================= */
+
+        .telemetry-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+
+        .telemetry-card {
+            background: #0f172a;
+
+            border: 1px solid #334155;
+            border-radius: 10px;
+
+            padding: 16px;
+        }
+
+
+        .telemetry-label {
+            color: #94a3b8;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            margin-bottom: 7px;
+        }
+
+
+        .telemetry-value {
+            font-size: 1.15rem;
+            font-weight: 700;
+        }
+
+
+        /* =========================================
+           MISSION CONTROL
+           ========================================= */
+
+        .mission-control {
+            margin-bottom: 20px;
+        }
+
+
+        .control-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+
+        .route-select {
+            min-width: 300px;
+
+            background: #0f172a;
+            color: #f8fafc;
+
+            border: 1px solid #334155;
+            border-radius: 8px;
+
+            padding: 10px 12px;
+        }
+
+
+        .control-button {
+            padding: 10px 15px;
+
+            border-radius: 8px;
+            border: 1px solid #3b82f6;
+
+            background: transparent;
+            color: #60a5fa;
+
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+
+        .control-button:hover {
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+
+        .control-button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+
+        .danger-button {
+            border-color: #ef4444;
+            color: #f87171;
+        }
+
+
+        .operation-message {
+            margin-top: 12px;
+            color: #94a3b8;
+            min-height: 20px;
+        }
+
+
+        .operation-message.error {
+            color: #f87171;
+        }
+
+
+        .operation-message.success {
+            color: #34d399;
+        }
+
+
+        /* =========================================
+           MAP
+           ========================================= */
+
+        .map-panel {
+            margin-bottom: 20px;
+        }
+
+
+        #operationMap {
+            width: 100%;
+            height: 520px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+
+        .map-legend {
+            margin-top: 14px;
+
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+
+            color: #cbd5e1;
+            font-size: 0.85rem;
+        }
+
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+
+        .legend-route {
+            width: 32px;
+            border-top: 3px dashed #f59e0b;
+        }
+
+
+        .legend-drone {
+            width: 12px;
+            height: 12px;
+
+            border-radius: 50%;
+            background: #22c55e;
+        }
+
+
+        /* =========================================
+           RESPONSIVE
+           ========================================= */
+
+        @media (max-width: 1000px) {
+
+            .operation-grid {
+                grid-template-columns: 1fr;
+            }
+
+
+            .operation-header {
+                flex-direction: column;
+            }
+
+
+            .telemetry-grid {
+                grid-template-columns:
+                    repeat(3, 1fr);
+            }
+
+        }
+
+
+        @media (max-width: 700px) {
+
+            .operation-page {
+                padding: 16px;
+            }
+
+
+            .telemetry-grid {
+                grid-template-columns:
+                    repeat(2, 1fr);
+            }
+
+
+            .route-select {
+                width: 100%;
+                min-width: 0;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<div class="operation-page">
+
+    <div class="operation-container">
+
+
+        <!-- =======================================
+             HEADER
+             ======================================= -->
+
+        <header class="operation-header">
+
+            <div>
+
+                <h1>
+                    Operación de vuelo
+                </h1>
+
+                <p>
+                    Supervisión del dron, telemetría
+                    y ruta planificada.
+                </p>
+
+            </div>
+
+
+            <div class="connection-area">
+
+                <div
+                    id="providerBadge"
+                    class="provider-badge"
+                >
+                    SIN PROVEEDOR
+                </div>
+
+
+                <div
+                    id="connectionBadge"
+                    class="
+                        connection-badge
+                        connection-offline
+                    "
+                >
+                    DESCONECTADO
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <!-- =======================================
+             CONTROL
+             ======================================= -->
+
+        <section class="panel mission-control">
+
+            <h2 class="panel-title">
+                Control de misión
+            </h2>
+
+
+            <div class="control-row">
+
+                <select
+                    id="routeSelect"
+                    class="route-select"
+                >
+                    <option value="">
+                        Cargando rutas...
+                    </option>
+                </select>
+
+
+                <button
+                    id="setupButton"
+                    class="control-button"
+                >
+                    Configurar
+                </button>
+
+
+                <button
+                    id="connectButton"
+                    class="control-button"
+                >
+                    Conectar
+                </button>
+
+
+                <button
+                    id="startButton"
+                    class="control-button"
+                >
+                    Iniciar
+                </button>
+
+
+                <button
+                    id="advanceButton"
+                    class="control-button"
+                >
+                    Avanzar
+                </button>
+
+
+                <button
+                    id="resetButton"
+                    class="control-button"
+                >
+                    Reset
+                </button>
+
+
+                <button
+                    id="disconnectButton"
+                    class="
+                        control-button
+                        danger-button
+                    "
+                >
+                    Desconectar
+                </button>
+
+            </div>
+
+
+            <div
+                id="operationMessage"
+                class="operation-message"
+            >
+            </div>
+
+        </section>
+
+
+        <!-- =======================================
+             VIDEO + TELEMETRY
+             ======================================= -->
+
+        <section class="operation-grid">
+
+
+            <div class="panel">
+
+                <h2 class="panel-title">
+                    Vista de cámara
+                </h2>
+
+
+                <div class="stream-frame">
+
+                    <div class="stream-status">
+                        STREAM NO DISPONIBLE
+                    </div>
+
+
+                    <div class="stream-placeholder">
+
+                        <strong>
+                            Video DJI
+                        </strong>
+
+                        El stream se integrará
+                        posteriormente mediante
+                        el proveedor real.
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="panel">
+
+                <h2 class="panel-title">
+                    Telemetría
+                </h2>
+
+
+                <div class="telemetry-grid">
+
+
+                    <div class="telemetry-card">
+
+                        <div class="telemetry-label">
+                            Latitud
+                        </div>
+
+                        <div
+                            id="latitudeValue"
+                            class="telemetry-value"
+                        >
+                            --
+                        </div>
+
+                    </div>
+
+
+                    <div class="telemetry-card">
+
+                        <div class="telemetry-label">
+                            Longitud
+                        </div>
+
+                        <div
+                            id="longitudeValue"
+                            class="telemetry-value"
+                        >
+                            --
+                        </div>
+
+                    </div>
+
+
+                    <div class="telemetry-card">
+
+                        <div class="telemetry-label">
+                            Altitud
+                        </div>
+
+                        <div
+                            id="altitudeValue"
+                            class="telemetry-value"
+                        >
+                            --
+                        </div>
+
+                    </div>
+
+
+                    <div class="telemetry-card">
+
+                        <div class="telemetry-label">
+                            Velocidad
+                        </div>
+
+                        <div
+                            id="speedValue"
+                            class="telemetry-value"
+                        >
+                            --
+                        </div>
+
+                    </div>
+
+
+                    <div class="telemetry-card">
+
+                        <div class="telemetry-label">
+                            Heading
+                        </div>
+
+                        <div
+                            id="headingValue"
+                            class="telemetry-value"
+                        >
+                            --
+                        </div>
+
+                    </div>
+
+
+                    <div class="telemetry-card">
+
+                        <div class="telemetry-label">
+                            Batería
+                        </div>
+
+                        <div
+                            id="batteryValue"
+                            class="telemetry-value"
+                        >
+                            --
+                        </div>
+
+                    </div>
+
+
+                    <div class="telemetry-card">
+
+                        <div class="telemetry-label">
+                            GPS
+                        </div>
+
+                        <div
+                            id="gpsValue"
+                            class="telemetry-value"
+                        >
+                            --
+                        </div>
+
+                    </div>
+
+
+                    <div class="telemetry-card">
+
+                        <div class="telemetry-label">
+                            Modo
+                        </div>
+
+                        <div
+                            id="modeValue"
+                            class="telemetry-value"
+                        >
+                            --
+                        </div>
+
+                    </div>
+
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =======================================
+             MAP
+             ======================================= -->
+
+        <section class="panel map-panel">
+
+            <h2 class="panel-title">
+                Mapa operacional
+            </h2>
+
+
+            <div id="operationMap"></div>
+
+
+            <div class="map-legend">
+
+                <div class="legend-item">
+                    <span class="legend-route"></span>
+                    Ruta planificada
+                </div>
+
+
+                <div class="legend-item">
+                    <span class="legend-drone"></span>
+                    Posición actual
+                </div>
+
+            </div>
+
+        </section>
+
+
+    </div>
+
+</div>
+
+
+<script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+</script>
+
+
+<script>
+
+let operationMap = null;
+
+let routeLayer = null;
+
+let droneMarker = null;
+
+let activeRoute = null;
+
+
+/* ===============================================
+   UTILIDADES
+   =============================================== */
+
+function setMessage(
+    message,
+    type = ""
+) {
+
+    const element =
+        document.getElementById(
+            "operationMessage"
+        );
+
+
+    element.textContent =
+        message;
+
+
+    element.className =
+        `operation-message ${type}`;
+}
+
+
+function formatNumber(
+    value,
+    decimals = 4
+) {
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+        return "--";
+    }
+
+
+    const number =
+        Number(value);
+
+
+    if (!Number.isFinite(number)) {
+        return "--";
+    }
+
+
+    return number.toFixed(
+        decimals
+    );
+}
+
+
+/* ===============================================
+   MAPA
+   =============================================== */
+
+function initializeMap() {
+
+    operationMap =
+        L.map(
+            "operationMap"
+        )
+        .setView(
+            [-12.06, -77.03],
+            17
+        );
+
+
+    L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+            maxZoom: 19,
+
+            attribution:
+                "&copy; OpenStreetMap contributors"
+        }
+    )
+    .addTo(
+        operationMap
+    );
+
+}
+
+
+function renderPlannedRoute(
+    route
+) {
+
+    activeRoute =
+        route;
+
+
+    if (routeLayer) {
+
+        operationMap.removeLayer(
+            routeLayer
+        );
+
+        routeLayer = null;
+    }
+
+
+    const waypoints =
+        route?.waypoints ?? [];
+
+
+    const coordinates =
+        waypoints
+        .map(
+            waypoint => [
+                Number(
+                    waypoint.latitude
+                ),
+
+                Number(
+                    waypoint.longitude
+                )
+            ]
+        )
+        .filter(
+            coordinate =>
+                Number.isFinite(
+                    coordinate[0]
+                )
+                &&
+                Number.isFinite(
+                    coordinate[1]
+                )
+        );
+
+
+    if (!coordinates.length) {
+        return;
+    }
+
+
+    routeLayer =
+        L.polyline(
+            coordinates,
+            {
+                color: "#f59e0b",
+
+                weight: 4,
+
+                opacity: 0.9,
+
+                dashArray: "8, 8"
+            }
+        )
+        .addTo(
+            operationMap
+        );
+
+
+    operationMap.fitBounds(
+        routeLayer.getBounds(),
+        {
+            padding: [40, 40]
+        }
+    );
+
+}
+
+
+function renderDronePosition(
+    state
+) {
+
+    if (
+        state.latitude === null
+        ||
+        state.longitude === null
+    ) {
+
+        if (droneMarker) {
+
+            operationMap.removeLayer(
+                droneMarker
+            );
+
+            droneMarker = null;
+        }
+
+        return;
+    }
+
+
+    const coordinate = [
+        Number(
+            state.latitude
+        ),
+
+        Number(
+            state.longitude
+        )
+    ];
+
+
+    if (!droneMarker) {
+
+        droneMarker =
+            L.circleMarker(
+                coordinate,
+                {
+                    radius: 9,
+
+                    color: "#22c55e",
+
+                    fillColor: "#22c55e",
+
+                    fillOpacity: 1,
+
+                    weight: 3
+                }
+            )
+            .addTo(
+                operationMap
+            );
+
+    } else {
+
+        droneMarker.setLatLng(
+            coordinate
+        );
+    }
+
+
+    droneMarker.bindPopup(`
+        <strong>Dron actual</strong>
+
+        <br>
+        Altitud:
+        ${state.altitude ?? "--"} m
+
+        <br>
+        Velocidad:
+        ${state.speed ?? "--"} m/s
+
+        <br>
+        Batería:
+        ${state.battery ?? "--"} %
+    `);
+
+}
+
+
+/* ===============================================
+   TELEMETRÍA
+   =============================================== */
+
+function renderDroneState(
+    payload
+) {
+
+    const providerBadge =
+        document.getElementById(
+            "providerBadge"
+        );
+
+    const connectionBadge =
+        document.getElementById(
+            "connectionBadge"
+        );
+
+
+    if (
+        !payload.configured ||
+        !payload.state
+    ) {
+
+        providerBadge.textContent =
+            "SIN PROVEEDOR";
+
+
+        connectionBadge.textContent =
+            "DESCONECTADO";
+
+
+        connectionBadge.className =
+            "connection-badge connection-offline";
+
+
+        return;
+    }
+
+
+    const state =
+        payload.state;
+
+
+    providerBadge.textContent =
+        state.provider;
+
+
+    if (
+        state.connected &&
+        state.aircraft_online
+    ) {
+
+        connectionBadge.textContent =
+            "CONECTADO";
+
+
+        connectionBadge.className =
+            "connection-badge connection-online";
+
+    } else {
+
+        connectionBadge.textContent =
+            "DESCONECTADO";
+
+
+        connectionBadge.className =
+            "connection-badge connection-offline";
+
+    }
+
+
+    document.getElementById(
+        "latitudeValue"
+    ).textContent =
+        formatNumber(
+            state.latitude,
+            6
+        );
+
+
+    document.getElementById(
+        "longitudeValue"
+    ).textContent =
+        formatNumber(
+            state.longitude,
+            6
+        );
+
+
+    document.getElementById(
+        "altitudeValue"
+    ).textContent =
+        state.altitude !== null
+            ? `${formatNumber(
+                state.altitude,
+                1
+            )} m`
+            : "--";
+
+
+    document.getElementById(
+        "speedValue"
+    ).textContent =
+        state.speed !== null
+            ? `${formatNumber(
+                state.speed,
+                1
+            )} m/s`
+            : "--";
+
+
+    document.getElementById(
+        "headingValue"
+    ).textContent =
+        state.heading !== null
+            ? `${formatNumber(
+                state.heading,
+                1
+            )}°`
+            : "--";
+
+
+    document.getElementById(
+        "batteryValue"
+    ).textContent =
+        state.battery !== null
+            ? `${formatNumber(
+                state.battery,
+                1
+            )} %`
+            : "--";
+
+
+    document.getElementById(
+        "gpsValue"
+    ).textContent =
+        state.gps_sats
+        ?? "--";
+
+
+    document.getElementById(
+        "modeValue"
+    ).textContent =
+        state.flight_mode
+        ?? "--";
+
+
+    renderDronePosition(
+        state
+    );
+
+}
+
+
+/* ===============================================
+   API
+   =============================================== */
+
+async function getDroneState() {
+
+    const response =
+        await fetch(
+            "/api/drone/state"
+        );
+
+
+    if (!response.ok) {
+
+        throw new Error(
+            `HTTP ${response.status}`
+        );
+    }
+
+
+    const data =
+        await response.json();
+
+
+    renderDroneState(
+        data
+    );
+
+
+    return data;
+}
+
+
+async function sendSimulatorCommand(
+    endpoint,
+    body = null
+) {
+
+    const options = {
+        method: "POST",
+        headers: {
+            "Content-Type":
+                "application/json"
+        }
+    };
+
+
+    if (body !== null) {
+
+        options.body =
+            JSON.stringify(
+                body
+            );
+    }
+
+
+    const response =
+        await fetch(
+            endpoint,
+            options
+        );
+
+
+    const data =
+        await response.json();
+
+
+    if (!response.ok) {
+
+        throw new Error(
+            data.msg
+            ?? `HTTP ${response.status}`
+        );
+    }
+
+
+    return data;
+}
+
+
+/* ===============================================
+   ROUTES
+   =============================================== */
+
+async function loadRoutes() {
+
+    const select =
+        document.getElementById(
+            "routeSelect"
+        );
+
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/routes"
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                `HTTP ${response.status}`
+            );
+        }
+
+
+        const data =
+            await response.json();
+
+
+        const routes =
+            (data.routes ?? [])
+            .filter(
+                route =>
+                    route.status === "READY"
+            );
+
+
+        select.innerHTML = "";
+
+
+        if (!routes.length) {
+
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+            option.value = "";
+
+            option.textContent =
+                "No existen rutas READY";
+
+            select.appendChild(
+                option
+            );
+
+            return;
+        }
+
+
+        routes.forEach(
+            route => {
+
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+
+                option.value =
+                    route.id;
+
+
+                option.textContent =
+                    `${route.route_code} — ${route.name}`;
+
+
+                select.appendChild(
+                    option
+                );
+
+            }
+        );
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        select.innerHTML = `
+            <option value="">
+                Error cargando rutas
+            </option>
+        `;
+
+    }
+
+}
+
+
+async function loadRouteDetail(
+    routeId
+) {
+
+    const response =
+        await fetch(
+            `/api/routes/${routeId}`
+        );
+
+
+    if (!response.ok) {
+
+        throw new Error(
+            `HTTP ${response.status}`
+        );
+    }
+
+
+    const data =
+        await response.json();
+
+
+    renderPlannedRoute(
+        data.route
+    );
+
+}
+
+
+/* ===============================================
+   CONTROLES
+   =============================================== */
+
+async function setupSimulator() {
+
+    const routeId =
+        document.getElementById(
+            "routeSelect"
+        ).value;
+
+
+    if (!routeId) {
+
+        setMessage(
+            "Selecciona una ruta.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    try {
+
+        await sendSimulatorCommand(
+            "/api/drone/simulator/setup",
+            {
+                route_id:
+                    Number(routeId)
+            }
+        );
+
+
+        await loadRouteDetail(
+            routeId
+        );
+
+
+        await getDroneState();
+
+
+        setMessage(
+            "Simulador configurado correctamente.",
+            "success"
+        );
+
+
+    } catch (error) {
+
+        setMessage(
+            error.message,
+            "error"
+        );
+    }
+
+}
+
+
+async function connectSimulator() {
+
+    try {
+
+        await sendSimulatorCommand(
+            "/api/drone/simulator/connect"
+        );
+
+
+        await getDroneState();
+
+
+        setMessage(
+            "Simulador conectado.",
+            "success"
+        );
+
+
+    } catch (error) {
+
+        setMessage(
+            error.message,
+            "error"
+        );
+    }
+
+}
+
+
+async function startSimulator() {
+
+    try {
+
+        await sendSimulatorCommand(
+            "/api/drone/simulator/start"
+        );
+
+
+        await getDroneState();
+
+
+        setMessage(
+            "Misión simulada iniciada.",
+            "success"
+        );
+
+
+    } catch (error) {
+
+        setMessage(
+            error.message,
+            "error"
+        );
+    }
+
+}
+
+
+async function advanceSimulator() {
+
+    try {
+
+        const result =
+            await sendSimulatorCommand(
+                "/api/drone/simulator/advance"
+            );
+
+
+        await getDroneState();
+
+
+        if (
+            result.status
+            === "completed"
+        ) {
+
+            setMessage(
+                "La ruta simulada fue completada.",
+                "success"
+            );
+
+        } else {
+
+            setMessage(
+                "Simulación avanzada un paso.",
+                "success"
+            );
+        }
+
+
+    } catch (error) {
+
+        setMessage(
+            error.message,
+            "error"
+        );
+    }
+
+}
+
+
+async function resetSimulator() {
+
+    try {
+
+        await sendSimulatorCommand(
+            "/api/drone/simulator/reset"
+        );
+
+
+        await getDroneState();
+
+
+        setMessage(
+            "Simulador reiniciado.",
+            "success"
+        );
+
+
+    } catch (error) {
+
+        setMessage(
+            error.message,
+            "error"
+        );
+    }
+
+}
+
+
+async function disconnectSimulator() {
+
+    try {
+
+        await sendSimulatorCommand(
+            "/api/drone/simulator/disconnect"
+        );
+
+
+        await getDroneState();
+
+
+        setMessage(
+            "Simulador desconectado.",
+            "success"
+        );
+
+
+    } catch (error) {
+
+        setMessage(
+            error.message,
+            "error"
+        );
+    }
+
+}
+
+
+/* ===============================================
+   EVENTOS
+   =============================================== */
+
+document.getElementById(
+    "setupButton"
+).addEventListener(
+    "click",
+    setupSimulator
+);
+
+
+document.getElementById(
+    "connectButton"
+).addEventListener(
+    "click",
+    connectSimulator
+);
+
+
+document.getElementById(
+    "startButton"
+).addEventListener(
+    "click",
+    startSimulator
+);
+
+
+document.getElementById(
+    "advanceButton"
+).addEventListener(
+    "click",
+    advanceSimulator
+);
+
+
+document.getElementById(
+    "resetButton"
+).addEventListener(
+    "click",
+    resetSimulator
+);
+
+
+document.getElementById(
+    "disconnectButton"
+).addEventListener(
+    "click",
+    disconnectSimulator
+);
+
+
+/* ===============================================
+   INICIALIZACIÓN
+   =============================================== */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    async () => {
+
+        initializeMap();
+
+        await loadRoutes();
+
+        await getDroneState();
+
+    }
+);
+
+</script>
+
+</body>
+
+</html>
