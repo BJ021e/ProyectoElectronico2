@@ -19,6 +19,15 @@ from services.route_service import (
     RoutePersistenceError,
 )
 
+from services.flight_service import (
+    FlightService,
+    FlightPersistenceError,
+)
+
+from services.flight_route_service import (
+    FlightRouteService,
+    InvalidFlightRouteAssignmentError,
+)
 
 class DroneServiceError(Exception):
     """
@@ -62,6 +71,8 @@ class DroneService:
 
     _lock = RLock()
 
+    _active_flight_id: int | None = None
+    
     _simulation_thread: Thread | None = None
 
     _simulation_stop_event = Event()
@@ -254,7 +265,106 @@ class DroneService:
 
         with cls._lock:
             return cls._active_route_id
-        
+    
+    @classmethod
+    def get_active_flight_id(
+        cls
+    ) -> int | None:
+
+        with cls._lock:
+            return cls._active_flight_id
+    
+    @classmethod
+    def prepare_simulated_flight(
+        cls,
+        route_id: int,
+        *,
+        name: str = "Vuelo simulado",
+        step_fraction: float = 0.20,
+        initial_battery: float = 100.0,
+    ) -> dict:
+        """
+        Prepara una operación simulada completa:
+
+        1. configura DroneSimulator;
+        2. crea un Flight persistente;
+        3. asigna la Route al Flight;
+        4. conserva ambos IDs como contexto operacional.
+
+        El Flight queda creado, pero todavía no iniciado.
+        """
+
+        #
+        # Primero configuramos y validamos la ruta.
+        #
+        state = cls.configure_simulator(
+            route_id,
+            step_fraction=step_fraction,
+            initial_battery=initial_battery,
+        )
+
+
+        try:
+
+            flight = FlightService.create_flight(
+                name=name
+            )
+
+
+            flight_id = int(
+                flight["id"]
+            )
+
+
+            assignment = (
+                FlightRouteService.assign_route(
+                    flight_id,
+                    route_id
+                )
+            )
+
+
+        except (
+            FlightPersistenceError,
+            InvalidFlightRouteAssignmentError,
+        ) as exc:
+
+            #
+            # No dejamos un Flight activo en memoria
+            # si la preparación falló.
+            #
+            with cls._lock:
+                cls._active_flight_id = None
+
+            raise DroneServiceError(
+                f"No fue posible preparar "
+                f"el vuelo simulado: {exc}"
+            ) from exc
+
+
+        with cls._lock:
+
+            cls._active_flight_id = (
+                flight_id
+            )
+
+            cls._active_route_id = (
+                route_id
+            )
+
+
+        return {
+            "flight": flight,
+
+            "assignment": assignment,
+
+            "route_id": route_id,
+
+            "provider": cls.get_provider_name(),
+
+            "state": state.to_dict(),
+        }
+            
     @classmethod
     def _require_simulator(
         cls
@@ -506,6 +616,9 @@ class DroneService:
                 
                 "route_id": 
                     cls._active_route_id,
+                    
+                "flight_id": 
+                    cls._active_flight_id,
             }
             
     @classmethod
