@@ -238,17 +238,26 @@ def processing_worker():
             bands_arrays = {}
             valid_sample = True
             
-            for band_name, band_idx in band_indices.items():
-                remote_file = f"{base_remote}_{band_idx}.tif"
-                local_file = os.path.join(local_dir, f"{band_name}.tif")
-                try:
-                    with requests.get(f"{RPI_API_URL}/api/proxy_download", params={'path': remote_file}, stream=True, timeout=15) as r:
-                        if r.status_code != 200: raise Exception(f"HTTP {r.status_code}")
-                        with open(local_file, 'wb') as f: shutil.copyfileobj(r.raw, f)
-                    with rasterio.open(local_file) as src: bands_arrays[band_name] = src.read(1).astype(np.float32)
-                except Exception as e:
-                    log_msg(f"⚠️ Fallo banda {band_name}: {e}")
-                    valid_sample = False; break
+        for band_name, band_idx in band_indices.items():
+            remote_file = f"{base_remote}_{band_idx}.tif"
+            local_file = os.path.join(local_dir, f"{band_name}.tif")
+
+            try:
+                raspberry_service.download_file(
+                    remote_path=remote_file,
+                    local_path=local_file,
+                    timeout=15
+                )
+
+                with rasterio.open(local_file) as src:
+                    bands_arrays[band_name] = (
+                        src.read(1).astype(np.float32)
+                    )
+
+            except Exception as e:
+                log_msg(f"⚠️ Fallo banda {band_name}: {e}")
+                valid_sample = False
+                break
             
             if not valid_sample: continue
 
