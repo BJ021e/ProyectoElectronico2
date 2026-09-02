@@ -158,7 +158,22 @@
             color: #94a3b8;
         }
 
+        .flight-map {
+            width: 100%;
+            height: 430px;
+
+            border-radius: 10px;
+            overflow: hidden;
+
+            display: none;
+        }
+
     </style>
+
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    >
 </head>
 
 
@@ -286,6 +301,11 @@
                 </h2>
 
                 <div
+                    id="flightMap"
+                    class="flight-map"
+                ></div>
+
+                <div
                     id="routePlaceholder"
                     class="route-placeholder"
                 >
@@ -300,6 +320,9 @@
 
 </div>
 
+<script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+</script>
 
 <script>
 
@@ -387,6 +410,207 @@ function getStatusClass(status) {
     }
 }
 
+function renderTrajectoryMap(points) {
+
+    const mapElement =
+        document.getElementById("flightMap");
+
+    const placeholder =
+        document.getElementById("routePlaceholder");
+
+
+    const validPoints = points.filter((point) => {
+
+        const lat =
+            Number(point.latitude);
+
+        const lon =
+            Number(point.longitude);
+
+        return (
+            Number.isFinite(lat) &&
+            Number.isFinite(lon)
+        );
+    });
+
+
+    if (validPoints.length === 0) {
+
+        mapElement.style.display =
+            "none";
+
+        placeholder.style.display =
+            "flex";
+
+        placeholder.textContent =
+            "Este vuelo no contiene puntos GPS válidos.";
+
+        return;
+    }
+
+
+    placeholder.style.display =
+        "none";
+
+    mapElement.style.display =
+        "block";
+
+
+    const map = L.map(
+        "flightMap",
+        {
+            zoomControl: true
+        }
+    );
+
+
+    L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+            maxZoom: 19,
+            attribution:
+                "&copy; OpenStreetMap contributors"
+        }
+    ).addTo(map);
+    
+    /*
+    * Fuerza a Leaflet a recalcular
+    * el tamaño real del contenedor.
+    */
+    requestAnimationFrame(() => {
+        map.invalidateSize();
+    });
+
+    const coordinates =
+        validPoints.map((point) => [
+            Number(point.latitude),
+            Number(point.longitude)
+        ]);
+
+
+    /*
+     * CASO 1:
+     * Solo existe un punto GPS.
+     */
+    if (coordinates.length === 1) {
+
+        const point =
+            validPoints[0];
+
+        map.setView(
+            coordinates[0],
+            18
+        );
+
+
+        L.marker(
+            coordinates[0]
+        )
+        .addTo(map)
+        .bindPopup(`
+            <strong>Punto registrado</strong><br>
+            Altitud:
+            ${point.altitude ?? "--"} m<br>
+            ${point.recorded_at ?? ""}
+        `);
+
+
+        return;
+    }
+
+
+    /*
+     * CASO 2:
+     * Existen dos o más puntos.
+     */
+    const route = L.polyline(
+        coordinates,
+        {
+            weight: 4,
+            opacity: 0.9
+        }
+    ).addTo(map);
+    
+    /*
+    * Puntos intermedios de telemetría
+    */
+    validPoints.forEach((point, index) => {
+
+        // Inicio y fin ya tendrán sus propios marcadores
+        if (
+            index === 0 ||
+            index === validPoints.length - 1
+        ) {
+            return;
+        }
+
+        const coordinate = [
+            Number(point.latitude),
+            Number(point.longitude)
+        ];
+
+        L.circleMarker(
+            coordinate,
+            {
+                radius: 5,
+                weight: 2,
+                fillOpacity: 0.8
+            }
+        )
+        .addTo(map)
+        .bindPopup(`
+            <strong>Punto ${index + 1}</strong><br>
+            Altitud: ${point.altitude ?? "--"} m<br>
+            ${point.recorded_at ?? ""}
+        `);
+    });
+
+    map.fitBounds(
+        route.getBounds(),
+        {
+            padding: [40, 40]
+        }
+    );
+
+
+    /*
+     * Punto inicial
+     */
+    const first =
+        validPoints[0];
+
+    L.marker(
+        coordinates[0]
+    )
+    .addTo(map)
+    .bindPopup(`
+        <strong>Inicio</strong><br>
+        Altitud:
+        ${first.altitude ?? "--"} m<br>
+        ${first.recorded_at ?? ""}
+    `);
+
+
+    /*
+     * Punto final
+     */
+    const lastIndex =
+        coordinates.length - 1;
+
+    const last =
+        validPoints[lastIndex];
+
+    L.marker(
+        coordinates[lastIndex]
+    )
+    .addTo(map)
+    .bindPopup(`
+        <strong>Fin</strong><br>
+        Altitud:
+        ${last.altitude ?? "--"} m<br>
+        ${last.recorded_at ?? ""}
+    `);
+}
 
 async function loadFlight() {
 
@@ -500,31 +724,25 @@ async function loadFlight() {
             detail.telemetry_count;
 
 
-        const routePlaceholder =
-            document.getElementById(
-                "routePlaceholder"
+        /*
+        * Primero hacemos visible el contenedor.
+        * Leaflet necesita conocer sus dimensiones reales.
+        */
+        loading.style.display = "none";
+        content.style.display = "block";
+
+
+        /*
+        * Esperamos un frame para que el navegador
+        * calcule el layout antes de crear el mapa.
+        */
+        requestAnimationFrame(() => {
+
+            renderTrajectoryMap(
+                trajectory.points ?? []
             );
 
-
-        if (trajectory.count === 0) {
-
-            routePlaceholder.textContent =
-                "Este vuelo no contiene puntos GPS válidos.";
-
-        } else {
-
-            routePlaceholder.textContent =
-                `${trajectory.count} punto` +
-                `${trajectory.count === 1 ? "" : "s"} ` +
-                "GPS disponibles para representar el recorrido.";
-        }
-
-
-        loading.style.display =
-            "none";
-
-        content.style.display =
-            "block";
+        });
 
 
     } catch (error) {
