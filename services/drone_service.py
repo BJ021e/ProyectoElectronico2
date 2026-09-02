@@ -22,11 +22,18 @@ from services.route_service import (
 from services.flight_service import (
     FlightService,
     FlightPersistenceError,
+    InvalidFlightTransitionError,
 )
 
 from services.flight_route_service import (
     FlightRouteService,
     InvalidFlightRouteAssignmentError,
+)
+
+from services.telemetry_service import (
+    TelemetryService,
+    InvalidTelemetryError,
+    TelemetryPersistenceError,
 )
 
 class DroneServiceError(Exception):
@@ -432,9 +439,16 @@ class DroneService:
                 cls._require_simulator()
             )
 
+            flight_id = (
+                cls._active_flight_id
+            )
+
+
             try:
 
-                return simulator.start()
+                state = (
+                    simulator.start()
+                )
 
             except DroneSimulatorError as exc:
 
@@ -442,6 +456,69 @@ class DroneService:
                     str(exc)
                 ) from exc
 
+
+        if flight_id is None:
+            return state
+
+
+        try:
+
+            flight = (
+                FlightService.get_flight(
+                    flight_id
+                )
+            )
+
+
+            if flight is None:
+
+                raise DroneServiceError(
+                    f"El Flight con ID "
+                    f"{flight_id} no existe."
+                )
+
+
+            status = (
+                flight["status"]
+            )
+
+
+            if status == "CREATED":
+
+                FlightService.start_flight(
+                    flight_id
+                )
+
+
+            elif status != "ACTIVE":
+
+                raise DroneServiceError(
+                    f"No se puede iniciar la "
+                    f"operación del vuelo "
+                    f"{flight['flight_code']} "
+                    f"desde el estado "
+                    f"{status}."
+                )
+
+
+            cls._persist_active_flight_state(
+                state
+            )
+
+
+        except (
+            FlightPersistenceError,
+            InvalidFlightTransitionError,
+            ValueError,
+        ) as exc:
+
+            raise DroneServiceError(
+                "No fue posible iniciar "
+                f"el Flight persistente: {exc}"
+            ) from exc
+
+
+        return state
 
     @classmethod
     def simulator_advance(
@@ -454,15 +531,26 @@ class DroneService:
                 cls._require_simulator()
             )
 
+
             try:
 
-                return simulator.advance()
+                state = (
+                    simulator.advance()
+                )
 
             except DroneSimulatorError as exc:
 
                 raise DroneServiceError(
                     str(exc)
                 ) from exc
+
+
+        cls._persist_active_flight_state(
+            state
+        )
+
+
+        return state
 
 
     @classmethod
@@ -496,6 +584,81 @@ class DroneService:
             return simulator.is_running
     
     @classmethod
+    def _persist_active_flight_state(
+        cls,
+        state: DroneState
+    ) -> dict | None:
+        """
+        Persiste un DroneState como TelemetryPoint
+        cuando existe un Flight operacional activo.
+
+        Si no existe Flight asociado, no persiste nada.
+        """
+
+        with cls._lock:
+
+            flight_id = (
+                cls._active_flight_id
+            )
+
+
+        if flight_id is None:
+            return None
+
+        if (
+            state.latitude is None
+            or
+            state.longitude is None
+        ):
+            return None
+
+
+        try:
+
+            return TelemetryService.add_point(
+                flight_id,
+
+                latitude=
+                    state.latitude,
+
+                longitude=
+                    state.longitude,
+
+                altitude=
+                    state.altitude,
+
+                speed=
+                    state.speed,
+
+                heading=
+                    state.heading,
+
+                battery=
+                    state.battery,
+
+                gps_sats=
+                    state.gps_sats,
+
+                flight_mode=
+                    state.flight_mode,
+
+                recorded_at=
+                    state.recorded_at,
+            )
+
+
+        except (
+            InvalidTelemetryError,
+            TelemetryPersistenceError,
+        ) as exc:
+
+            raise DroneServiceError(
+                "No fue posible persistir "
+                f"la telemetría del vuelo "
+                f"{flight_id}: {exc}"
+            ) from exc
+         
+    @classmethod
     def _simulation_worker(cls) -> None:
         """
         Worker interno que hace avanzar el simulador
@@ -524,7 +687,9 @@ class DroneService:
 
                 with cls._lock:
 
-                    provider = cls._provider
+                    provider = (
+                        cls._provider
+                    )
 
 
                     if not isinstance(
@@ -540,7 +705,9 @@ class DroneService:
 
                     try:
 
-                        provider.advance()
+                        state = (
+                            provider.advance()
+                        )
 
                     except DroneSimulatorError as exc:
 
@@ -551,12 +718,30 @@ class DroneService:
                         break
 
 
-                    # advance() puede haber alcanzado
-                    # el waypoint final.
-                    if not provider.is_running:
+                    simulator_still_running = (
+                        provider.is_running
+                    )
+
+
+                    try:
+
+                        cls._persist_active_flight_state(
+                            state
+                        )
+
+                    except DroneServiceError as exc:
+
+                        with cls._lock:
+
+                            cls._simulation_last_error = (
+                                str(exc)
+                            )
+
                         break
 
 
+                    if not simulator_still_running:
+                        break
         finally:
 
             with cls._lock:
