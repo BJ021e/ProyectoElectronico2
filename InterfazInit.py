@@ -45,6 +45,12 @@ from services.mission_service import (
     MissionNotFoundError,
 )
 
+from services.drone_service import (
+    DroneService,
+    DroneServiceError,
+    DroneProviderNotConfiguredError,
+)
+
 app = Flask(__name__)
 app.secret_key = Config.SECRET_KEY
 
@@ -669,7 +675,287 @@ def api_get_flight_mission(flight_id):
             "error": True,
             "msg": str(e)
         }), 500
-              
+
+@app.route(
+    "/api/drone/state",
+    methods=["GET"]
+)
+def api_drone_state():
+
+    try:
+
+        state = (
+            DroneService
+            .get_state_dict()
+        )
+
+        return jsonify({
+            "configured": True,
+            "state": state
+        })
+
+
+    except DroneProviderNotConfiguredError:
+
+        return jsonify({
+            "configured": False,
+            "state": None
+        })
+
+@app.route(
+    "/api/drone/simulator/setup",
+    methods=["POST"]
+)
+def api_drone_simulator_setup():
+
+    data = (
+        request.get_json(
+            silent=True
+        )
+        or {}
+    )
+
+
+    route_id = data.get(
+        "route_id"
+    )
+
+
+    if route_id is None:
+
+        return jsonify({
+            "error": True,
+            "msg": "route_id es obligatorio."
+        }), 400
+
+
+    try:
+
+        route_id = int(
+            route_id
+        )
+
+    except (
+        TypeError,
+        ValueError
+    ):
+
+        return jsonify({
+            "error": True,
+            "msg": "route_id debe ser un entero."
+        }), 400
+
+
+    step_fraction = data.get(
+        "step_fraction",
+        0.20
+    )
+
+
+    initial_battery = data.get(
+        "initial_battery",
+        100.0
+    )
+
+
+    try:
+
+        step_fraction = float(
+            step_fraction
+        )
+
+        initial_battery = float(
+            initial_battery
+        )
+
+    except (
+        TypeError,
+        ValueError
+    ):
+
+        return jsonify({
+            "error": True,
+            "msg": (
+                "step_fraction e initial_battery "
+                "deben ser valores numéricos."
+            )
+        }), 400
+
+
+    try:
+
+        state = (
+            DroneService
+            .configure_simulator(
+                route_id,
+                step_fraction=step_fraction,
+                initial_battery=initial_battery
+            )
+        )
+
+
+        return jsonify({
+            "status": "configured",
+
+            "provider":
+                DroneService
+                .get_provider_name(),
+
+            "route_id":
+                route_id,
+
+            "state":
+                state.to_dict()
+        })
+
+
+    except (
+        DroneServiceError,
+        ValueError
+    ) as e:
+
+        return jsonify({
+            "error": True,
+            "msg": str(e)
+        }), 400
+
+@app.route(
+    "/api/drone/simulator/connect",
+    methods=["POST"]
+)
+def api_drone_simulator_connect():
+
+    try:
+
+        state = (
+            DroneService
+            .simulator_connect()
+        )
+
+        return jsonify({
+            "status": "connected",
+            "state": state.to_dict()
+        })
+
+
+    except DroneServiceError as e:
+
+        return jsonify({
+            "error": True,
+            "msg": str(e)
+        }), 400
+
+@app.route(
+    "/api/drone/simulator/start",
+    methods=["POST"]
+)
+def api_drone_simulator_start():
+
+    try:
+
+        state = (
+            DroneService
+            .simulator_start()
+        )
+
+        return jsonify({
+            "status": "running",
+            "state": state.to_dict()
+        })
+
+
+    except DroneServiceError as e:
+
+        return jsonify({
+            "error": True,
+            "msg": str(e)
+        }), 400
+        
+@app.route(
+    "/api/drone/simulator/advance",
+    methods=["POST"]
+)
+def api_drone_simulator_advance():
+
+    try:
+
+        state = (
+            DroneService
+            .simulator_advance()
+        )
+
+        return jsonify({
+            "status": (
+                "running"
+                if DroneService
+                .simulator_is_running()
+                else "completed"
+            ),
+
+            "state":
+                state.to_dict()
+        })
+
+
+    except DroneServiceError as e:
+
+        return jsonify({
+            "error": True,
+            "msg": str(e)
+        }), 400
+
+@app.route(
+    "/api/drone/simulator/reset",
+    methods=["POST"]
+)
+def api_drone_simulator_reset():
+
+    try:
+
+        state = (
+            DroneService
+            .simulator_reset()
+        )
+
+        return jsonify({
+            "status": "reset",
+            "state": state.to_dict()
+        })
+
+
+    except DroneServiceError as e:
+
+        return jsonify({
+            "error": True,
+            "msg": str(e)
+        }), 400
+        
+@app.route(
+    "/api/drone/simulator/disconnect",
+    methods=["POST"]
+)
+def api_drone_simulator_disconnect():
+
+    try:
+
+        state = (
+            DroneService
+            .simulator_disconnect()
+        )
+
+        return jsonify({
+            "status": "disconnected",
+            "state": state.to_dict()
+        })
+
+
+    except DroneServiceError as e:
+
+        return jsonify({
+            "error": True,
+            "msg": str(e)
+        }), 400
+
 if __name__ == "__main__":
     app.run(
         debug=Config.FLASK_DEBUG,
