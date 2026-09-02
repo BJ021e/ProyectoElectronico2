@@ -34,6 +34,11 @@ from services.telemetry_service import (
     InvalidTelemetryError,
 )
 
+from services.route_service import (
+    RouteService,
+    RoutePersistenceError,
+)
+
 app = Flask(__name__)
 app.secret_key = Config.SECRET_KEY
 
@@ -562,6 +567,56 @@ def flight_detail(flight_id):
         flight_id=flight_id
     )
 
+@app.route("/api/routes", methods=["GET"])
+def api_list_routes():
+    try:
+        limit = request.args.get(
+            "limit",
+            default=50,
+            type=int
+        )
+
+        routes = RouteService.list_routes(
+            limit=limit
+        )
+
+        return jsonify({
+            "routes": routes,
+            "count": len(routes)
+        })
+
+    except RoutePersistenceError as e:
+        return jsonify({
+            "error": True,
+            "msg": str(e)
+        }), 500
+        
+@app.route(
+    "/api/routes/<int:route_id>",
+    methods=["GET"]
+)
+def api_get_route(route_id):
+    try:
+        route = RouteService.get_route(
+            route_id
+        )
+
+        if route is None:
+            return jsonify({
+                "error": True,
+                "msg": "Ruta no encontrada."
+            }), 404
+
+        return jsonify({
+            "route": route
+        })
+
+    except RoutePersistenceError as e:
+        return jsonify({
+            "error": True,
+            "msg": str(e)
+        }), 500
+        
 if __name__ == "__main__":
     app.run(
         debug=Config.FLASK_DEBUG,

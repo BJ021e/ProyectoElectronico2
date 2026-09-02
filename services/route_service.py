@@ -495,3 +495,57 @@ class RouteService:
 
         finally:
             session.close()
+            
+    @staticmethod
+    def list_routes(
+        limit: int = 50,
+        status: RouteStatus | None = None
+    ) -> list[dict]:
+        """
+        Recupera las rutas más recientes.
+
+        Opcionalmente permite filtrar por estado.
+        """
+
+        session = SessionLocal()
+
+        try:
+            limit = max(
+                1,
+                min(limit, 500)
+            )
+
+            statement = (
+                select(Route)
+                .options(
+                    selectinload(
+                        Route.waypoints
+                    )
+                )
+                .order_by(
+                    Route.id.desc()
+                )
+                .limit(limit)
+            )
+
+            if status is not None:
+                statement = statement.where(
+                    Route.status == status
+                )
+
+            routes = session.scalars(
+                statement
+            ).all()
+
+            return [
+                RouteService._serialize(route)
+                for route in routes
+            ]
+
+        except SQLAlchemyError as exc:
+            raise RoutePersistenceError(
+                f"No fue posible listar las rutas: {exc}"
+            ) from exc
+
+        finally:
+            session.close()
