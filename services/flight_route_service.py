@@ -12,6 +12,11 @@ from models import (
     FlightRouteAssignment,
 )
 
+from services.flight_service import (
+    FlightService,
+    FlightPersistenceError,
+    InvalidFlightTransitionError,
+)
 
 class FlightRoutePersistenceError(Exception):
     """
@@ -279,3 +284,94 @@ class FlightRouteService:
         finally:
 
             session.close()
+            
+    @staticmethod
+    def start_assigned_flight(
+        flight_id: int
+    ) -> dict:
+        """
+        Inicia un vuelo que ya tiene una ruta
+        planificada válida asignada.
+
+        Requisitos:
+        - El vuelo debe tener una asignación.
+        - El vuelo debe estar CREATED.
+        - La ruta asignada debe continuar READY.
+        """
+
+        assignment = (
+            FlightRouteService
+            .get_assignment_for_flight(
+                flight_id
+            )
+        )
+
+        if assignment is None:
+            raise InvalidFlightRouteAssignmentError(
+                f"El vuelo con ID {flight_id} "
+                "no tiene una ruta planificada asignada."
+            )
+
+
+        flight_data = assignment["flight"]
+        route_data = assignment["route"]
+
+
+        if (
+            flight_data["status"]
+            != FlightStatus.CREATED.value
+        ):
+            raise InvalidFlightRouteAssignmentError(
+                f"No se puede iniciar el vuelo "
+                f"{flight_data['flight_code']} "
+                f"porque está en estado "
+                f"{flight_data['status']}."
+            )
+
+
+        if (
+            route_data["status"]
+            != RouteStatus.READY.value
+        ):
+            raise InvalidFlightRouteAssignmentError(
+                f"No se puede iniciar el vuelo porque "
+                f"la ruta {route_data['route_code']} "
+                f"está en estado "
+                f"{route_data['status']}."
+            )
+
+
+        try:
+
+            flight = FlightService.start_flight(
+                flight_id
+            )
+
+        except InvalidFlightTransitionError as exc:
+
+            raise InvalidFlightRouteAssignmentError(
+                str(exc)
+            ) from exc
+
+        except FlightPersistenceError as exc:
+
+            raise FlightRoutePersistenceError(
+                f"No fue posible iniciar el vuelo "
+                f"con ruta asignada: {exc}"
+            ) from exc
+
+
+        return {
+            "flight": flight,
+            "planned_route": {
+                "id": route_data["id"],
+                "route_code":
+                    route_data["route_code"],
+                "name":
+                    route_data["name"],
+                "status":
+                    route_data["status"],
+            },
+            "assignment_id":
+                assignment["id"],
+        }
