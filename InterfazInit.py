@@ -148,8 +148,12 @@ def api_ground_trigger():
             log_msg(f"📸 Captura Guardada: {base_name}")
             
         local_tmp = os.path.join(CACHE_FOLDER, "temp.tif")
-        with requests.get(f"{RPI_API_URL}/api/proxy_download", params={'path':blue_path}, stream=True) as r_img:
-            with open(local_tmp, 'wb') as f: shutil.copyfileobj(r_img.raw, f)
+
+        raspberry_service.download_file(
+            remote_path=blue_path,
+            local_path=local_tmp,
+            timeout=15
+        )
         
         img_url = f"prev_{len(session_state['captured_samples'])}.png"
         web_path = process_preview_image(local_tmp, img_url)

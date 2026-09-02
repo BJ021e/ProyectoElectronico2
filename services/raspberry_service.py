@@ -37,3 +37,34 @@ class RaspberryService:
         response.raise_for_status()
 
         return response.json()
+    
+    def download_file(
+        self,
+        remote_path: str,
+        local_path: str,
+        timeout: float = 15.0
+    ) -> str:
+        """
+        Descarga un archivo desde la Raspberry Pi mediante
+        el endpoint /api/proxy_download y lo guarda localmente.
+
+        Retorna la ruta local del archivo descargado.
+
+        Lanza requests.RequestException si ocurre un problema
+        de comunicación HTTP.
+        """
+        with requests.get(
+            f"{self.base_url}/api/proxy_download",
+            params={"path": remote_path},
+            stream=True,
+            timeout=timeout
+        ) as response:
+
+            response.raise_for_status()
+
+            with open(local_path, "wb") as file:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        file.write(chunk)
+
+        return local_path
