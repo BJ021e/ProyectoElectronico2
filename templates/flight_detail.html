@@ -167,6 +167,71 @@
 
             display: none;
         }
+        
+        .mission-map-wrapper {
+            position: relative;
+        }
+
+
+        .map-legend {
+            position: absolute;
+
+            right: 16px;
+            top: 16px;
+
+            z-index: 1000;
+
+            background: rgba(15, 23, 42, 0.92);
+
+            border: 1px solid #334155;
+            border-radius: 8px;
+
+            padding: 10px 14px;
+
+            color: #e2e8f0;
+
+            font-size: 0.82rem;
+        }
+
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            margin: 5px 0;
+        }
+
+
+        .legend-line {
+            display: inline-block;
+
+            width: 30px;
+            height: 0;
+
+            border-top-width: 3px;
+            border-top-style: solid;
+        }
+
+
+        .planned-line {
+            border-top-color: #f59e0b;
+            border-top-style: dashed;
+        }
+
+
+        .executed-line {
+            border-top-color: #3b82f6;
+        }
+
+        .waypoint-number {
+            background: transparent;
+            border: none;
+            box-shadow: none;
+
+            color: #ffffff;
+
+            font-weight: 700;
+        }
 
     </style>
 
@@ -291,19 +356,84 @@
                     </div>
                 </div>
 
+                <div class="summary-card">
+
+                <div class="summary-label">
+                    Ruta planificada
+                </div>
+
+                <div
+                    class="summary-value"
+                    id="plannedRoute"
+                >
+                    --
+                </div>
+
+            </div>
+
+
+            <div class="summary-card">
+
+                <div class="summary-label">
+                    Waypoints
+                </div>
+
+                <div
+                    class="summary-value"
+                    id="plannedWaypointCount"
+                >
+                    --
+                </div>
+
+            </div>
+
             </section>
 
 
             <section class="section-card">
 
                 <h2 class="section-title">
-                    Recorrido del vuelo
+                    Ruta planificada vs. recorrido ejecutado
                 </h2>
 
-                <div
-                    id="flightMap"
-                    class="flight-map"
-                ></div>
+                <div class="mission-map-wrapper">
+
+                    <div
+                        id="flightMap"
+                        class="flight-map"
+                    ></div>
+
+
+                    <div
+                        id="mapLegend"
+                        class="map-legend"
+                        style="display: none;"
+                    >
+
+                        <div class="legend-item">
+
+                            <span
+                                class="legend-line planned-line"
+                            ></span>
+
+                            Ruta planificada
+
+                        </div>
+
+
+                        <div class="legend-item">
+
+                            <span
+                                class="legend-line executed-line"
+                            ></span>
+
+                            Recorrido ejecutado
+
+                        </div>
+
+                    </div>
+
+                </div>
 
                 <div
                     id="routePlaceholder"
@@ -410,40 +540,95 @@ function getStatusClass(status) {
     }
 }
 
-function renderTrajectoryMap(points) {
+function renderMissionMap(
+    plannedWaypoints,
+    executedPoints
+) {
 
     const mapElement =
-        document.getElementById("flightMap");
+        document.getElementById(
+            "flightMap"
+        );
 
     const placeholder =
-        document.getElementById("routePlaceholder");
-
-
-    const validPoints = points.filter((point) => {
-
-        const lat =
-            Number(point.latitude);
-
-        const lon =
-            Number(point.longitude);
-
-        return (
-            Number.isFinite(lat) &&
-            Number.isFinite(lon)
+        document.getElementById(
+            "routePlaceholder"
         );
-    });
+
+    const legend =
+        document.getElementById(
+            "mapLegend"
+        );
 
 
-    if (validPoints.length === 0) {
+    /*
+     * -----------------------------------------
+     * Validar puntos planificados
+     * -----------------------------------------
+     */
+
+    const validPlanned =
+        (plannedWaypoints ?? [])
+        .filter((point) => {
+
+            const lat =
+                Number(point.latitude);
+
+            const lon =
+                Number(point.longitude);
+
+            return (
+                Number.isFinite(lat) &&
+                Number.isFinite(lon)
+            );
+        });
+
+
+    /*
+     * -----------------------------------------
+     * Validar puntos ejecutados
+     * -----------------------------------------
+     */
+
+    const validExecuted =
+        (executedPoints ?? [])
+        .filter((point) => {
+
+            const lat =
+                Number(point.latitude);
+
+            const lon =
+                Number(point.longitude);
+
+            return (
+                Number.isFinite(lat) &&
+                Number.isFinite(lon)
+            );
+        });
+
+
+    /*
+     * -----------------------------------------
+     * No existe información geográfica
+     * -----------------------------------------
+     */
+
+    if (
+        validPlanned.length === 0 &&
+        validExecuted.length === 0
+    ) {
 
         mapElement.style.display =
+            "none";
+
+        legend.style.display =
             "none";
 
         placeholder.style.display =
             "flex";
 
         placeholder.textContent =
-            "Este vuelo no contiene puntos GPS válidos.";
+            "Este vuelo no contiene información geográfica.";
 
         return;
     }
@@ -455,161 +640,419 @@ function renderTrajectoryMap(points) {
     mapElement.style.display =
         "block";
 
+    legend.style.display =
+        "block";
 
-    const map = L.map(
-        "flightMap",
-        {
-            zoomControl: true
-        }
-    );
+
+    /*
+     * -----------------------------------------
+     * Crear mapa
+     * -----------------------------------------
+     */
+
+    const map =
+        L.map(
+            "flightMap",
+            {
+                zoomControl: true
+            }
+        );
 
 
     L.tileLayer(
         "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
         {
             maxZoom: 19,
+
             attribution:
                 "&copy; OpenStreetMap contributors"
         }
     ).addTo(map);
-    
-    /*
-    * Fuerza a Leaflet a recalcular
-    * el tamaño real del contenedor.
-    */
-    requestAnimationFrame(() => {
-        map.invalidateSize();
-    });
 
-    const coordinates =
-        validPoints.map((point) => [
-            Number(point.latitude),
-            Number(point.longitude)
-        ]);
+
+    const allCoordinates = [];
 
 
     /*
-     * CASO 1:
-     * Solo existe un punto GPS.
+     * =========================================
+     * RUTA PLANIFICADA
+     * =========================================
      */
-    if (coordinates.length === 1) {
 
-        const point =
-            validPoints[0];
+    if (validPlanned.length > 0) {
 
-        map.setView(
-            coordinates[0],
-            18
+        const plannedCoordinates =
+            validPlanned.map(
+                point => [
+                    Number(point.latitude),
+                    Number(point.longitude)
+                ]
+            );
+
+
+        allCoordinates.push(
+            ...plannedCoordinates
         );
 
 
-        L.marker(
-            coordinates[0]
-        )
-        .addTo(map)
-        .bindPopup(`
-            <strong>Punto registrado</strong><br>
-            Altitud:
-            ${point.altitude ?? "--"} m<br>
-            ${point.recorded_at ?? ""}
-        `);
+        /*
+         * Con dos o más puntos ya podemos
+         * dibujar la ruta.
+         */
+
+        if (
+            plannedCoordinates.length >= 2
+        ) {
+
+            L.polyline(
+                plannedCoordinates,
+                {
+                    color: "#f59e0b",
+                    weight: 4,
+                    opacity: 0.9,
+                    dashArray: "8, 8"
+                }
+            )
+            .addTo(map);
+
+        }
 
 
-        return;
+        /*
+         * Waypoints planificados numerados
+         */
+
+        validPlanned.forEach(
+            (waypoint) => {
+
+                const coordinate = [
+                    Number(
+                        waypoint.latitude
+                    ),
+
+                    Number(
+                        waypoint.longitude
+                    )
+                ];
+
+
+                const marker =
+                    L.circleMarker(
+                        coordinate,
+                        {
+                            radius: 8,
+
+                            color:
+                                "#f59e0b",
+
+                            fillColor:
+                                "#f59e0b",
+
+                            fillOpacity:
+                                0.9,
+
+                            weight:
+                                2
+                        }
+                    )
+                    .addTo(map);
+
+
+                marker.bindTooltip(
+                    String(
+                        waypoint.sequence
+                    ),
+                    {
+                        permanent: true,
+
+                        direction:
+                            "center",
+
+                        className:
+                            "waypoint-number"
+                    }
+                );
+
+
+                marker.bindPopup(`
+                    <strong>
+                        Waypoint planificado
+                        ${waypoint.sequence}
+                    </strong>
+
+                    <br>
+
+                    Altitud:
+                    ${waypoint.altitude ?? "--"} m
+
+                    <br>
+
+                    Velocidad:
+                    ${waypoint.speed ?? "--"} m/s
+                `);
+
+            }
+        );
+
     }
 
 
     /*
-     * CASO 2:
-     * Existen dos o más puntos.
+     * =========================================
+     * TRAYECTORIA EJECUTADA
+     * =========================================
      */
-    const route = L.polyline(
-        coordinates,
-        {
-            weight: 4,
-            opacity: 0.9
-        }
-    ).addTo(map);
-    
-    /*
-    * Puntos intermedios de telemetría
-    */
-    validPoints.forEach((point, index) => {
 
-        // Inicio y fin ya tendrán sus propios marcadores
+    if (validExecuted.length > 0) {
+
+        const executedCoordinates =
+            validExecuted.map(
+                point => [
+                    Number(point.latitude),
+                    Number(point.longitude)
+                ]
+            );
+
+
+        allCoordinates.push(
+            ...executedCoordinates
+        );
+
+
+        /*
+         * Con dos o más muestras
+         * representamos el recorrido real.
+         */
+
         if (
-            index === 0 ||
-            index === validPoints.length - 1
+            executedCoordinates.length >= 2
         ) {
-            return;
+
+            L.polyline(
+                executedCoordinates,
+                {
+                    color: "#3b82f6",
+                    weight: 5,
+                    opacity: 0.95
+                }
+            )
+            .addTo(map);
+
         }
 
-        const coordinate = [
-            Number(point.latitude),
-            Number(point.longitude)
-        ];
+
+        /*
+         * Punto inicial ejecutado
+         */
+
+        const first =
+            validExecuted[0];
+
 
         L.circleMarker(
-            coordinate,
+            executedCoordinates[0],
             {
-                radius: 5,
-                weight: 2,
-                fillOpacity: 0.8
+                radius: 7,
+
+                color:
+                    "#22c55e",
+
+                fillColor:
+                    "#22c55e",
+
+                fillOpacity:
+                    1,
+
+                weight:
+                    2
             }
         )
         .addTo(map)
         .bindPopup(`
-            <strong>Punto ${index + 1}</strong><br>
-            Altitud: ${point.altitude ?? "--"} m<br>
-            ${point.recorded_at ?? ""}
-        `);
-    });
+            <strong>
+                Inicio ejecutado
+            </strong>
 
-    map.fitBounds(
-        route.getBounds(),
-        {
-            padding: [40, 40]
+            <br>
+
+            Altitud:
+            ${first.altitude ?? "--"} m
+
+            <br>
+
+            Velocidad:
+            ${first.speed ?? "--"} m/s
+
+            <br>
+
+            Batería:
+            ${first.battery ?? "--"} %
+        `);
+
+
+        /*
+         * Puntos intermedios ejecutados
+         */
+
+        if (
+            validExecuted.length > 2
+        ) {
+
+            validExecuted
+                .slice(1, -1)
+                .forEach(
+                    point => {
+
+                        L.circleMarker(
+                            [
+                                Number(
+                                    point.latitude
+                                ),
+
+                                Number(
+                                    point.longitude
+                                )
+                            ],
+                            {
+                                radius: 4,
+
+                                color:
+                                    "#3b82f6",
+
+                                fillColor:
+                                    "#3b82f6",
+
+                                fillOpacity:
+                                    0.9,
+
+                                weight:
+                                    1
+                            }
+                        )
+                        .addTo(map)
+                        .bindPopup(`
+                            <strong>
+                                Telemetría
+                            </strong>
+
+                            <br>
+
+                            Altitud:
+                            ${point.altitude ?? "--"} m
+
+                            <br>
+
+                            Velocidad:
+                            ${point.speed ?? "--"} m/s
+
+                            <br>
+
+                            Batería:
+                            ${point.battery ?? "--"} %
+                        `);
+
+                    }
+                );
+        }
+
+
+        /*
+         * Punto final ejecutado
+         */
+
+        if (
+            validExecuted.length >= 2
+        ) {
+
+            const lastIndex =
+                validExecuted.length - 1;
+
+            const last =
+                validExecuted[lastIndex];
+
+
+            L.circleMarker(
+                executedCoordinates[
+                    lastIndex
+                ],
+                {
+                    radius: 7,
+
+                    color:
+                        "#ef4444",
+
+                    fillColor:
+                        "#ef4444",
+
+                    fillOpacity:
+                        1,
+
+                    weight:
+                        2
+                }
+            )
+            .addTo(map)
+            .bindPopup(`
+                <strong>
+                    Último punto ejecutado
+                </strong>
+
+                <br>
+
+                Altitud:
+                ${last.altitude ?? "--"} m
+
+                <br>
+
+                Velocidad:
+                ${last.speed ?? "--"} m/s
+
+                <br>
+
+                Batería:
+                ${last.battery ?? "--"} %
+            `);
+
+        }
+
+    }
+
+
+    /*
+     * =========================================
+     * AJUSTAR MAPA
+     * =========================================
+     */
+
+    if (
+        allCoordinates.length === 1
+    ) {
+
+        map.setView(
+            allCoordinates[0],
+            18
+        );
+
+    } else {
+
+        map.fitBounds(
+            allCoordinates,
+            {
+                padding: [40, 40]
+            }
+        );
+
+    }
+
+
+    requestAnimationFrame(
+        () => {
+
+            map.invalidateSize();
+
         }
     );
 
-
-    /*
-     * Punto inicial
-     */
-    const first =
-        validPoints[0];
-
-    L.marker(
-        coordinates[0]
-    )
-    .addTo(map)
-    .bindPopup(`
-        <strong>Inicio</strong><br>
-        Altitud:
-        ${first.altitude ?? "--"} m<br>
-        ${first.recorded_at ?? ""}
-    `);
-
-
-    /*
-     * Punto final
-     */
-    const lastIndex =
-        coordinates.length - 1;
-
-    const last =
-        validPoints[lastIndex];
-
-    L.marker(
-        coordinates[lastIndex]
-    )
-    .addTo(map)
-    .bindPopup(`
-        <strong>Fin</strong><br>
-        Altitud:
-        ${last.altitude ?? "--"} m<br>
-        ${last.recorded_at ?? ""}
-    `);
 }
 
 async function loadFlight() {
@@ -624,46 +1067,56 @@ async function loadFlight() {
             "flightContent"
         );
 
+
     try {
 
-        const [
-            detailResponse,
-            trajectoryResponse
-        ] = await Promise.all([
+        /*
+         * =========================================
+         * CARGAR MISIÓN CONSOLIDADA
+         * =========================================
+         */
 
-            fetch(
-                `/api/flights/${FLIGHT_ID}`
-            ),
-
-            fetch(
-                `/api/flights/${FLIGHT_ID}/trajectory`
-            )
-        ]);
-
-
-        if (!detailResponse.ok) {
-            throw new Error(
-                `Detalle HTTP ${detailResponse.status}`
+        const response =
+            await fetch(
+                `/api/flights/${FLIGHT_ID}/mission`
             );
-        }
 
-        if (!trajectoryResponse.ok) {
+
+        if (!response.ok) {
+
             throw new Error(
-                `Trayectoria HTTP ${trajectoryResponse.status}`
+                `HTTP ${response.status}`
             );
         }
 
 
-        const detail =
-            await detailResponse.json();
+        const mission =
+            await response.json();
 
-        const trajectory =
-            await trajectoryResponse.json();
 
+        /*
+         * =========================================
+         * EXTRAER INFORMACIÓN
+         * =========================================
+         */
 
         const flight =
-            detail.flight;
+            mission.flight;
 
+
+        const plannedRoute =
+            mission.planned_route;
+
+
+        const executedTrajectory =
+            mission.executed_trajectory;
+
+
+        /*
+         * =========================================
+         * INFORMACIÓN GENERAL DEL VUELO
+         * =========================================
+         */
 
         document.getElementById(
             "flightCode"
@@ -674,25 +1127,37 @@ async function loadFlight() {
         document.getElementById(
             "flightName"
         ).textContent =
-            flight.name ?? "Vuelo sin nombre";
+            flight.name
+            ?? "Vuelo sin nombre";
 
+
+        /*
+         * Estado
+         */
 
         const statusElement =
             document.getElementById(
                 "flightStatus"
             );
 
+
         statusElement.innerHTML = `
             <span
                 class="
                     status-badge
-                    ${getStatusClass(flight.status)}
+                    ${getStatusClass(
+                        flight.status
+                    )}
                 "
             >
                 ${flight.status}
             </span>
         `;
 
+
+        /*
+         * Inicio
+         */
 
         document.getElementById(
             "flightStart"
@@ -702,6 +1167,10 @@ async function loadFlight() {
             );
 
 
+        /*
+         * Fin
+         */
+
         document.getElementById(
             "flightEnd"
         ).textContent =
@@ -709,6 +1178,10 @@ async function loadFlight() {
                 flight.finished_at
             );
 
+
+        /*
+         * Duración
+         */
 
         document.getElementById(
             "flightDuration"
@@ -718,43 +1191,96 @@ async function loadFlight() {
             );
 
 
+        /*
+         * Telemetría ejecutada
+         */
+
         document.getElementById(
             "telemetryCount"
         ).textContent =
-            detail.telemetry_count;
+            executedTrajectory
+                .telemetry_count;
 
 
         /*
-        * Primero hacemos visible el contenedor.
-        * Leaflet necesita conocer sus dimensiones reales.
-        */
-        loading.style.display = "none";
-        content.style.display = "block";
+         * =========================================
+         * RUTA PLANIFICADA
+         * =========================================
+         */
+
+        document.getElementById(
+            "plannedRoute"
+        ).textContent =
+            plannedRoute
+                ? plannedRoute.route_code
+                : "Sin ruta";
+
+
+        document.getElementById(
+            "plannedWaypointCount"
+        ).textContent =
+            plannedRoute
+                ? plannedRoute.waypoint_count
+                : "0";
 
 
         /*
-        * Esperamos un frame para que el navegador
-        * calcule el layout antes de crear el mapa.
-        */
-        requestAnimationFrame(() => {
+         * =========================================
+         * MOSTRAR CONTENIDO
+         * =========================================
+         */
 
-            renderTrajectoryMap(
-                trajectory.points ?? []
-            );
+        loading.style.display =
+            "none";
 
-        });
+
+        content.style.display =
+            "block";
+
+
+        /*
+         * =========================================
+         * MAPA
+         * =========================================
+         *
+         * Leaflet debe inicializarse después de
+         * hacer visible el contenedor.
+         */
+
+        requestAnimationFrame(
+            () => {
+
+                renderMissionMap(
+
+                    plannedRoute
+                        ? plannedRoute.waypoints
+                        : [],
+
+                    executedTrajectory.points
+                        ?? []
+
+                );
+
+            }
+        );
 
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "Error cargando misión:",
+            error
+        );
+
 
         loading.className =
             "error-state";
 
+
         loading.textContent =
             "No fue posible cargar el vuelo.";
     }
+
 }
 
 
