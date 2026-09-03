@@ -38,6 +38,16 @@ from drone.simulation_runner import (
     SimulationRunnerError,
 )
 
+from drone.mission_controller import (
+    MissionController,
+    MissionControllerError,
+)
+
+from drone.simulator_mission_controller import (
+    SimulatorMissionController,
+)
+
+
 class DroneServiceError(Exception):
     """
     Error general de la capa operacional del dron.
@@ -84,6 +94,8 @@ class DroneService:
     
     _simulation_runner: SimulationRunner | None = None
     
+    _mission_controller: MissionController | None = None
+    
     @classmethod
     def set_provider(
         cls,
@@ -125,6 +137,8 @@ class DroneService:
             cls._provider = provider
 
             cls._simulation_runner = None
+            
+            cls._mission_controller = None
 
     @classmethod
     def _ensure_provider_change_allowed(
@@ -205,6 +219,8 @@ class DroneService:
             cls._provider = None
 
             cls._simulation_runner = None
+            
+            cls._mission_controller = None
 
 
     @classmethod
@@ -296,8 +312,7 @@ class DroneService:
         El simulador queda configurado pero todavía
         desconectado.
         """
-        cls.simulator_stop_auto()
-        
+
         try:
 
             route = RouteService.get_route(
@@ -312,6 +327,7 @@ class DroneService:
 
 
         if route is None:
+
             raise DroneServiceError(
                 f"La ruta con ID {route_id} no existe."
             )
@@ -338,32 +354,41 @@ class DroneService:
         except DroneSimulatorError as exc:
 
             raise DroneServiceError(
-                f"No fue posible configurar "
+                "No fue posible configurar "
                 f"el simulador: {exc}"
             ) from exc
 
-        runner = SimulationRunner(
-            simulator=simulator,
-            on_state=cls._handle_simulation_state,
-        )
-        
+
+        #
+        # set_provider() valida el lifecycle y libera
+        # correctamente el runtime anterior.
+        #
         cls.set_provider(
             simulator
         )
-        
+
+
         runner = SimulationRunner(
             simulator=simulator,
             on_state=cls._handle_simulation_state,
         )
-        
+
+        controller = SimulatorMissionController(
+            simulator=simulator,
+            runner=runner,
+        )
+
         with cls._lock:
-            cls._provider = simulator
 
             cls._simulation_runner = runner
+            
+            cls._mission_controller = controller
 
             cls._active_route_id = route_id
 
+
         return simulator.get_state()
+
 
     @classmethod
     def get_active_route_id(
@@ -380,6 +405,97 @@ class DroneService:
 
         with cls._lock:
             return cls._active_flight_id
+    
+    
+    @classmethod
+    def _activate_active_flight(
+        cls,
+        state: DroneState,
+    ) -> dict | None:
+        """
+        Activa el Flight operacional asociado y
+        persiste su estado inicial.
+
+        Esta lógica pertenece a DroneService,
+        no al controlador técnico de la misión.
+        """
+
+        with cls._lock:
+
+            flight_id = (
+                cls._active_flight_id
+            )
+
+
+        if flight_id is None:
+
+            return None
+
+
+        try:
+
+            flight = (
+                FlightService.get_flight(
+                    flight_id
+                )
+            )
+
+
+            if flight is None:
+
+                raise DroneServiceError(
+                    f"El Flight con ID "
+                    f"{flight_id} no existe."
+                )
+
+
+            status = (
+                flight["status"]
+            )
+
+
+            if status == "CREATED":
+
+                flight = (
+                    FlightService.start_flight(
+                        flight_id
+                    )
+                )
+
+
+            elif status != "ACTIVE":
+
+                raise DroneServiceError(
+                    "No se puede iniciar la "
+                    f"operación del vuelo "
+                    f"{flight['flight_code']} "
+                    f"desde el estado "
+                    f"{status}."
+                )
+
+
+            cls._persist_active_flight_state(
+                state
+            )
+
+
+            return (
+                FlightService.get_flight(
+                    flight_id
+                )
+            )
+
+
+        except (
+            FlightPersistenceError,
+            InvalidFlightTransitionError,
+            ValueError,
+        ) as exc:
+
+            raise DroneServiceError(
+                "No fue posible iniciar "
+                f"el Flight persistente: {exc}"
+            ) from exc
     
     @classmethod
     def cancel_active_operation(
@@ -478,6 +594,8 @@ class DroneService:
             "context":
                 cls.get_operation_context(),
         }
+        
+        
     @classmethod
     def prepare_simulated_flight(
         cls,
@@ -596,6 +714,32 @@ class DroneService:
         return provider
 
     @classmethod
+    def _require_mission_controller(
+        cls
+    ) -> MissionController:
+        """
+        Devuelve el controlador técnico de misión
+        actualmente configurado.
+        """
+
+        with cls._lock:
+
+            controller = (
+                cls._mission_controller
+            )
+
+
+        if controller is None:
+
+            raise DroneServiceError(
+                "No existe un controlador "
+                "de misión configurado."
+            )
+
+
+        return controller
+    
+    @classmethod
     def _require_simulation_runner(
         cls
     ) -> SimulationRunner:
@@ -637,8 +781,16 @@ class DroneService:
     def simulator_disconnect(
         cls
     ) -> DroneState:
+        """
+        Detiene el runtime automático del simulador
+        y desconecta el proveedor simulado.
+        """
 
         cls._require_simulator()
+
+
+        cls.simulator_stop_auto()
+
 
         return cls.disconnect_provider()
 
@@ -647,90 +799,32 @@ class DroneService:
     def simulator_start(
         cls
     ) -> DroneState:
+        """
+        Inicia técnicamente el DroneSimulator
+        y sincroniza el Flight operacional asociado.
+        """
 
-        with cls._lock:
-
-            simulator = (
-                cls._require_simulator()
-            )
-
-            flight_id = (
-                cls._active_flight_id
-            )
-
-
-            try:
-
-                state = (
-                    simulator.start()
-                )
-
-            except DroneSimulatorError as exc:
-
-                raise DroneServiceError(
-                    str(exc)
-                ) from exc
-
-
-        if flight_id is None:
-            return state
+        simulator = (
+            cls._require_simulator()
+        )
 
 
         try:
 
-            flight = (
-                FlightService.get_flight(
-                    flight_id
-                )
+            state = (
+                simulator.start()
             )
 
-
-            if flight is None:
-
-                raise DroneServiceError(
-                    f"El Flight con ID "
-                    f"{flight_id} no existe."
-                )
-
-
-            status = (
-                flight["status"]
-            )
-
-
-            if status == "CREATED":
-
-                FlightService.start_flight(
-                    flight_id
-                )
-
-
-            elif status != "ACTIVE":
-
-                raise DroneServiceError(
-                    f"No se puede iniciar la "
-                    f"operación del vuelo "
-                    f"{flight['flight_code']} "
-                    f"desde el estado "
-                    f"{status}."
-                )
-
-
-            cls._persist_active_flight_state(
-                state
-            )
-
-
-        except (
-            FlightPersistenceError,
-            InvalidFlightTransitionError,
-            ValueError,
-        ) as exc:
+        except DroneSimulatorError as exc:
 
             raise DroneServiceError(
-                "No fue posible iniciar "
-                f"el Flight persistente: {exc}"
+                str(exc)
             ) from exc
+
+
+        cls._activate_active_flight(
+            state
+        )
 
 
         return state
@@ -1266,13 +1360,6 @@ class DroneService:
         cls
     ) -> DroneState:
 
-        #
-        # Si estamos simulando, debemos detener
-        # primero su runner automático.
-        #
-        cls.simulator_stop_auto()
-
-
         provider = (
             cls._require_provider()
         )
@@ -1421,39 +1508,58 @@ class DroneService:
             )
 
 
-        #
-        # Implementación actual disponible:
-        # SIMULATOR.
-        #
-        if isinstance(
-            provider,
-            DroneSimulator
-        ):
+        controller = (
+            cls._require_mission_controller()
+        )
 
-            state = cls.simulator_start()
 
-            cls.simulator_start_auto(
-                interval_seconds
+        try:
+
+            state = (
+                controller.initialize()
             )
 
 
-            return {
-                "status": "started",
-                "provider": provider.name,
-                "state": state.to_dict(),
-                "runtime":
-                    cls.simulator_auto_status(),
-                "flight":
-                    FlightService.get_flight(
-                        flight_id
-                    ),
-            }
+            # Sincronizamos el estado persistente del Flight:
+            # CREATED -> ACTIVE y persistimos el estado inicial.
+            cls._activate_active_flight(
+                state
+            )
 
 
-        raise DroneServiceError(
-            f"El proveedor {provider.name} "
-            "todavía no implementa inicio de misión."
-        )
+            # Iniciamos la ejecución continua de la misión.
+            runtime = (
+                controller.start(
+                    interval_seconds
+                )
+            )
+
+
+        except MissionControllerError as exc:
+
+            raise DroneServiceError(
+                "No fue posible iniciar "
+                f"la misión: {exc}"
+            ) from exc
+
+
+        return {
+            "status": "started",
+
+            "provider":
+                provider.name,
+
+            "state":
+                state.to_dict(),
+
+            "runtime":
+                runtime,
+
+            "flight":
+                FlightService.get_flight(
+                    flight_id
+                ),
+        }
         
     @classmethod
     def pause_operation(
@@ -1467,8 +1573,6 @@ class DroneService:
         with cls._lock:
 
             flight_id = cls._active_flight_id
-
-            provider = cls._provider
 
 
         if flight_id is None:
@@ -1489,28 +1593,35 @@ class DroneService:
                 "Solo se puede pausar una operación ACTIVE."
             )
 
+        controller = (
+            cls._require_mission_controller()
+        )
 
-        if isinstance(
-            provider,
-            DroneSimulator
-        ):
+
+        try:
 
             runtime = (
-                cls.simulator_stop_auto()
+                controller.pause()
             )
 
+        except MissionControllerError as exc:
 
-            return {
-                "status": "paused",
-                "flight": flight,
-                "runtime": runtime,
-            }
+            raise DroneServiceError(
+                f"No fue posible pausar "
+                f"la misión: {exc}"
+            ) from exc
 
 
-        raise DroneServiceError(
-            f"El proveedor {provider.name} "
-            "todavía no implementa pausa de misión."
-        )
+        return {
+            "status": "paused",
+
+            "flight":
+                flight,
+
+            "runtime":
+                runtime,
+        }
+        
         
     @classmethod
     def resume_operation(
@@ -1525,8 +1636,6 @@ class DroneService:
         with cls._lock:
 
             flight_id = cls._active_flight_id
-
-            provider = cls._provider
 
 
         if flight_id is None:
@@ -1548,44 +1657,33 @@ class DroneService:
             )
 
 
-        if isinstance(
-            provider,
-            DroneSimulator
-        ):
+        controller = (
+            cls._require_mission_controller()
+        )
+
+
+        try:
 
             runtime = (
-                cls.simulator_auto_status()
+                controller.resume(
+                    interval_seconds
+                )
             )
 
+        except MissionControllerError as exc:
 
-            if runtime["auto_running"]:
-
-                raise DroneServiceError(
-                    "La operación ya se encuentra ejecutándose."
-                )
-
-
-            if not runtime["simulator_running"]:
-
-                raise DroneServiceError(
-                    "El simulador ya no se encuentra "
-                    "en ejecución."
-                )
+            raise DroneServiceError(
+                f"No fue posible reanudar "
+                f"la misión: {exc}"
+            ) from exc
 
 
-            runtime = cls.simulator_start_auto(
-                interval_seconds
-            )
+        return {
+            "status": "resumed",
 
+            "flight":
+                flight,
 
-            return {
-                "status": "resumed",
-                "flight": flight,
-                "runtime": runtime,
-            }
-
-
-        raise DroneServiceError(
-            f"El proveedor {provider.name} "
-            "todavía no implementa reanudación de misión."
-        )
+            "runtime":
+                runtime,
+        }
