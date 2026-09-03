@@ -1198,3 +1198,303 @@ class DroneService:
                 "No fue posible desconectar "
                 f"el proveedor {provider.name}: {exc}"
             ) from exc
+    
+    @classmethod
+    def connect_operation(
+        cls
+    ) -> dict:
+        """
+        Conecta el proveedor asociado a la operación
+        actualmente preparada.
+        """
+
+        with cls._lock:
+            flight_id = cls._active_flight_id
+            route_id = cls._active_route_id
+
+
+        if flight_id is None:
+
+            raise DroneServiceError(
+                "No existe una operación preparada."
+            )
+
+
+        state = cls.connect_provider()
+
+
+        return {
+            "status": "connected",
+            "state": state.to_dict(),
+            "flight_id": flight_id,
+            "route_id": route_id,
+        }
+        
+    @classmethod
+    def disconnect_operation(
+        cls
+    ) -> dict:
+        """
+        Desconecta el proveedor cuando la operación
+        se encuentra en un estado compatible.
+        """
+
+        with cls._lock:
+            flight_id = cls._active_flight_id
+
+
+        if flight_id is None:
+
+            raise DroneServiceError(
+                "No existe una operación preparada."
+            )
+
+
+        try:
+
+            flight = FlightService.get_flight(
+                flight_id
+            )
+
+        except FlightPersistenceError as exc:
+
+            raise DroneServiceError(
+                "No fue posible consultar "
+                f"el Flight {flight_id}: {exc}"
+            ) from exc
+
+
+        if flight["status"] == "ACTIVE":
+
+            raise DroneServiceError(
+                "No se puede desconectar el proveedor "
+                "mientras existe una misión ACTIVE."
+            )
+
+
+        state = cls.disconnect_provider()
+
+
+        return {
+            "status": "disconnected",
+            "state": state.to_dict(),
+            "flight_id": flight_id,
+        }
+        
+    @classmethod
+    def start_operation(
+        cls,
+        interval_seconds: float = 0.5,
+    ) -> dict:
+        """
+        Inicia la operación preparada.
+
+        La implementación específica depende
+        del proveedor configurado.
+        """
+
+        with cls._lock:
+
+            flight_id = cls._active_flight_id
+
+            provider = cls._provider
+
+
+        if flight_id is None:
+
+            raise DroneServiceError(
+                "No existe una operación preparada."
+            )
+
+
+        try:
+
+            flight = FlightService.get_flight(
+                flight_id
+            )
+
+        except FlightPersistenceError as exc:
+
+            raise DroneServiceError(
+                "No fue posible consultar "
+                f"el Flight {flight_id}: {exc}"
+            ) from exc
+
+
+        if flight["status"] != "CREATED":
+
+            raise DroneServiceError(
+                "Solo se puede iniciar una operación "
+                f"en estado CREATED. Estado actual: "
+                f"{flight['status']}."
+            )
+
+
+        #
+        # Implementación actual disponible:
+        # SIMULATOR.
+        #
+        if isinstance(
+            provider,
+            DroneSimulator
+        ):
+
+            state = cls.simulator_start()
+
+            cls.simulator_start_auto(
+                interval_seconds
+            )
+
+
+            return {
+                "status": "started",
+                "provider": provider.name,
+                "state": state.to_dict(),
+                "runtime":
+                    cls.simulator_auto_status(),
+                "flight":
+                    FlightService.get_flight(
+                        flight_id
+                    ),
+            }
+
+
+        raise DroneServiceError(
+            f"El proveedor {provider.name} "
+            "todavía no implementa inicio de misión."
+        )
+        
+    @classmethod
+    def pause_operation(
+        cls
+    ) -> dict:
+        """
+        Pausa temporalmente la ejecución de
+        una operación ACTIVE.
+        """
+
+        with cls._lock:
+
+            flight_id = cls._active_flight_id
+
+            provider = cls._provider
+
+
+        if flight_id is None:
+
+            raise DroneServiceError(
+                "No existe una operación activa."
+            )
+
+
+        flight = FlightService.get_flight(
+            flight_id
+        )
+
+
+        if flight["status"] != "ACTIVE":
+
+            raise DroneServiceError(
+                "Solo se puede pausar una operación ACTIVE."
+            )
+
+
+        if isinstance(
+            provider,
+            DroneSimulator
+        ):
+
+            runtime = (
+                cls.simulator_stop_auto()
+            )
+
+
+            return {
+                "status": "paused",
+                "flight": flight,
+                "runtime": runtime,
+            }
+
+
+        raise DroneServiceError(
+            f"El proveedor {provider.name} "
+            "todavía no implementa pausa de misión."
+        )
+        
+    @classmethod
+    def resume_operation(
+        cls,
+        interval_seconds: float = 0.5,
+    ) -> dict:
+        """
+        Reanuda una operación ACTIVE previamente
+        pausada.
+        """
+
+        with cls._lock:
+
+            flight_id = cls._active_flight_id
+
+            provider = cls._provider
+
+
+        if flight_id is None:
+
+            raise DroneServiceError(
+                "No existe una operación activa."
+            )
+
+
+        flight = FlightService.get_flight(
+            flight_id
+        )
+
+
+        if flight["status"] != "ACTIVE":
+
+            raise DroneServiceError(
+                "Solo se puede reanudar una operación ACTIVE."
+            )
+
+
+        if isinstance(
+            provider,
+            DroneSimulator
+        ):
+
+            runtime = (
+                cls.simulator_auto_status()
+            )
+
+
+            if runtime["auto_running"]:
+
+                raise DroneServiceError(
+                    "La operación ya se encuentra ejecutándose."
+                )
+
+
+            if not runtime["simulator_running"]:
+
+                raise DroneServiceError(
+                    "El simulador ya no se encuentra "
+                    "en ejecución."
+                )
+
+
+            runtime = cls.simulator_start_auto(
+                interval_seconds
+            )
+
+
+            return {
+                "status": "resumed",
+                "flight": flight,
+                "runtime": runtime,
+            }
+
+
+        raise DroneServiceError(
+            f"El proveedor {provider.name} "
+            "todavía no implementa reanudación de misión."
+        )

@@ -1183,9 +1183,130 @@ def api_drone_operation_cancel():
             "msg": str(e)
         }), 400
 
+@app.route(
+    "/api/drone/operation/connect",
+    methods=["POST"]
+)
+def api_drone_operation_connect():
+
+    try:
+
+        return jsonify(
+            DroneService.connect_operation()
+        )
+
+    except DroneServiceError as exc:
+
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 400
+
+@app.route(
+    "/api/drone/operation/start",
+    methods=["POST"]
+)
+def api_drone_operation_start():
+
+    try:
+
+        data = request.get_json(
+            silent=True
+        ) or {}
+
+
+        interval_seconds = (
+            data.get(
+                "interval_seconds",
+                0.5
+            )
+        )
+
+
+        return jsonify(
+            DroneService.start_operation(
+                interval_seconds
+            )
+        )
+
+    except DroneServiceError as exc:
+
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 400
+        
+@app.route(
+    "/api/drone/operation/pause",
+    methods=["POST"]
+)
+def api_drone_operation_pause():
+
+    try:
+
+        return jsonify(
+            DroneService.pause_operation()
+        )
+
+    except DroneServiceError as exc:
+
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 400
+
+@app.route(
+    "/api/drone/operation/resume",
+    methods=["POST"]
+)
+def api_drone_operation_resume():
+
+    try:
+
+        data = request.get_json(
+            silent=True
+        ) or {}
+
+
+        return jsonify(
+            DroneService.resume_operation(
+                data.get(
+                    "interval_seconds",
+                    0.5
+                )
+            )
+        )
+
+    except DroneServiceError as exc:
+
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 400
+
+@app.route(
+    "/api/drone/operation/disconnect",
+    methods=["POST"]
+)
+def api_drone_operation_disconnect():
+
+    try:
+
+        return jsonify(
+            DroneService.disconnect_operation()
+        )
+
+    except DroneServiceError as exc:
+
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 400
+       
 if __name__ == "__main__":
     app.run(
         debug=Config.FLASK_DEBUG,
         host=Config.FLASK_HOST,
         port=Config.FLASK_PORT
     )
+

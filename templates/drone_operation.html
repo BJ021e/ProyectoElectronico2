@@ -2247,7 +2247,7 @@ async function connectSimulator() {
     try {
 
         await sendSimulatorCommand(
-            "/api/drone/simulator/connect"
+            "/api/drone/operation/connect"
         );
 
 
@@ -2325,15 +2325,9 @@ async function startSimulator() {
         ) {
 
             await sendSimulatorCommand(
-                "/api/drone/simulator/start"
-            );
-
-
-            await sendSimulatorCommand(
-                "/api/drone/simulator/auto/start",
+                "/api/drone/operation/start",
                 {
-                    interval_seconds:
-                        0.5
+                    interval_seconds: 0.5
                 }
             );
 
@@ -2366,7 +2360,7 @@ async function startSimulator() {
         ) {
 
             await sendSimulatorCommand(
-                "/api/drone/simulator/auto/start",
+                "/api/drone/operation/resume",
                 {
                     interval_seconds:
                         0.5
@@ -2432,7 +2426,7 @@ async function stopSimulator() {
     try {
 
         await sendSimulatorCommand(
-            "/api/drone/simulator/auto/stop"
+            "/api/drone/operation/pause"
         );
 
 
@@ -2533,7 +2527,7 @@ async function disconnectSimulator() {
 
 
         await sendSimulatorCommand(
-            "/api/drone/simulator/disconnect"
+            "/api/drone/operation/disconnect"
         );
 
 
