@@ -1329,10 +1329,97 @@ class DroneService:
 
             "flight": flight,
 
-            "runtime":
-                cls.simulator_auto_status(),
+            # Nuevo contrato genérico.
+            "mission":
+                cls.get_mission_status(),
         }
         
+    
+    @classmethod
+    def get_mission_status(
+        cls
+    ) -> dict:
+        """
+        Devuelve el estado técnico normalizado
+        del controlador de misión actual.
+
+        La respuesta no expone detalles internos
+        del simulador.
+        """
+
+        with cls._lock:
+
+            controller = (
+                cls._mission_controller
+            )
+
+
+        if controller is None:
+
+            return {
+                "configured": False,
+                "running": False,
+                "paused": False,
+                "last_error": None,
+                "controller": None,
+            }
+
+
+        try:
+
+            runtime = (
+                controller.status()
+            )
+
+        except MissionControllerError as exc:
+
+            raise DroneServiceError(
+                "No fue posible consultar "
+                f"el estado de la misión: {exc}"
+            ) from exc
+
+
+        running = bool(
+            runtime.get(
+                "auto_running",
+                False
+            )
+        )
+
+
+        execution_active = bool(
+            runtime.get(
+                "simulator_running",
+                False
+            )
+        )
+
+
+        paused = (
+            execution_active
+            and
+            not running
+        )
+
+
+        return {
+            "configured": True,
+
+            "running":
+                running,
+
+            "paused":
+                paused,
+
+            "last_error":
+                runtime.get(
+                    "last_error"
+                ),
+
+            "controller":
+                controller.name,
+        }
+    
     @classmethod
     def connect_provider(
         cls

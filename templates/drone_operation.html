@@ -1301,55 +1301,27 @@ async function pollDroneState() {
             await getDroneState();
 
 
-        /*
-         * Si existe proveedor pero la aeronave
-         * terminó en HOLD, podemos consultar
-         * también el estado del runner.
-         */
+        const context =
+            await loadOperationContext();
+
+
+        const flight =
+            context?.flight;
+
 
         if (
-            payload.configured &&
-            payload.state
+            flight?.status === "COMPLETED"
         ) {
 
-            const state =
-                payload.state;
+            setMessage(
+                "La misión fue completada.",
+                "success"
+            );
 
 
-            if (
-                state.flight_mode === "HOLD"
-            ) {
+            stopStatePolling();
 
-                const statusResponse =
-                    await fetch(
-                        "/api/drone/simulator/auto/status"
-                    );
-
-
-                if (statusResponse.ok) {
-
-                    const runtime =
-                        await statusResponse.json();
-
-
-                    if (
-                        !runtime.auto_running &&
-                        !runtime.simulator_running
-                    ) {
-                        
-                        await loadOperationContext();
-
-                        setMessage(
-                            "La misión simulada fue completada.",
-                            "success"
-                        );
-
-                        stopStatePolling();
-
-                        return;
-                    }
-                }
-            }
+            return;
         }
 
 
@@ -1456,18 +1428,14 @@ function renderOperationContext(
         flight.flight_code;
 
 
-    const runtime =
-        context.runtime;
+    const mission =
+    context.mission;
 
 
     if (
         flight.status === "ACTIVE"
         &&
-        runtime
-        &&
-        !runtime.auto_running
-        &&
-        runtime.simulator_running
+        mission?.paused
     ) {
 
         flightStatusElement.textContent =
@@ -1580,8 +1548,8 @@ function updateControlState() {
         context?.flight ?? null;
 
 
-    const runtime =
-        context?.runtime ?? null;
+    const mission =
+        context?.mission ?? null;
 
 
     const state =
@@ -1700,13 +1668,15 @@ function updateControlState() {
 
     const autoRunning =
         Boolean(
-            runtime?.auto_running
+            mission?.running
         );
 
 
     const simulatorRunning =
         Boolean(
-            runtime?.simulator_running
+            mission?.running
+            ||
+            mission?.paused
         );
 
 
@@ -2302,8 +2272,8 @@ async function startSimulator() {
             context?.flight;
 
 
-        const runtime =
-            context?.runtime;
+        const mission =
+            context?.mission;
 
 
         if (!flight) {
@@ -2352,11 +2322,7 @@ async function startSimulator() {
         else if (
             flight.status === "ACTIVE"
             &&
-            runtime
-            &&
-            !runtime.auto_running
-            &&
-            runtime.simulator_running
+            mission?.paused
         ) {
 
             await sendSimulatorCommand(
@@ -2710,18 +2676,15 @@ document.addEventListener(
             }
 
 
-            const runtime =
-                context.runtime;
+            const mission =
+                context.mission;
 
 
             if (
-                runtime
-                &&
-                runtime.auto_running
+                mission?.running
             ) {
 
                 startStatePolling();
-
 
                 setMessage(
                     "Seguimiento de misión activa recuperado.",
