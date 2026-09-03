@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 from threading import (
-    Event,
     RLock,
-    Thread,
-    current_thread,
 )
 
 from drone import (
@@ -34,6 +31,11 @@ from services.telemetry_service import (
     TelemetryService,
     InvalidTelemetryError,
     TelemetryPersistenceError,
+)
+
+from drone.simulation_runner import (
+    SimulationRunner,
+    SimulationRunnerError,
 )
 
 class DroneServiceError(Exception):
@@ -80,13 +82,7 @@ class DroneService:
 
     _active_flight_id: int | None = None
     
-    _simulation_thread: Thread | None = None
-
-    _simulation_stop_event = Event()
-
-    _simulation_interval: float = 1.0
-
-    _simulation_last_error: str | None = None
+    _simulation_runner: SimulationRunner | None = None
     
     @classmethod
     def set_provider(
@@ -255,12 +251,25 @@ class DroneService:
                 f"el simulador: {exc}"
             ) from exc
 
-
+        runner = SimulationRunner(
+            simulator=simulator,
+            on_state=cls._handle_simulation_state,
+        )
+        
         cls.set_provider(
             simulator
         )
         
+        runner = SimulationRunner(
+            simulator=simulator,
+            on_state=cls._handle_simulation_state,
+        )
+        
         with cls._lock:
+            cls._provider = simulator
+
+            cls._simulation_runner = runner
+
             cls._active_route_id = route_id
 
         return simulator.get_state()
@@ -495,7 +504,34 @@ class DroneService:
 
         return provider
 
+    @classmethod
+    def _require_simulation_runner(
+        cls
+    ) -> SimulationRunner:
+        """
+        Devuelve el SimulationRunner configurado.
 
+        Lanza DroneServiceError si todavía
+        no existe un runner de simulación.
+        """
+
+        with cls._lock:
+
+            runner = (
+                cls._simulation_runner
+            )
+
+
+        if runner is None:
+
+            raise DroneServiceError(
+                "El motor automático de simulación "
+                "no está configurado."
+            )
+
+
+        return runner
+    
     @classmethod
     def simulator_connect(
         cls
@@ -816,253 +852,84 @@ class DroneService:
                 f"{flight_id}: {exc}"
             ) from exc
          
-    @classmethod
-    def _simulation_worker(cls) -> None:
-        """
-        Worker interno que hace avanzar el simulador
-        periódicamente.
-
-        El frontend no controla cada tick.
-        """
-
-        try:
-
-            while True:
-
-                # Esperamos antes del siguiente tick.
-                # Event.wait() permite interrumpir
-                # inmediatamente la espera.
-                should_stop = (
-                    cls._simulation_stop_event.wait(
-                        cls._simulation_interval
-                    )
-                )
-
-
-                if should_stop:
-                    break
-
-
-                with cls._lock:
-
-                    provider = (
-                        cls._provider
-                    )
-
-
-                    if not isinstance(
-                        provider,
-                        DroneSimulator
-                    ):
-                        break
-
-
-                    if not provider.is_running:
-                        break
-
-
-                    try:
-
-                        state = (
-                            provider.advance()
-                        )
-
-                    except DroneSimulatorError as exc:
-
-                        cls._simulation_last_error = (
-                            str(exc)
-                        )
-
-                        break
-
-
-                    simulator_still_running = (
-                        provider.is_running
-                    )
-
-
-                    try:
-
-                        cls._persist_active_flight_state(
-                            state
-                        )
-
-                    except DroneServiceError as exc:
-
-                        with cls._lock:
-
-                            cls._simulation_last_error = (
-                                str(exc)
-                            )
-
-                        break
-
-
-                    if not simulator_still_running:
-
-                        try:
-
-                            cls._complete_active_flight()
-
-                        except DroneServiceError as exc:
-
-                            with cls._lock:
-                                cls._simulation_last_error = str(exc)
-
-                        break
-                    
-        finally:
-
-            with cls._lock:
-
-                if (
-                    cls._simulation_thread
-                    is current_thread()
-                ):
-                    cls._simulation_thread = None
                     
     @classmethod
     def simulator_auto_status(
         cls
     ) -> dict:
         """
-        Estado del mecanismo automático de simulación.
+        Devuelve el estado del runtime
+        automático de simulación junto al
+        contexto operacional.
         """
 
         with cls._lock:
 
-            thread = (
-                cls._simulation_thread
+            runner = (
+                cls._simulation_runner
+            )
+
+            route_id = (
+                cls._active_route_id
+            )
+
+            flight_id = (
+                cls._active_flight_id
             )
 
 
-            auto_running = (
-                thread is not None
-                and thread.is_alive()
-            )
+        if runner is None:
 
-
-            simulator_running = False
-
-
-            if isinstance(
-                cls._provider,
-                DroneSimulator
-            ):
-
-                simulator_running = (
-                    cls._provider.is_running
-                )
-
-
-            return {
-                "auto_running":
-                    auto_running,
-
-                "simulator_running":
-                    simulator_running,
-
-                "interval_seconds":
-                    cls._simulation_interval,
-
-                "last_error":
-                    cls._simulation_last_error,
-                
-                "route_id": 
-                    cls._active_route_id,
-                    
-                "flight_id": 
-                    cls._active_flight_id,
+            runtime = {
+                "auto_running": False,
+                "simulator_running": False,
+                "interval_seconds": 1.0,
+                "last_error": None,
             }
+
+        else:
+
+            runtime = (
+                runner.status()
+            )
+
+
+        return {
+            **runtime,
+
+            "route_id":
+                route_id,
+
+            "flight_id":
+                flight_id,
+        }
             
     @classmethod
     def simulator_start_auto(
         cls,
-        interval_seconds: float = 1.0
+        interval_seconds: float = 1.0,
     ) -> dict:
         """
-        Inicia el worker automático que hace avanzar
-        periódicamente el DroneSimulator.
+        Inicia el motor automático
+        de simulación.
         """
+
+        runner = (
+            cls._require_simulation_runner()
+        )
+
 
         try:
 
-            interval_seconds = float(
+            runner.start(
                 interval_seconds
             )
 
-        except (
-            TypeError,
-            ValueError
-        ) as exc:
+        except SimulationRunnerError as exc:
 
             raise DroneServiceError(
-                "interval_seconds debe ser numérico."
+                str(exc)
             ) from exc
-
-
-        if interval_seconds <= 0:
-
-            raise DroneServiceError(
-                "interval_seconds debe ser mayor que 0."
-            )
-
-
-        with cls._lock:
-
-            simulator = (
-                cls._require_simulator()
-            )
-
-
-            if not simulator.is_running:
-
-                raise DroneServiceError(
-                    "El simulador debe estar iniciado "
-                    "antes de activar el avance automático."
-                )
-
-
-            if (
-                cls._simulation_thread
-                is not None
-                and
-                cls._simulation_thread.is_alive()
-            ):
-
-                raise DroneServiceError(
-                    "La simulación automática "
-                    "ya está ejecutándose."
-                )
-
-
-            cls._simulation_interval = (
-                interval_seconds
-            )
-
-
-            cls._simulation_last_error = (
-                None
-            )
-
-
-            # Creamos un Event limpio.
-            cls._simulation_stop_event = (
-                Event()
-            )
-
-
-            thread = Thread(
-                target=cls._simulation_worker,
-                name="DroneSimulatorWorker",
-                daemon=True,
-            )
-
-
-            cls._simulation_thread = thread
-
-
-            thread.start()
 
 
         return cls.simulator_auto_status()
@@ -1072,44 +939,48 @@ class DroneService:
         cls
     ) -> dict:
         """
-        Detiene el worker automático sin resetear
-        la posición actual del simulador.
+        Detiene el motor automático sin
+        resetear la posición simulada.
         """
 
         with cls._lock:
 
-            thread = (
-                cls._simulation_thread
+            runner = (
+                cls._simulation_runner
             )
 
 
-            if (
-                thread is None
-                or
-                not thread.is_alive()
-            ):
+        if runner is not None:
 
-                return cls.simulator_auto_status()
-
-
-            stop_event = (
-                cls._simulation_stop_event
-            )
-
-
-        # No hacemos join() dentro del lock.
-        # El worker podría necesitar el mismo lock
-        # para finalizar.
-        stop_event.set()
-
-
-        thread.join(
-            timeout=2.0
-        )
+            runner.stop()
 
 
         return cls.simulator_auto_status()
     
+    @classmethod
+    def _handle_simulation_state(
+        cls,
+        state: DroneState,
+        simulator_still_running: bool,
+    ) -> None:
+        """
+        Procesa un nuevo estado generado
+        por SimulationRunner.
+
+        Esta función pertenece a DroneService
+        porque contiene lógica de negocio y
+        persistencia.
+        """
+
+        cls._persist_active_flight_state(
+            state
+        )
+
+
+        if not simulator_still_running:
+
+            cls._complete_active_flight()
+            
     @classmethod
     def _complete_active_flight(
         cls
