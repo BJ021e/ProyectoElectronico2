@@ -106,7 +106,8 @@ class DroneService:
                 "el contrato DroneProvider."
             )
 
-
+        cls._ensure_provider_change_allowed()
+        
         with cls._lock:
 
             previous_runner = (
@@ -126,6 +127,57 @@ class DroneService:
             cls._simulation_runner = None
 
     @classmethod
+    def _ensure_provider_change_allowed(
+        cls
+    ) -> None:
+        """
+        Impide sustituir o eliminar el proveedor
+        mientras exista una operación abierta.
+        """
+
+        with cls._lock:
+
+            flight_id = (
+                cls._active_flight_id
+            )
+
+
+        if flight_id is None:
+
+            return
+
+
+        try:
+
+            flight = (
+                FlightService.get_flight(
+                    flight_id
+                )
+            )
+
+        except FlightPersistenceError as exc:
+
+            raise DroneServiceError(
+                "No fue posible validar "
+                f"el Flight {flight_id} antes "
+                "de cambiar el proveedor."
+            ) from exc
+
+
+        if flight["status"] in {
+            "CREATED",
+            "ACTIVE",
+        }:
+
+            raise DroneServiceError(
+                "No se puede cambiar el proveedor "
+                f"mientras el vuelo "
+                f"{flight['flight_code']} "
+                f"se encuentre en estado "
+                f"{flight['status']}."
+            )
+
+    @classmethod
     def clear_provider(
         cls
     ) -> None:
@@ -134,6 +186,8 @@ class DroneService:
         cualquier runtime asociado.
         """
 
+        cls._ensure_provider_change_allowed()
+         
         with cls._lock:
 
             runner = (
