@@ -1666,13 +1666,13 @@ function updateControlState() {
         ?? null;
 
 
-    const autoRunning =
+    const missionRunning =
         Boolean(
             mission?.running
         );
 
 
-    const simulatorRunning =
+    const missionExecutionActive =
         Boolean(
             mission?.running
             ||
@@ -1770,7 +1770,7 @@ function updateControlState() {
          * Mision ejecuntadose
          */
 
-        if (autoRunning) {
+        if (missionRunning) {
 
             setButtonEnabled(
                 "startButton",
@@ -1796,7 +1796,7 @@ function updateControlState() {
          */
 
         else if (
-            simulatorRunning
+            missionExecutionActive
         ) {
 
             setButtonEnabled(
@@ -1923,7 +1923,7 @@ function updateControlState() {
 
 }
 
-async function sendSimulatorCommand(
+async function sendDroneCommand(
     endpoint,
     body = null
 ) {
@@ -2106,7 +2106,7 @@ async function loadRouteDetail(
    CONTROLES
    =============================================== */
 
-async function setupSimulator() {
+async function prepareOperation() {
 
     if (actionInProgress) {
         
@@ -2151,7 +2151,7 @@ async function setupSimulator() {
 
 
         const result =
-            await sendSimulatorCommand(
+            await sendDroneCommand(
                 "/api/drone/operation/prepare",
                 {
                     route_id:
@@ -2202,7 +2202,7 @@ async function setupSimulator() {
 }
 
 
-async function connectSimulator() {
+async function connectOperation() {
 
     if (actionInProgress) {
         return;
@@ -2216,7 +2216,7 @@ async function connectSimulator() {
 
     try {
 
-        await sendSimulatorCommand(
+        await sendDroneCommand(
             "/api/drone/operation/connect"
         );
 
@@ -2248,7 +2248,8 @@ async function connectSimulator() {
     }
 
 }
-async function startSimulator() {
+
+async function startOperation() {
 
     if (actionInProgress) {
         return;
@@ -2294,7 +2295,7 @@ async function startSimulator() {
             flight.status === "CREATED"
         ) {
 
-            await sendSimulatorCommand(
+            await sendDroneCommand(
                 "/api/drone/operation/start",
                 {
                     interval_seconds: 0.5
@@ -2325,7 +2326,7 @@ async function startSimulator() {
             mission?.paused
         ) {
 
-            await sendSimulatorCommand(
+            await sendDroneCommand(
                 "/api/drone/operation/resume",
                 {
                     interval_seconds:
@@ -2375,7 +2376,7 @@ async function startSimulator() {
 
 }
 
-async function stopSimulator() {
+async function pauseOperation() {
 
     if (actionInProgress) {
         return;
@@ -2391,7 +2392,7 @@ async function stopSimulator() {
 
     try {
 
-        await sendSimulatorCommand(
+        await sendDroneCommand(
             "/api/drone/operation/pause"
         );
 
@@ -2442,7 +2443,7 @@ async function resetSimulator() {
          * la operación.
          */
 
-        await sendSimulatorCommand(
+        await sendDroneCommand(
             "/api/drone/simulator/reset"
         );
 
@@ -2485,14 +2486,14 @@ async function resetSimulator() {
 
 }
 
-async function disconnectSimulator() {
+async function disconnectOperation() {
 
     try {
 
         stopStatePolling();
 
 
-        await sendSimulatorCommand(
+        await sendDroneCommand(
             "/api/drone/operation/disconnect"
         );
 
@@ -2543,7 +2544,7 @@ async function cancelOperation() {
     try {
 
         const response =
-            await sendSimulatorCommand(
+            await sendDroneCommand(
                 "/api/drone/operation/cancel"
             );
 
@@ -2587,7 +2588,7 @@ document.getElementById(
     "setupButton"
 ).addEventListener(
     "click",
-    setupSimulator
+    prepareOperation
 );
 
 
@@ -2595,7 +2596,7 @@ document.getElementById(
     "connectButton"
 ).addEventListener(
     "click",
-    connectSimulator
+    connectOperation
 );
 
 
@@ -2603,14 +2604,14 @@ document.getElementById(
     "startButton"
 ).addEventListener(
     "click",
-    startSimulator
+    startOperation
 );
 
 document.getElementById(
     "stopButton"
 ).addEventListener(
     "click",
-    stopSimulator
+    pauseOperation
 );
 
 document.getElementById(
@@ -2625,7 +2626,7 @@ document.getElementById(
     "disconnectButton"
 ).addEventListener(
     "click",
-    disconnectSimulator
+    disconnectOperation
 );
 
 document.getElementById(
