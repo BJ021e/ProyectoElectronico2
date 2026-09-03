@@ -26,3 +26,18 @@ class DroneProvider(Protocol):
         utilizando el formato normalizado DroneState.
         """
         ...
+    
+    def connect(self) -> DroneState:
+        """
+        Establece la conexión lógica con el proveedor
+        y devuelve su estado normalizado.
+        """
+        ...
+
+
+    def disconnect(self) -> DroneState:
+        """
+        Cierra la conexión lógica con el proveedor
+        y devuelve su estado normalizado.
+        """
+        ...

@@ -501,13 +501,9 @@ class DroneService:
         cls
     ) -> DroneState:
 
-        with cls._lock:
+        cls._require_simulator()
 
-            simulator = (
-                cls._require_simulator()
-            )
-
-            return simulator.connect()
+        return cls.connect_provider()
 
 
     @classmethod
@@ -515,16 +511,9 @@ class DroneService:
         cls
     ) -> DroneState:
 
-        cls.simulator_stop_auto()
+        cls._require_simulator()
 
-
-        with cls._lock:
-
-            simulator = (
-                cls._require_simulator()
-            )
-
-            return simulator.disconnect()
+        return cls.disconnect_provider()
 
 
     @classmethod
@@ -1287,3 +1276,54 @@ class DroneService:
             "runtime":
                 cls.simulator_auto_status(),
         }
+        
+    @classmethod
+    def connect_provider(
+        cls
+    ) -> DroneState:
+
+        provider = (
+            cls._require_provider()
+        )
+
+
+        try:
+
+            return provider.connect()
+
+
+        except Exception as exc:
+
+            raise DroneServiceError(
+                "No fue posible conectar "
+                f"el proveedor {provider.name}: {exc}"
+            ) from exc
+            
+    @classmethod
+    def disconnect_provider(
+        cls
+    ) -> DroneState:
+
+        #
+        # Si estamos simulando, debemos detener
+        # primero su runner automático.
+        #
+        cls.simulator_stop_auto()
+
+
+        provider = (
+            cls._require_provider()
+        )
+
+
+        try:
+
+            return provider.disconnect()
+
+
+        except Exception as exc:
+
+            raise DroneServiceError(
+                "No fue posible desconectar "
+                f"el proveedor {provider.name}: {exc}"
+            ) from exc
