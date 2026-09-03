@@ -300,6 +300,31 @@
             color: #34d399;
         }
 
+        .operation-flight-context {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 24px;
+
+            margin-top: 18px;
+            padding-top: 16px;
+
+            border-top: 1px solid #334155;
+        }
+
+
+        .operation-flight-context > div {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+
+        .context-label {
+            color: #94a3b8;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
 
         /* =========================================
            MAP
@@ -527,7 +552,41 @@
                 </button>
 
             </div>
+            
+            <div class="operation-flight-context">
 
+                <div>
+                    <span class="context-label">
+                        Vuelo
+                    </span>
+
+                    <strong id="flightCodeValue">
+                        --
+                    </strong>
+                </div>
+
+
+                <div>
+                    <span class="context-label">
+                        Estado
+                    </span>
+
+                    <strong id="flightStatusValue">
+                        SIN OPERACIÓN
+                    </strong>
+                </div>
+
+
+                <a
+                    id="flightHistoryButton"
+                    class="control-button"
+                    href="#"
+                    style="display: none;"
+                >
+                    Ver historial
+                </a>
+
+            </div>
 
             <div
                 id="operationMessage"
@@ -1260,6 +1319,8 @@ async function pollDroneState() {
                         !runtime.auto_running &&
                         !runtime.simulator_running
                     ) {
+                        
+                        await loadOperationContext();
 
                         setMessage(
                             "La misión simulada fue completada.",
@@ -1324,6 +1385,119 @@ function stopStatePolling() {
         pollingTimer = null;
     }
 
+}
+
+function renderOperationContext(
+    context
+) {
+
+    const flightCodeElement =
+        document.getElementById(
+            "flightCodeValue"
+        );
+
+
+    const flightStatusElement =
+        document.getElementById(
+            "flightStatusValue"
+        );
+
+
+    const historyButton =
+        document.getElementById(
+            "flightHistoryButton"
+        );
+
+
+    const flight =
+        context?.flight;
+
+
+    if (!flight) {
+
+        flightCodeElement.textContent =
+            "--";
+
+
+        flightStatusElement.textContent =
+            "SIN OPERACIÓN";
+
+
+        historyButton.style.display =
+            "none";
+
+
+        historyButton.href =
+            "#";
+
+
+        return;
+    }
+
+
+    flightCodeElement.textContent =
+        flight.flight_code;
+
+
+    flightStatusElement.textContent =
+        flight.status;
+
+
+    if (
+        flight.status === "COMPLETED"
+    ) {
+
+        historyButton.href =
+            `/flight_history/${flight.id}`;
+
+
+        historyButton.style.display =
+            "inline-block";
+
+    } else {
+
+        historyButton.style.display =
+            "none";
+
+
+        historyButton.href =
+            "#";
+
+    }
+
+}
+
+async function loadOperationContext() {
+
+    const response =
+        await fetch(
+            "/api/drone/operation/context"
+        );
+
+
+    if (!response.ok) {
+
+        const data =
+            await response.json();
+
+
+        throw new Error(
+            data.msg
+            ?? `HTTP ${response.status}`
+        );
+    }
+
+
+    const context =
+        await response.json();
+
+
+    renderOperationContext(
+        context
+    );
+
+
+    return context;
 }
 
 async function sendSimulatorCommand(
@@ -1532,13 +1706,18 @@ async function setupSimulator() {
 
         stopStatePolling();
 
-        await sendSimulatorCommand(
-            "/api/drone/simulator/setup",
-            {
-                route_id:
-                    Number(routeId)
-            }
-        );
+
+        const result =
+            await sendSimulatorCommand(
+                "/api/drone/operation/prepare",
+                {
+                    route_id:
+                        Number(routeId),
+
+                    name:
+                        "Operación multiespectral simulada"
+                }
+            );
 
 
         await loadRouteDetail(
@@ -1549,8 +1728,15 @@ async function setupSimulator() {
         await getDroneState();
 
 
+        await loadOperationContext();
+
+
+        const flight =
+            result.operation.flight;
+
+
         setMessage(
-            "Simulador configurado correctamente.",
+            `Vuelo ${flight.flight_code} preparado correctamente.`,
             "success"
         );
 
@@ -1623,6 +1809,7 @@ async function startSimulator() {
 
         await getDroneState();
 
+        await loadOperationContext();
 
         startStatePolling();
 
@@ -1678,15 +1865,31 @@ async function resetSimulator() {
 
     try {
 
-        stopStatePolling();
-
+        /*
+         * Primero solicitamos el reset.
+         *
+         * NO detenemos el polling antes,
+         * porque el backend puede rechazar
+         * la operación.
+         */
 
         await sendSimulatorCommand(
             "/api/drone/simulator/reset"
         );
 
 
+        /*
+         * Si llegamos hasta aquí significa que
+         * el reset fue realmente aceptado.
+         */
+
+        stopStatePolling();
+
+
         await getDroneState();
+
+
+        await loadOperationContext();
 
 
         setMessage(
@@ -1696,6 +1899,14 @@ async function resetSimulator() {
 
 
     } catch (error) {
+
+        /*
+         * Si el backend rechaza el reset,
+         * mantenemos el polling activo.
+         *
+         * De esta manera el dron continúa
+         * actualizándose visualmente.
+         */
 
         setMessage(
             error.message,
@@ -1801,81 +2012,45 @@ document.addEventListener(
 
         try {
 
-            /*
-             * Estado actual del dron.
-             */
-
-            const payload =
-                await getDroneState();
+            await getDroneState();
 
 
-            /*
-             * Contexto operacional del simulador.
-             */
+            const context =
+                await loadOperationContext();
 
-            const runtimeResponse =
-                await fetch(
-                    "/api/drone/simulator/auto/status"
+
+            if (context.route_id) {
+
+                await loadRouteDetail(
+                    context.route_id
                 );
 
 
-            if (runtimeResponse.ok) {
-
-                const runtime =
-                    await runtimeResponse.json();
-
-
-                /*
-                 * =====================================
-                 * RECUPERAR RUTA PLANIFICADA
-                 * =====================================
-                 */
-
-                if (runtime.route_id) {
-
-                    await loadRouteDetail(
-                        runtime.route_id
+                document.getElementById(
+                    "routeSelect"
+                ).value =
+                    String(
+                        context.route_id
                     );
+            }
 
 
-                    /*
-                     * Sincronizamos también visualmente
-                     * el selector con la ruta realmente
-                     * activa en backend.
-                     */
-
-                    const routeSelect =
-                        document.getElementById(
-                            "routeSelect"
-                        );
+            const runtime =
+                context.runtime;
 
 
-                    routeSelect.value =
-                        String(
-                            runtime.route_id
-                        );
+            if (
+                runtime &&
+                runtime.auto_running
+            ) {
 
-                }
-
-
-                /*
-                 * =====================================
-                 * RECUPERAR SEGUIMIENTO
-                 * =====================================
-                 */
-
-                if (runtime.auto_running) {
-
-                    startStatePolling();
+                startStatePolling();
 
 
-                    setMessage(
-                        "Seguimiento de misión activa recuperado.",
-                        "success"
-                    );
-
-                }
-
+                setMessage(
+                    "Seguimiento de misión activa recuperado.",
+                    "success"
+                );
             }
 
 
@@ -1890,6 +2065,7 @@ document.addEventListener(
 
     }
 );
+
 
 </script>
 

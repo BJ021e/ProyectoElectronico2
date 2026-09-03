@@ -1052,6 +1052,110 @@ def api_drone_simulator_auto_stop():
             "error": True,
             "msg": str(e)
         }), 400
+
+@app.route(
+    "/api/drone/operation/prepare",
+    methods=["POST"]
+)
+def api_drone_operation_prepare():
+
+    data = (
+        request.get_json(
+            silent=True
+        )
+        or {}
+    )
+
+
+    route_id = data.get(
+        "route_id"
+    )
+
+
+    if route_id is None:
+
+        return jsonify({
+            "error": True,
+            "msg": "route_id es obligatorio."
+        }), 400
+
+
+    try:
+
+        route_id = int(
+            route_id
+        )
+
+    except (
+        TypeError,
+        ValueError
+    ):
+
+        return jsonify({
+            "error": True,
+            "msg": "route_id debe ser un entero."
+        }), 400
+
+
+    name = (
+        str(
+            data.get(
+                "name",
+                "Vuelo simulado"
+            )
+        )
+        .strip()
+    )
+
+
+    if not name:
+        name = "Vuelo simulado"
+
+
+    try:
+
+        result = (
+            DroneService
+            .prepare_simulated_flight(
+                route_id,
+                name=name,
+            )
+        )
+
+
+        return jsonify({
+            "status": "prepared",
+            "operation": result
+        })
+
+
+    except DroneServiceError as e:
+
+        return jsonify({
+            "error": True,
+            "msg": str(e)
+        }), 400
+    
+@app.route(
+    "/api/drone/operation/context",
+    methods=["GET"]
+)
+def api_drone_operation_context():
+
+    try:
+
+        return jsonify(
+            DroneService
+            .get_operation_context()
+        )
+
+
+    except DroneServiceError as e:
+
+        return jsonify({
+            "error": True,
+            "msg": str(e)
+        }), 400
         
 if __name__ == "__main__":
     app.run(

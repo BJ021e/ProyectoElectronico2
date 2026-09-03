@@ -301,6 +301,8 @@ class DroneService:
         El Flight queda creado, pero todavía no iniciado.
         """
 
+        cls._validate_new_operation_allowed()
+        
         #
         # Primero configuramos y validamos la ruta.
         #
@@ -567,9 +569,69 @@ class DroneService:
     def simulator_reset(
         cls
     ) -> DroneState:
+        """
+        Reinicia el simulador solamente cuando
+        no existe un Flight ACTIVE o COMPLETED
+        asociado a la operación.
+        """
+
+        # ------------------------------------------
+        # 1. Obtener Flight asociado
+        # ------------------------------------------
+
+        with cls._lock:
+            flight_id = cls._active_flight_id
+
+
+        # ------------------------------------------
+        # 2. Validar estado persistente
+        # ------------------------------------------
+
+        if flight_id is not None:
+
+            try:
+
+                flight = FlightService.get_flight(
+                    flight_id
+                )
+
+            except FlightPersistenceError as exc:
+
+                raise DroneServiceError(
+                    "No fue posible validar "
+                    f"el Flight activo: {exc}"
+                ) from exc
+
+
+            if (
+                flight is not None
+                and
+                flight["status"] in {
+                    "ACTIVE",
+                    "COMPLETED",
+                }
+            ):
+
+                raise DroneServiceError(
+                    "No se puede resetear el simulador "
+                    f"mientras existe el vuelo "
+                    f"{flight['flight_code']} "
+                    f"en estado {flight['status']}. "
+                    "Prepara una nueva operación."
+                )
+
+
+        # ------------------------------------------
+        # 3. Solo si pasó la validación,
+        #    detener ejecución automática
+        # ------------------------------------------
 
         cls.simulator_stop_auto()
 
+
+        # ------------------------------------------
+        # 4. Reset físico/lógico del simulador
+        # ------------------------------------------
 
         with cls._lock:
 
@@ -1027,5 +1089,104 @@ class DroneService:
                 "No fue posible finalizar "
                 f"el Flight {flight_id}: {exc}"
             ) from exc
+            
+    @classmethod
+    def _validate_new_operation_allowed(
+        cls
+    ) -> None:
+        """
+        Evita reemplazar una operación que todavía
+        se encuentra preparada o activa.
+        """
+
+        with cls._lock:
+            flight_id = cls._active_flight_id
+
+
+        if flight_id is None:
+            return
+
+
+        try:
+
+            flight = FlightService.get_flight(
+                flight_id
+            )
+
+        except FlightPersistenceError as exc:
+
+            raise DroneServiceError(
+                "No fue posible validar la "
+                f"operación actual: {exc}"
+            ) from exc
+
+
+        if flight is None:
+            return
+
+
+        if flight["status"] in {
+            "CREATED",
+            "ACTIVE",
+        }:
+
+            raise DroneServiceError(
+                f"El vuelo {flight['flight_code']} "
+                "todavía se encuentra "
+                f"en estado {flight['status']}. "
+                "No se puede preparar otra operación."
+            )
     
-    
+    @classmethod
+    def get_operation_context(
+        cls
+    ) -> dict:
+        """
+        Devuelve el contexto operacional actual
+        necesario para reconstruir la interfaz.
+        """
+
+        with cls._lock:
+
+            flight_id = cls._active_flight_id
+
+            route_id = cls._active_route_id
+
+            provider_name = (
+                cls._provider.name
+                if cls._provider is not None
+                else None
+            )
+
+
+        flight = None
+
+
+        if flight_id is not None:
+
+            try:
+
+                flight = FlightService.get_flight(
+                    flight_id
+                )
+
+            except FlightPersistenceError as exc:
+
+                raise DroneServiceError(
+                    "No fue posible recuperar "
+                    f"el Flight activo: {exc}"
+                ) from exc
+
+
+        return {
+            "provider": provider_name,
+
+            "route_id": route_id,
+
+            "flight_id": flight_id,
+
+            "flight": flight,
+
+            "runtime":
+                cls.simulator_auto_status(),
+        }
