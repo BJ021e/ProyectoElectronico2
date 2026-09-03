@@ -91,29 +91,66 @@ class DroneService:
     ) -> None:
         """
         Cambia el proveedor activo.
+
+        El runtime específico del proveedor anterior
+        se libera antes de instalar el nuevo.
         """
 
         if not isinstance(
             provider,
             DroneProvider
         ):
+
             raise InvalidDroneProviderError(
                 "El proveedor no cumple "
                 "el contrato DroneProvider."
             )
 
+
         with cls._lock:
+
+            previous_runner = (
+                cls._simulation_runner
+            )
+
+
+        if previous_runner is not None:
+
+            previous_runner.stop()
+
+
+        with cls._lock:
+
             cls._provider = provider
 
+            cls._simulation_runner = None
 
     @classmethod
-    def clear_provider(cls) -> None:
+    def clear_provider(
+        cls
+    ) -> None:
         """
-        Elimina el proveedor activo.
+        Elimina el proveedor activo y libera
+        cualquier runtime asociado.
         """
 
         with cls._lock:
+
+            runner = (
+                cls._simulation_runner
+            )
+
+
+        if runner is not None:
+
+            runner.stop()
+
+
+        with cls._lock:
+
             cls._provider = None
+
+            cls._simulation_runner = None
 
 
     @classmethod
