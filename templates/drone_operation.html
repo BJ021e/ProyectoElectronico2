@@ -838,6 +838,12 @@ let pollingTimer = null;
 
 const STATE_POLL_INTERVAL_MS = 500;
 
+let latestDronePayload = null;
+
+let latestOperationContext = null;
+
+let actionInProgress = false;
+
 /* ===============================================
    UTILIDADES
    =============================================== */
@@ -1236,6 +1242,7 @@ function renderDroneState(
         state
     );
 
+    updateControlState();
 }
 
 
@@ -1262,6 +1269,9 @@ async function getDroneState() {
     const data =
         await response.json();
 
+
+    latestDronePayload = 
+        data;
 
     renderDroneState(
         data
@@ -1439,8 +1449,28 @@ function renderOperationContext(
         flight.flight_code;
 
 
-    flightStatusElement.textContent =
-        flight.status;
+    const runtime =
+        context.runtime;
+
+
+    if (
+        flight.status === "ACTIVE"
+        &&
+        runtime
+        &&
+        !runtime.auto_running
+        &&
+        runtime.simulator_running
+    ) {
+
+        flightStatusElement.textContent =
+            "ACTIVE · PAUSADO";
+
+    } else {
+
+        flightStatusElement.textContent =
+            flight.status;
+    }
 
 
     if (
@@ -1492,12 +1522,411 @@ async function loadOperationContext() {
         await response.json();
 
 
+    latestOperationContext =
+        context;
+
+
     renderOperationContext(
         context
     );
 
 
+    updateControlState();
+
+
     return context;
+}
+
+function setButtonEnabled(
+    buttonId,
+    enabled
+) {
+
+    const button =
+        document.getElementById(
+            buttonId
+        );
+
+
+    if (!button) {
+        return;
+    }
+
+
+    button.disabled =
+        !enabled;
+}
+
+function updateControlState() {
+
+    const context =
+        latestOperationContext;
+
+
+    const dronePayload =
+        latestDronePayload;
+
+
+    const flight =
+        context?.flight ?? null;
+
+
+    const runtime =
+        context?.runtime ?? null;
+
+
+    const state =
+        dronePayload?.state ?? null;
+
+
+    /*
+     * Mientras una petición importante está
+     * ejecutándose no permitimos otro clic.
+     */
+
+    if (actionInProgress) {
+
+        setButtonEnabled(
+            "setupButton",
+            false
+        );
+
+        setButtonEnabled(
+            "connectButton",
+            false
+        );
+
+        setButtonEnabled(
+            "startButton",
+            false
+        );
+
+        setButtonEnabled(
+            "stopButton",
+            false
+        );
+
+        setButtonEnabled(
+            "resetButton",
+            false
+        );
+
+        setButtonEnabled(
+            "disconnectButton",
+            false
+        );
+
+        return;
+    }
+
+
+    /*
+     * ==========================================
+     * SIN OPERACIÓN
+     * ==========================================
+     */
+
+    if (!flight) {
+
+        setButtonEnabled(
+            "setupButton",
+            true
+        );
+
+        setButtonEnabled(
+            "connectButton",
+            false
+        );
+
+        setButtonEnabled(
+            "startButton",
+            false
+        );
+
+        setButtonEnabled(
+            "stopButton",
+            false
+        );
+
+        setButtonEnabled(
+            "resetButton",
+            false
+        );
+
+        setButtonEnabled(
+            "disconnectButton",
+            false
+        );
+
+
+        document.getElementById(
+            "startButton"
+        ).textContent =
+            "Iniciar";
+
+
+        return;
+    }
+
+
+    const flightStatus =
+        flight.status;
+
+
+    const connected =
+        Boolean(
+            state?.connected
+        );
+
+
+    const flightMode =
+        state?.flight_mode
+        ?? null;
+
+
+    const autoRunning =
+        Boolean(
+            runtime?.auto_running
+        );
+
+
+    const simulatorRunning =
+        Boolean(
+            runtime?.simulator_running
+        );
+
+
+    /*
+     * ==========================================
+     * CREATED
+     * ==========================================
+     */
+
+    if (
+        flightStatus === "CREATED"
+    ) {
+
+        setButtonEnabled(
+            "setupButton",
+            false
+        );
+
+
+        setButtonEnabled(
+            "connectButton",
+            !connected
+        );
+
+
+        setButtonEnabled(
+            "startButton",
+            connected
+            &&
+            flightMode === "STANDBY"
+        );
+
+
+        setButtonEnabled(
+            "stopButton",
+            false
+        );
+
+
+        /*
+         * El backend permite reset antes de
+         * iniciar, pero no necesitamos ofrecerlo
+         * como operación habitual.
+         */
+
+        setButtonEnabled(
+            "resetButton",
+            false
+        );
+
+
+        setButtonEnabled(
+            "disconnectButton",
+            connected
+        );
+
+
+        document.getElementById(
+            "startButton"
+        ).textContent =
+            "Iniciar";
+
+
+        return;
+    }
+
+
+    /*
+     * ==========================================
+     * ACTIVE
+     * ==========================================
+     */
+
+    if (
+        flightStatus === "ACTIVE"
+    ) {
+
+        setButtonEnabled(
+            "setupButton",
+            false
+        );
+
+
+        setButtonEnabled(
+            "connectButton",
+            false
+        );
+
+
+        /*
+         * Worker activo:
+         * solo podemos pausar.
+         */
+
+        if (autoRunning) {
+
+            setButtonEnabled(
+                "startButton",
+                false
+            );
+
+
+            setButtonEnabled(
+                "stopButton",
+                true
+            );
+
+
+            document.getElementById(
+                "startButton"
+            ).textContent =
+                "Iniciar";
+
+        }
+
+        /*
+         * Flight sigue ACTIVE,
+         * DroneSimulator sigue en ejecución,
+         * pero worker detenido:
+         *
+         * esto significa PAUSA.
+         */
+
+        else if (
+            simulatorRunning
+        ) {
+
+            setButtonEnabled(
+                "startButton",
+                true
+            );
+
+
+            setButtonEnabled(
+                "stopButton",
+                false
+            );
+
+
+            document.getElementById(
+                "startButton"
+            ).textContent =
+                "Reanudar";
+
+        } else {
+
+            setButtonEnabled(
+                "startButton",
+                false
+            );
+
+
+            setButtonEnabled(
+                "stopButton",
+                false
+            );
+        }
+
+
+        setButtonEnabled(
+            "resetButton",
+            false
+        );
+
+
+        setButtonEnabled(
+            "disconnectButton",
+            false
+        );
+
+
+        return;
+    }
+
+
+    /*
+     * ==========================================
+     * OPERACIÓN TERMINADA
+     * ==========================================
+     */
+
+    if (
+        flightStatus === "COMPLETED"
+        ||
+        flightStatus === "CANCELLED"
+        ||
+        flightStatus === "ERROR"
+    ) {
+
+        setButtonEnabled(
+            "setupButton",
+            true
+        );
+
+
+        setButtonEnabled(
+            "connectButton",
+            false
+        );
+
+
+        setButtonEnabled(
+            "startButton",
+            false
+        );
+
+
+        setButtonEnabled(
+            "stopButton",
+            false
+        );
+
+
+        setButtonEnabled(
+            "resetButton",
+            false
+        );
+
+
+        setButtonEnabled(
+            "disconnectButton",
+            false
+        );
+
+
+        document.getElementById(
+            "startButton"
+        ).textContent =
+            "Iniciar";
+
+
+        return;
+    }
+
 }
 
 async function sendSimulatorCommand(
@@ -1685,6 +2114,16 @@ async function loadRouteDetail(
 
 async function setupSimulator() {
 
+    if (actionInProgress) {
+        return;
+    }
+
+
+    actionInProgress = true;
+
+    updateControlState();
+
+
     const routeId =
         document.getElementById(
             "routeSelect"
@@ -1692,6 +2131,10 @@ async function setupSimulator() {
 
 
     if (!routeId) {
+
+        actionInProgress = false;
+
+        updateControlState();
 
         setMessage(
             "Selecciona una ruta.",
@@ -1747,12 +2190,29 @@ async function setupSimulator() {
             error.message,
             "error"
         );
+
+
+    } finally {
+
+        actionInProgress = false;
+
+        updateControlState();
     }
 
 }
 
 
 async function connectSimulator() {
+
+    if (actionInProgress) {
+        return;
+    }
+
+
+    actionInProgress = true;
+
+    updateControlState();
+
 
     try {
 
@@ -1762,6 +2222,8 @@ async function connectSimulator() {
 
 
         await getDroneState();
+
+        await loadOperationContext();
 
 
         setMessage(
@@ -1776,48 +2238,129 @@ async function connectSimulator() {
             error.message,
             "error"
         );
+
+
+    } finally {
+
+        actionInProgress = false;
+
+        updateControlState();
     }
 
 }
-
 async function startSimulator() {
+
+    if (actionInProgress) {
+        return;
+    }
+
+
+    actionInProgress =
+        true;
+
+
+    updateControlState();
+
 
     try {
 
+        const context =
+            latestOperationContext;
+
+
+        const flight =
+            context?.flight;
+
+
+        const runtime =
+            context?.runtime;
+
+
+        if (!flight) {
+
+            throw new Error(
+                "No existe una operación preparada."
+            );
+        }
+
+
         /*
-         * Primero cambiamos DroneSimulator
-         * STANDBY -> AUTO.
+         * ==========================================
+         * INICIO NORMAL
+         * ==========================================
          */
 
-        await sendSimulatorCommand(
-            "/api/drone/simulator/start"
-        );
+        if (
+            flight.status === "CREATED"
+        ) {
 
+            await sendSimulatorCommand(
+                "/api/drone/simulator/start"
+            );
+
+
+            await sendSimulatorCommand(
+                "/api/drone/simulator/auto/start",
+                {
+                    interval_seconds:
+                        0.5
+                }
+            );
+
+
+            setMessage(
+                "Misión iniciada.",
+                "success"
+            );
+
+        }
 
         /*
-         * Después arrancamos el worker
-         * independiente del backend.
+         * ==========================================
+         * REANUDAR
+         * ==========================================
          */
 
-        await sendSimulatorCommand(
-            "/api/drone/simulator/auto/start",
-            {
-                interval_seconds: 0.5
-            }
-        );
+        else if (
+            flight.status === "ACTIVE"
+            &&
+            runtime
+            &&
+            !runtime.auto_running
+            &&
+            runtime.simulator_running
+        ) {
+
+            await sendSimulatorCommand(
+                "/api/drone/simulator/auto/start",
+                {
+                    interval_seconds:
+                        0.5
+                }
+            );
+
+
+            setMessage(
+                "Misión reanudada.",
+                "success"
+            );
+
+        } else {
+
+            throw new Error(
+                "La operación no se encuentra "
+                + "en un estado válido para iniciar."
+            );
+        }
 
 
         await getDroneState();
 
+
         await loadOperationContext();
 
+
         startStatePolling();
-
-
-        setMessage(
-            "Misión simulada en ejecución.",
-            "success"
-        );
 
 
     } catch (error) {
@@ -1826,11 +2369,31 @@ async function startSimulator() {
             error.message,
             "error"
         );
+
+    } finally {
+
+        actionInProgress =
+            false;
+
+
+        updateControlState();
     }
 
 }
 
 async function stopSimulator() {
+
+    if (actionInProgress) {
+        return;
+    }
+
+
+    actionInProgress =
+        true;
+
+
+    updateControlState();
+
 
     try {
 
@@ -1845,8 +2408,12 @@ async function stopSimulator() {
         await getDroneState();
 
 
+        await loadOperationContext();
+
+
         setMessage(
-            "Simulación automática detenida.",
+            "Misión pausada. "
+            + "Puedes reanudarla cuando estés listo.",
             "success"
         );
 
@@ -1857,6 +2424,14 @@ async function stopSimulator() {
             error.message,
             "error"
         );
+
+    } finally {
+
+        actionInProgress =
+            false;
+
+
+        updateControlState();
     }
 
 }
@@ -2005,6 +2580,8 @@ document.addEventListener(
     "DOMContentLoaded",
     async () => {
 
+        updateControlState();
+
         initializeMap();
 
         await loadRoutes();
@@ -2040,7 +2617,8 @@ document.addEventListener(
 
 
             if (
-                runtime &&
+                runtime
+                &&
                 runtime.auto_running
             ) {
 
