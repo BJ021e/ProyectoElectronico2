@@ -551,6 +551,13 @@
                     Desconectar
                 </button>
 
+                <button
+                    id="cancelButton"
+                    class="control-button"
+                >
+                    Cancelar
+                </button>
+
             </div>
             
             <div class="operation-flight-context">
@@ -1475,6 +1482,8 @@ function renderOperationContext(
 
     if (
         flight.status === "COMPLETED"
+        ||
+        flight.status === "CANCELLED"
     ) {
 
         historyButton.href =
@@ -1613,6 +1622,11 @@ function updateControlState() {
 
         setButtonEnabled(
             "disconnectButton",
+            false
+        );
+
+        setButtonEnabled(
+            "cancelButton",
             false
         );
 
@@ -1783,8 +1797,7 @@ function updateControlState() {
 
 
         /*
-         * Worker activo:
-         * solo podemos pausar.
+         * Mision ejecuntadose
          */
 
         if (autoRunning) {
@@ -1809,11 +1822,7 @@ function updateControlState() {
         }
 
         /*
-         * Flight sigue ACTIVE,
-         * DroneSimulator sigue en ejecución,
-         * pero worker detenido:
-         *
-         * esto significa PAUSA.
+         * Mision pausada
          */
 
         else if (
@@ -1863,6 +1872,16 @@ function updateControlState() {
             false
         );
 
+
+         /*
+        * IMPORTANTE:
+        * ACTIVE y ACTIVE · PAUSADO
+        * pueden cancelarse.
+        */
+        setButtonEnabled(
+            "cancelButton",
+            true
+        );
 
         return;
     }
@@ -1914,6 +1933,11 @@ function updateControlState() {
 
         setButtonEnabled(
             "disconnectButton",
+            false
+        );
+
+        setButtonEnabled(
+            "cancelButton",
             false
         );
 
@@ -2115,6 +2139,12 @@ async function loadRouteDetail(
 async function setupSimulator() {
 
     if (actionInProgress) {
+        
+        setButtonEnabled(
+            "cancelButton",
+            false
+        );
+
         return;
     }
 
@@ -2307,6 +2337,10 @@ async function startSimulator() {
                 }
             );
 
+            setButtonEnabled(
+                "cancelButton",
+                true
+            );    
 
             setMessage(
                 "Misión iniciada.",
@@ -2522,6 +2556,69 @@ async function disconnectSimulator() {
 
 }
 
+async function cancelOperation() {
+
+    if (actionInProgress) {
+        return;
+    }
+
+
+    const confirmed =
+        window.confirm(
+            "¿Deseas cancelar esta misión? "
+            + "La telemetría registrada se conservará."
+        );
+
+
+    if (!confirmed) {
+        return;
+    }
+
+
+    actionInProgress = true;
+
+    updateControlState();
+
+
+    try {
+
+        const response =
+            await sendSimulatorCommand(
+                "/api/drone/operation/cancel"
+            );
+
+
+        stopStatePolling();
+
+
+        await getDroneState();
+
+        await loadOperationContext();
+
+
+        setMessage(
+            `Vuelo ${response.flight.flight_code} cancelado.`,
+            "success"
+        );
+
+
+    } catch (error) {
+
+        setMessage(
+            error.message,
+            "error"
+        );
+
+
+    } finally {
+
+        actionInProgress = false;
+
+        updateControlState();
+    }
+
+}
+
 /* ===============================================
    EVENTOS
    =============================================== */
@@ -2569,6 +2666,13 @@ document.getElementById(
 ).addEventListener(
     "click",
     disconnectSimulator
+);
+
+document.getElementById(
+    "cancelButton"
+).addEventListener(
+    "click",
+    cancelOperation
 );
 
 

@@ -1156,7 +1156,33 @@ def api_drone_operation_context():
             "error": True,
             "msg": str(e)
         }), 400
-        
+
+@app.route(
+    "/api/drone/operation/cancel",
+    methods=["POST"]
+)
+def api_drone_operation_cancel():
+
+    try:
+
+        result = (
+            DroneService
+            .cancel_active_operation()
+        )
+
+
+        return jsonify(
+            result
+        )
+
+
+    except DroneServiceError as e:
+
+        return jsonify({
+            "error": True,
+            "msg": str(e)
+        }), 400
+
 if __name__ == "__main__":
     app.run(
         debug=Config.FLASK_DEBUG,

@@ -282,6 +282,103 @@ class DroneService:
             return cls._active_flight_id
     
     @classmethod
+    def cancel_active_operation(
+        cls
+    ) -> dict:
+        """
+        Cancela la operación persistente actual.
+
+        La telemetría ya registrada se conserva.
+        """
+
+        with cls._lock:
+            flight_id = cls._active_flight_id
+
+
+        if flight_id is None:
+
+            raise DroneServiceError(
+                "No existe una operación activa para cancelar."
+            )
+
+
+        try:
+
+            flight = FlightService.get_flight(
+                flight_id
+            )
+
+        except FlightPersistenceError as exc:
+
+            raise DroneServiceError(
+                "No fue posible consultar "
+                f"el Flight {flight_id}: {exc}"
+            ) from exc
+
+
+        if flight is None:
+
+            raise DroneServiceError(
+                f"El Flight con ID {flight_id} "
+                "no existe."
+            )
+
+
+        status = flight["status"]
+
+
+        if status == "CANCELLED":
+
+            return cls.get_operation_context()
+
+
+        if status not in {
+            "CREATED",
+            "ACTIVE",
+        }:
+
+            raise DroneServiceError(
+                f"No se puede cancelar el vuelo "
+                f"{flight['flight_code']} "
+                f"desde el estado {status}."
+            )
+
+
+        #
+        # Primero detenemos cualquier evolución
+        # automática del simulador.
+        #
+        cls.simulator_stop_auto()
+
+
+        try:
+
+            cancelled_flight = (
+                FlightService.cancel_flight(
+                    flight_id
+                )
+            )
+
+        except (
+            FlightPersistenceError,
+            InvalidFlightTransitionError,
+        ) as exc:
+
+            raise DroneServiceError(
+                "No fue posible cancelar "
+                f"el Flight {flight_id}: {exc}"
+            ) from exc
+
+
+        return {
+            "status": "cancelled",
+
+            "flight": cancelled_flight,
+
+            "context":
+                cls.get_operation_context(),
+        }
+    @classmethod
     def prepare_simulated_flight(
         cls,
         route_id: int,

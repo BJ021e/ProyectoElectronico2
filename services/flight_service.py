@@ -265,7 +265,101 @@ class FlightService:
 
         finally:
             session.close()
-            
+    
+    @classmethod
+    def cancel_flight(
+        cls,
+        flight_id: int
+    ) -> dict:
+        """
+        Cancela un vuelo CREATED o ACTIVE.
+
+        La información existente del vuelo y su
+        telemetría se conservan.
+        """
+
+        session = SessionLocal()
+
+        try:
+
+            flight = session.get(
+                Flight,
+                flight_id
+            )
+
+
+            if flight is None:
+
+                raise FlightPersistenceError(
+                    f"El vuelo con ID {flight_id} "
+                    "no existe."
+                )
+
+
+            if flight.status not in {
+                FlightStatus.CREATED,
+                FlightStatus.ACTIVE,
+            }:
+
+                raise InvalidFlightTransitionError(
+                    f"No se puede cancelar el vuelo "
+                    f"{flight.flight_code} desde el "
+                    f"estado {flight.status.value}."
+                )
+
+
+            flight.status = (
+                FlightStatus.CANCELLED
+            )
+
+
+            #
+            # Usa aquí exactamente el mismo mecanismo
+            # de fecha que ya usa finish_flight().
+            #
+            flight.finished_at = datetime.now(
+                timezone.utc
+            ).replace(
+                tzinfo=None
+            )
+
+
+            session.commit()
+
+            session.refresh(
+                flight
+            )
+
+
+            return cls._serialize(
+                flight
+            )
+
+
+        except (
+            FlightPersistenceError,
+            InvalidFlightTransitionError,
+        ):
+
+            session.rollback()
+
+            raise
+
+
+        except Exception as exc:
+
+            session.rollback()
+
+            raise FlightPersistenceError(
+                "No fue posible cancelar "
+                f"el vuelo {flight_id}: {exc}"
+            ) from exc
+
+
+        finally:
+
+            session.close()
+                    
     @staticmethod
     def list_flights(
         limit: int = 50
