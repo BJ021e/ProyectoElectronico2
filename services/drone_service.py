@@ -54,6 +54,8 @@ from drone.simulator_mission_controller import (
 
 from drone.integration_status import IntegrationStatus
 
+from config import Config
+
 class DroneServiceError(Exception):
     """
     Error general de la capa operacional del dron.
@@ -1951,7 +1953,7 @@ class DroneService:
     def get_integration_status(
         cls,
         *,
-        stale_after_seconds: float = 5.0,
+        stale_after_seconds: float | None = None,
     ) -> IntegrationStatus:
         """
         Devuelve el diagnóstico técnico normalizado
@@ -1959,7 +1961,13 @@ class DroneService:
 
         No modifica el estado del Flight.
         """
+        if stale_after_seconds is None:
 
+                stale_after_seconds = (
+                    Config
+                    .DRONE_TELEMETRY_STALE_SECONDS
+                )
+                
         try:
 
             stale_after_seconds = float(

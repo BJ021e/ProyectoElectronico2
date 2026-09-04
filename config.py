@@ -65,3 +65,11 @@ class Config:
         "DATABASE_URL",
         "sqlite:///data/ground_control.db"
     )
+    
+    # Integración de dron
+    DRONE_TELEMETRY_STALE_SECONDS = float(
+        os.getenv(
+            "DRONE_TELEMETRY_STALE_SECONDS",
+            "5.0"
+        )
+    )

@@ -8,6 +8,7 @@ from services.drone_service import DroneService
 
 from datetime import timedelta
 from services.flight_service import FlightService
+from config import Config
 
 def test_integration_not_configured():
 
@@ -554,4 +555,233 @@ def test_connection_recovery_resynchronizes_completed_mission(
         state.speed
         ==
         0.0
+    )
+    
+def test_integration_status_uses_configured_stale_threshold(
+    monkeypatch,
+):
+
+    monkeypatch.setattr(
+        Config,
+        "DRONE_TELEMETRY_STALE_SECONDS",
+        12.5,
+    )
+
+
+    #
+    # No necesitamos provider para comprobar
+    # que el valor configurado es aceptado.
+    #
+    status = (
+        DroneService
+        .get_integration_status()
+    )
+
+
+    assert (
+        status.health
+        ==
+        "NOT_CONFIGURED"
+    )
+
+def test_configured_threshold_controls_freshness(
+    ready_route,
+    monkeypatch,
+):
+
+    backend = DJITestBackend(
+        on_state=(
+            DroneService
+            ._handle_mission_state
+        ),
+        interval_seconds=10.0,
+    )
+
+
+    provider = DJIProvider(
+        backend
+    )
+
+
+    controller = DJIMissionController(
+        backend
+    )
+
+
+    DroneService.prepare_operation(
+        provider=provider,
+
+        mission_controller=controller,
+
+        route_id=ready_route["id"],
+
+        name="DJI configurable freshness",
+    )
+
+
+    DroneService.connect_operation()
+
+    DroneService.start_operation()
+
+
+    initial = (
+        DroneService
+        .get_integration_status()
+    )
+
+
+    assert (
+        initial.last_telemetry_at
+        is not None
+    )
+
+
+    #
+    # Threshold configurado:
+    # 20 segundos.
+    #
+    monkeypatch.setattr(
+        Config,
+        "DRONE_TELEMETRY_STALE_SECONDS",
+        20.0,
+    )
+
+
+    fake_now = (
+        initial.last_telemetry_at
+        +
+        timedelta(
+            seconds=10
+        )
+    )
+
+
+    monkeypatch.setattr(
+        DroneService,
+        "_utcnow",
+        staticmethod(
+            lambda: fake_now
+        ),
+    )
+
+
+    status = (
+        DroneService
+        .get_integration_status()
+    )
+
+
+    #
+    # Tiene 10 segundos,
+    # pero el límite configurado es 20.
+    #
+    assert (
+        status.telemetry_age_seconds
+        ==
+        10.0
+    )
+
+    assert (
+        status.telemetry_fresh
+        is True
+    )
+
+    assert (
+        status.health
+        ==
+        "ONLINE"
+    )
+    
+def test_explicit_stale_threshold_overrides_config(
+    ready_route,
+    monkeypatch,
+):
+
+    backend = DJITestBackend(
+        on_state=(
+            DroneService
+            ._handle_mission_state
+        ),
+        interval_seconds=10.0,
+    )
+
+
+    provider = DJIProvider(
+        backend
+    )
+
+
+    controller = DJIMissionController(
+        backend
+    )
+
+
+    DroneService.prepare_operation(
+        provider=provider,
+
+        mission_controller=controller,
+
+        route_id=ready_route["id"],
+
+        name="DJI freshness override",
+    )
+
+
+    DroneService.connect_operation()
+
+    DroneService.start_operation()
+
+
+    initial = (
+        DroneService
+        .get_integration_status()
+    )
+
+
+    monkeypatch.setattr(
+        Config,
+        "DRONE_TELEMETRY_STALE_SECONDS",
+        20.0,
+    )
+
+
+    fake_now = (
+        initial.last_telemetry_at
+        +
+        timedelta(
+            seconds=10
+        )
+    )
+
+
+    monkeypatch.setattr(
+        DroneService,
+        "_utcnow",
+        staticmethod(
+            lambda: fake_now
+        ),
+    )
+
+
+    #
+    # Aunque Config diga 20,
+    # aquí pedimos explícitamente 5.
+    #
+    status = (
+        DroneService
+        .get_integration_status(
+            stale_after_seconds=5.0
+        )
+    )
+
+
+    assert (
+        status.telemetry_fresh
+        is False
+    )
+
+    assert (
+        status.health
+        ==
+        "DEGRADED"
     )
