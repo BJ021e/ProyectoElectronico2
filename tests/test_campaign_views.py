@@ -123,3 +123,66 @@ def test_campaign_detail_uses_geospatial_apis():
         "/api/campaigns/${CAMPAIGN_ID}/process"
         in html
     )
+
+def test_campaign_detail_contains_rededge_import_controls():
+
+    app.config["TESTING"] = True
+
+    client = app.test_client()
+
+    response = client.get(
+        "/campaigns/123"
+    )
+
+    assert response.status_code == 200
+
+    html = response.get_data(
+        as_text=True
+    )
+
+    assert (
+        "Importar carpeta RedEdge"
+        in html
+    )
+
+    assert (
+        'id="redEdgeFolderInput"'
+        in html
+    )
+
+    assert "webkitdirectory" in html
+
+    assert (
+        'id="redEdgeModal"'
+        in html
+    )
+
+
+def test_campaign_detail_uses_rededge_import_api():
+
+    app.config["TESTING"] = True
+
+    client = app.test_client()
+
+    response = client.get(
+        "/campaigns/9"
+    )
+
+    html = response.get_data(
+        as_text=True
+    )
+
+    assert (
+        "/rededge/inspect"
+        in html
+    )
+
+    assert (
+        "/rededge/import"
+        in html
+    )
+
+    assert (
+        "/rededge/staging/"
+        in html
+    )

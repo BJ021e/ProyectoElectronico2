@@ -401,6 +401,220 @@
             color: #f87171;
         }
 
+
+        /* =========================================
+        REDEDGE IMPORT
+        ========================================= */
+
+        .rededge-modal-backdrop {
+            position: fixed;
+            inset: 0;
+
+            display: none;
+            align-items: center;
+            justify-content: center;
+
+            padding: 24px;
+
+            background:
+                rgba(2, 6, 23, 0.86);
+
+            z-index: 3000;
+        }
+
+        .rededge-modal-backdrop.open {
+            display: flex;
+        }
+
+        .rededge-modal-panel {
+            position: relative;
+            z-index: 3001;
+
+            width: 100%;
+            max-width: 900px;
+
+            max-height:
+                calc(100vh - 48px);
+
+            overflow-y: auto;
+
+            background: #1e293b;
+
+            border:
+                1px solid #334155;
+
+            border-radius: 14px;
+
+            padding: 24px;
+        }
+
+        .rededge-modal-header {
+            display: flex;
+
+            justify-content:
+                space-between;
+
+            align-items:
+                flex-start;
+
+            gap: 20px;
+
+            margin-bottom: 20px;
+        }
+
+        .rededge-modal-header h2 {
+            margin: 0;
+            font-size: 1.35rem;
+        }
+
+        .rededge-modal-header p {
+            margin: 7px 0 0 0;
+            color: #94a3b8;
+        }
+
+        .rededge-close-button {
+            border: none;
+            background: transparent;
+
+            color: #94a3b8;
+
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .rededge-message {
+            padding: 16px;
+
+            border:
+                1px solid #334155;
+
+            border-radius: 9px;
+
+            background: #0f172a;
+
+            color: #94a3b8;
+
+            margin-bottom: 18px;
+        }
+
+        .rededge-message.success {
+            color: #34d399;
+        }
+
+        .rededge-message.error {
+            color: #f87171;
+        }
+
+        .rededge-summary {
+            display: grid;
+
+            grid-template-columns:
+                repeat(
+                    3,
+                    minmax(0, 1fr)
+                );
+
+            gap: 12px;
+
+            margin-bottom: 18px;
+        }
+
+        .rededge-summary-card {
+            background: #111827;
+
+            border:
+                1px solid #334155;
+
+            border-radius: 9px;
+
+            padding: 14px;
+
+            display: flex;
+
+            justify-content:
+                space-between;
+
+            align-items: center;
+        }
+
+        .rededge-summary-card span {
+            color: #94a3b8;
+            font-size: 0.82rem;
+        }
+
+        .rededge-summary-card strong {
+            font-size: 1.15rem;
+        }
+
+        .rededge-groups-container {
+            border:
+                1px solid #334155;
+
+            border-radius: 9px;
+
+            overflow: hidden;
+
+            max-height: 420px;
+            overflow-y: auto;
+        }
+
+        .rededge-group {
+            display: grid;
+
+            grid-template-columns:
+                minmax(0, 1fr)
+                auto
+                minmax(160px, auto);
+
+            gap: 16px;
+
+            align-items: center;
+
+            padding: 13px 15px;
+
+            border-bottom:
+                1px solid #334155;
+        }
+
+        .rededge-group:last-child {
+            border-bottom: none;
+        }
+
+        .rededge-group-key {
+            font-weight: 600;
+
+            overflow-wrap:
+                anywhere;
+        }
+
+        .rededge-group-bands {
+            color: #94a3b8;
+            font-size: 0.8rem;
+        }
+
+        .rededge-complete {
+            color: #34d399;
+            font-weight: 700;
+        }
+
+        .rededge-incomplete {
+            color: #f87171;
+            font-weight: 700;
+        }
+
+        .rededge-modal-actions {
+            display: flex;
+
+            justify-content:
+                flex-end;
+
+            flex-wrap: wrap;
+
+            gap: 10px;
+
+            margin-top: 22px;
+        }
+
         /* =========================================
            RESPONSIVE
            ========================================= */
@@ -413,6 +627,14 @@
 
             .detail-header {
                 flex-direction: column;
+            }
+
+            .rededge-summary {
+                grid-template-columns: 1fr;
+            }
+
+            .rededge-group {
+                grid-template-columns: 1fr;
             }
 
         }
@@ -703,6 +925,14 @@
 
                 </div>
 
+                <button
+                    id="importRedEdgeButton"
+                    type="button"
+                    class="button"
+                    style="display: none;"
+                >
+                    Importar carpeta RedEdge
+                </button>
 
                 <div id="capturesContainer">
 
@@ -711,6 +941,16 @@
                     </div>
 
                 </div>
+
+                <input
+                    id="redEdgeFolderInput"
+                    type="file"
+                    webkitdirectory
+                    directory
+                    multiple
+                    accept=".tif,.tiff"
+                    style="display: none;"
+                >
 
             </section>
 
@@ -789,6 +1029,147 @@
 
 </div>
 
+<!-- =============================================
+     MODAL IMPORTACIÓN REDEDGE
+     ============================================= -->
+
+<div
+    id="redEdgeModal"
+    class="rededge-modal-backdrop"
+>
+
+    <div class="rededge-modal-panel">
+
+        <div class="rededge-modal-header">
+
+            <div>
+
+                <h2>
+                    Importar carpeta RedEdge
+                </h2>
+
+                <p id="redEdgeModalDescription">
+                    Inspeccionando archivos...
+                </p>
+
+            </div>
+
+
+            <button
+                id="closeRedEdgeModalButton"
+                type="button"
+                class="rededge-close-button"
+                aria-label="Cerrar"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <div
+            id="redEdgeModalMessage"
+            class="rededge-message"
+        >
+            Preparando importación...
+        </div>
+
+
+        <div
+            id="redEdgeSummary"
+            class="rededge-summary"
+            style="display: none;"
+        >
+
+            <div class="rededge-summary-card">
+
+                <span>
+                    Detectadas
+                </span>
+
+                <strong id="redEdgeDetectedCount">
+                    0
+                </strong>
+
+            </div>
+
+
+            <div class="rededge-summary-card">
+
+                <span>
+                    Completas
+                </span>
+
+                <strong id="redEdgeCompleteCount">
+                    0
+                </strong>
+
+            </div>
+
+
+            <div class="rededge-summary-card">
+
+                <span>
+                    Incompletas
+                </span>
+
+                <strong id="redEdgeIncompleteCount">
+                    0
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <div
+            id="redEdgeGroupsContainer"
+            class="rededge-groups-container"
+            style="display: none;"
+        ></div>
+
+
+        <div class="rededge-modal-actions">
+
+            <button
+                id="cancelRedEdgeButton"
+                type="button"
+                class="
+                    button
+                    button-secondary
+                "
+            >
+                Cancelar
+            </button>
+
+
+            <button
+                id="importCompleteRedEdgeButton"
+                type="button"
+                class="button"
+                style="display: none;"
+            >
+                Importar solo completas
+            </button>
+
+
+            <button
+                id="confirmRedEdgeImportButton"
+                type="button"
+                class="
+                    button
+                    button-primary
+                "
+                style="display: none;"
+            >
+                Importar
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
 
 <script>
 
@@ -801,6 +1182,14 @@ let currentJobs = [];
 let currentProducts = [];
 
 let processingInProgress = false;
+
+let redEdgeStagingToken = null;
+
+let redEdgeInspection = null;
+
+let redEdgeUploadInProgress = false;
+
+let redEdgeImportInProgress = false;
 
 
 /* ===============================================
@@ -999,6 +1388,25 @@ function renderCampaign(
     ).textContent =
         campaign.description
         ?? "Sin descripción";
+
+    const importButton =
+    document.getElementById(
+        "importRedEdgeButton"
+    );
+
+    if (
+        campaign.sensor_type
+        === "MULTISPECTRAL"
+    ) {
+
+        importButton.style.display =
+            "inline-block";
+
+    } else {
+
+        importButton.style.display =
+            "none";
+    }
 }
 
 
@@ -1554,6 +1962,669 @@ function updateProcessButton() {
     }
 }
 
+/* ===============================================
+   REDEDGE IMPORT
+   =============================================== */
+
+function openRedEdgeModal() {
+
+    document.getElementById(
+        "redEdgeModal"
+    ).classList.add(
+        "open"
+    );
+}
+
+
+function closeRedEdgeModal() {
+
+    if (
+        redEdgeUploadInProgress
+        ||
+        redEdgeImportInProgress
+    ) {
+        return;
+    }
+
+    document.getElementById(
+        "redEdgeModal"
+    ).classList.remove(
+        "open"
+    );
+}
+
+
+function resetRedEdgeModal() {
+
+    redEdgeStagingToken = null;
+
+    redEdgeInspection = null;
+
+
+    const message =
+        document.getElementById(
+            "redEdgeModalMessage"
+        );
+
+    message.className =
+        "rededge-message";
+
+    message.textContent =
+        "Preparando importación...";
+
+
+    document.getElementById(
+        "redEdgeSummary"
+    ).style.display =
+        "none";
+
+
+    document.getElementById(
+        "redEdgeGroupsContainer"
+    ).style.display =
+        "none";
+
+
+    document.getElementById(
+        "redEdgeGroupsContainer"
+    ).innerHTML =
+        "";
+
+
+    document.getElementById(
+        "confirmRedEdgeImportButton"
+    ).style.display =
+        "none";
+
+
+    document.getElementById(
+        "importCompleteRedEdgeButton"
+    ).style.display =
+        "none";
+
+
+    document.getElementById(
+        "redEdgeModalDescription"
+    ).textContent =
+        "Inspeccionando archivos...";
+}
+
+
+function renderRedEdgeInspection(
+    inspection
+) {
+
+    redEdgeInspection =
+        inspection;
+
+
+    document.getElementById(
+        "redEdgeDetectedCount"
+    ).textContent =
+        inspection.group_count;
+
+
+    document.getElementById(
+        "redEdgeCompleteCount"
+    ).textContent =
+        inspection.complete_count;
+
+
+    document.getElementById(
+        "redEdgeIncompleteCount"
+    ).textContent =
+        inspection.incomplete_count;
+
+
+    document.getElementById(
+        "redEdgeSummary"
+    ).style.display =
+        "grid";
+
+
+    const container =
+        document.getElementById(
+            "redEdgeGroupsContainer"
+        );
+
+
+    const groups =
+        inspection.groups
+        ?? [];
+
+
+    container.innerHTML =
+        groups.map(
+            (group) => {
+
+                const presentCount =
+                    (
+                        group.present_bands
+                        ?? []
+                    ).length;
+
+                const missing =
+                    group.missing_bands
+                    ?? [];
+
+
+                const stateHtml =
+                    group.is_complete
+                    ? `
+                        <span
+                            class="rededge-complete"
+                        >
+                            Completa
+                        </span>
+                    `
+                    : `
+                        <span
+                            class="rededge-incomplete"
+                        >
+                            Incompleta
+                        </span>
+                    `;
+
+
+                const bandInfo =
+                    group.is_complete
+                    ? "5/5 bandas"
+                    : (
+                        `${presentCount}/5 · Faltan: `
+                        + missing.join(", ")
+                    );
+
+
+                return `
+                    <div class="rededge-group">
+
+                        <div class="rededge-group-key">
+                            ${
+                                escapeHtml(
+                                    group.source_key
+                                )
+                            }
+                        </div>
+
+                        <div class="rededge-group-bands">
+                            ${
+                                escapeHtml(
+                                    bandInfo
+                                )
+                            }
+                        </div>
+
+                        <div>
+                            ${stateHtml}
+                        </div>
+
+                    </div>
+                `;
+            }
+        ).join("");
+
+
+    container.style.display =
+        "block";
+
+
+    const message =
+        document.getElementById(
+            "redEdgeModalMessage"
+        );
+
+
+    message.className =
+        "rededge-message success";
+
+
+    message.textContent =
+        "La carpeta fue inspeccionada correctamente.";
+
+
+    document.getElementById(
+        "redEdgeModalDescription"
+    ).textContent =
+        `${inspection.group_count} grupo(s) RedEdge detectado(s).`;
+
+
+    const confirmButton =
+        document.getElementById(
+            "confirmRedEdgeImportButton"
+        );
+
+
+    const completeButton =
+        document.getElementById(
+            "importCompleteRedEdgeButton"
+        );
+
+
+    if (
+        inspection.incomplete_count === 0
+        &&
+        inspection.complete_count > 0
+    ) {
+
+        confirmButton.style.display =
+            "inline-block";
+
+        completeButton.style.display =
+            "none";
+
+    } else if (
+        inspection.complete_count > 0
+    ) {
+
+        confirmButton.style.display =
+            "none";
+
+        completeButton.style.display =
+            "inline-block";
+
+    } else {
+
+        confirmButton.style.display =
+            "none";
+
+        completeButton.style.display =
+            "none";
+
+        message.className =
+            "rededge-message error";
+
+        message.textContent =
+            "No existen grupos completos para importar.";
+    }
+}
+
+async function selectRedEdgeFolder() {
+
+    if (
+        redEdgeUploadInProgress
+        ||
+        redEdgeImportInProgress
+    ) {
+        return;
+    }
+
+    const input =
+        document.getElementById(
+            "redEdgeFolderInput"
+        );
+
+    input.value = "";
+
+    input.click();
+}
+
+
+async function inspectSelectedRedEdgeFolder(
+    event
+) {
+
+    const files =
+        Array.from(
+            event.target.files
+            ?? []
+        );
+
+
+    if (!files.length) {
+        return;
+    }
+
+
+    resetRedEdgeModal();
+
+    openRedEdgeModal();
+
+
+    const message =
+        document.getElementById(
+            "redEdgeModalMessage"
+        );
+
+
+    const tiffFiles =
+        files.filter(
+            (file) => {
+
+                const name =
+                    file.name
+                    .toLowerCase();
+
+                return (
+                    name.endsWith(".tif")
+                    ||
+                    name.endsWith(".tiff")
+                );
+            }
+        );
+
+
+    if (!tiffFiles.length) {
+
+        message.className =
+            "rededge-message error";
+
+        message.textContent =
+            "La carpeta no contiene archivos TIFF.";
+
+        return;
+    }
+
+
+    redEdgeUploadInProgress =
+        true;
+
+
+    document.getElementById(
+        "cancelRedEdgeButton"
+    ).disabled =
+        true;
+
+
+    document.getElementById(
+        "closeRedEdgeModalButton"
+    ).disabled =
+        true;
+
+
+    message.className =
+        "rededge-message";
+
+    message.textContent =
+        `Subiendo e inspeccionando ${tiffFiles.length} archivo(s)...`;
+
+
+    try {
+
+        const formData =
+            new FormData();
+
+
+        const relativePaths = [];
+
+
+        tiffFiles.forEach(
+            (file) => {
+
+                formData.append(
+                    "files",
+                    file,
+                    file.name
+                );
+
+
+                relativePaths.push(
+                    file.webkitRelativePath
+                    || file.name
+                );
+            }
+        );
+
+
+        formData.append(
+            "relative_paths",
+            JSON.stringify(
+                relativePaths
+            )
+        );
+
+
+        const payload =
+            await fetchJson(
+                `/api/campaigns/${CAMPAIGN_ID}/rededge/inspect`,
+                {
+                    method: "POST",
+                    body: formData,
+                }
+            );
+
+
+        redEdgeStagingToken =
+            payload.staging_token;
+
+
+        renderRedEdgeInspection(
+            payload.inspection
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Error inspeccionando RedEdge:",
+            error
+        );
+
+
+        message.className =
+            "rededge-message error";
+
+
+        message.textContent =
+            error.message;
+
+
+    } finally {
+
+        redEdgeUploadInProgress =
+            false;
+
+
+        document.getElementById(
+            "cancelRedEdgeButton"
+        ).disabled =
+            false;
+
+
+        document.getElementById(
+            "closeRedEdgeModalButton"
+        ).disabled =
+            false;
+    }
+}
+
+async function confirmRedEdgeImport(
+    skipIncomplete
+) {
+
+    if (
+        !redEdgeStagingToken
+        ||
+        redEdgeImportInProgress
+    ) {
+        return;
+    }
+
+
+    const message =
+        document.getElementById(
+            "redEdgeModalMessage"
+        );
+
+
+    const confirmButton =
+        document.getElementById(
+            "confirmRedEdgeImportButton"
+        );
+
+
+    const completeButton =
+        document.getElementById(
+            "importCompleteRedEdgeButton"
+        );
+
+
+    redEdgeImportInProgress =
+        true;
+
+
+    confirmButton.disabled =
+        true;
+
+    completeButton.disabled =
+        true;
+
+
+    document.getElementById(
+        "cancelRedEdgeButton"
+    ).disabled =
+        true;
+
+
+    document.getElementById(
+        "closeRedEdgeModalButton"
+    ).disabled =
+        true;
+
+
+    message.className =
+        "rededge-message";
+
+
+    message.textContent =
+        "Importando capturas RedEdge...";
+
+
+    try {
+
+        const result =
+            await fetchJson(
+                `/api/campaigns/${CAMPAIGN_ID}/rededge/import`,
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify({
+                            staging_token:
+                                redEdgeStagingToken,
+
+                            skip_incomplete:
+                                skipIncomplete,
+                        }),
+                }
+            );
+
+
+        message.className =
+            "rededge-message success";
+
+
+        message.textContent =
+            `Importación completada: ${result.imported_count} captura(s).`;
+
+
+        redEdgeStagingToken =
+            null;
+
+
+        await loadCampaignDetail();
+
+
+        setTimeout(
+            () => {
+
+                closeRedEdgeModal();
+
+            },
+            700
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Error importando RedEdge:",
+            error
+        );
+
+
+        message.className =
+            "rededge-message error";
+
+
+        message.textContent =
+            error.message;
+
+
+    } finally {
+
+        redEdgeImportInProgress =
+            false;
+
+
+        confirmButton.disabled =
+            false;
+
+        completeButton.disabled =
+            false;
+
+
+        document.getElementById(
+            "cancelRedEdgeButton"
+        ).disabled =
+            false;
+
+
+        document.getElementById(
+            "closeRedEdgeModalButton"
+        ).disabled =
+            false;
+
+
+        updateProcessButton();
+    }
+}
+
+async function cancelRedEdgeImport() {
+
+    if (
+        redEdgeUploadInProgress
+        ||
+        redEdgeImportInProgress
+    ) {
+        return;
+    }
+
+
+    if (redEdgeStagingToken) {
+
+        try {
+
+            await fetchJson(
+                `/api/campaigns/${CAMPAIGN_ID}/rededge/staging/${redEdgeStagingToken}`,
+                {
+                    method: "DELETE",
+                }
+            );
+
+        } catch (error) {
+
+            console.error(
+                "No fue posible limpiar staging:",
+                error
+            );
+        }
+    }
+
+
+    redEdgeStagingToken =
+        null;
+
+    redEdgeInspection =
+        null;
+
+
+    closeRedEdgeModal();
+}
 
 /* ===============================================
    API
@@ -1809,6 +2880,78 @@ document.addEventListener(
             processCampaign
         );
 
+        document.getElementById(
+            "importRedEdgeButton"
+        ).addEventListener(
+            "click",
+            selectRedEdgeFolder
+        );
+
+
+        document.getElementById(
+            "redEdgeFolderInput"
+        ).addEventListener(
+            "change",
+            inspectSelectedRedEdgeFolder
+        );
+
+
+        document.getElementById(
+            "confirmRedEdgeImportButton"
+        ).addEventListener(
+            "click",
+            () => {
+
+                confirmRedEdgeImport(
+                    false
+                );
+            }
+        );
+
+
+        document.getElementById(
+            "importCompleteRedEdgeButton"
+        ).addEventListener(
+            "click",
+            () => {
+
+                confirmRedEdgeImport(
+                    true
+                );
+            }
+        );
+
+
+        document.getElementById(
+            "cancelRedEdgeButton"
+        ).addEventListener(
+            "click",
+            cancelRedEdgeImport
+        );
+
+
+        document.getElementById(
+            "closeRedEdgeModalButton"
+        ).addEventListener(
+            "click",
+            cancelRedEdgeImport
+        );
+
+        document.getElementById(
+            "redEdgeModal"
+        ).addEventListener(
+            "click",
+            (event) => {
+
+                if (
+                    event.target.id
+                    === "redEdgeModal"
+                ) {
+
+                    cancelRedEdgeImport();
+                }
+            }
+        );
 
         loadCampaignDetail();
     }
