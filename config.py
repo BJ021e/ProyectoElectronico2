@@ -83,3 +83,8 @@ class Config:
         "PHOTOGRAMMETRY_BACKEND",
         "MOCK",
     ).strip().upper()
+    
+    RED_EDGE_STAGING_ROOT = os.getenv(
+        "RED_EDGE_STAGING_ROOT",
+        "data/rededge_staging",
+    )

@@ -60,3 +60,5 @@ static/ground_mission/results/
 data/*.db
 data/*.sqlite
 data/*.sqlite3
+
+data/red-edge_staging/

@@ -10,6 +10,7 @@ import time
 import numpy as np
 import cv2
 import rasterio
+import json
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
@@ -84,6 +85,21 @@ from services.processing_service import (
 from services.photogrammetry_backend_factory import (
     PhotogrammetryBackendConfigurationError,
     PhotogrammetryBackendFactory,
+)
+
+from services.rededge_import_service import (
+    IncompleteRedEdgeFolderError,
+    InvalidRedEdgeCampaignError,
+    InvalidRedEdgeFolderError,
+    RedEdgeImportError,
+    RedEdgeImportExecutionError,
+    RedEdgeImportService,
+)
+
+from services.rededge_staging_service import (
+    InvalidRedEdgeStageError,
+    RedEdgeStagingError,
+    RedEdgeStagingService,
 )
 
 app = Flask(__name__)
@@ -1736,7 +1752,331 @@ def api_process_campaign(
             "error": True,
             "msg": str(exc),
         }), 500
-       
+
+@app.route(
+    "/api/campaigns/<int:campaign_id>/rededge/inspect",
+    methods=["POST"],
+)
+def api_inspect_rededge_upload(
+    campaign_id
+):
+
+    token = None
+
+    try:
+        campaign = (
+            CampaignService.get_campaign(
+                campaign_id
+            )
+        )
+
+        if campaign is None:
+            return jsonify({
+                "error": True,
+                "msg": (
+                    "La campaña con ID "
+                    f"{campaign_id} no existe."
+                ),
+            }), 404
+
+        if (
+            campaign["sensor_type"]
+            != "MULTISPECTRAL"
+        ):
+            return jsonify({
+                "error": True,
+                "msg": (
+                    "La importación RedEdge "
+                    "requiere una campaña "
+                    "MULTISPECTRAL."
+                ),
+            }), 400
+
+        uploads = (
+            request.files.getlist(
+                "files"
+            )
+        )
+
+        if not uploads:
+            return jsonify({
+                "error": True,
+                "msg": (
+                    "No se recibieron archivos."
+                ),
+            }), 400
+
+        relative_paths_raw = (
+            request.form.get(
+                "relative_paths"
+            )
+        )
+
+        if not relative_paths_raw:
+            return jsonify({
+                "error": True,
+                "msg": (
+                    "No se recibieron "
+                    "las rutas relativas."
+                ),
+            }), 400
+
+        try:
+            relative_paths = (
+                json.loads(
+                    relative_paths_raw
+                )
+            )
+
+        except json.JSONDecodeError:
+            return jsonify({
+                "error": True,
+                "msg": (
+                    "relative_paths "
+                    "no contiene JSON válido."
+                ),
+            }), 400
+
+        if not isinstance(
+            relative_paths,
+            list,
+        ):
+            return jsonify({
+                "error": True,
+                "msg": (
+                    "relative_paths debe "
+                    "ser una lista."
+                ),
+            }), 400
+
+        if (
+            len(relative_paths)
+            != len(uploads)
+        ):
+            return jsonify({
+                "error": True,
+                "msg": (
+                    "La cantidad de archivos "
+                    "no coincide con las "
+                    "rutas relativas."
+                ),
+            }), 400
+
+        token = (
+            RedEdgeStagingService
+            .create_stage(
+                campaign_id=campaign_id
+            )
+        )
+
+        for (
+            upload,
+            relative_path,
+        ) in zip(
+            uploads,
+            relative_paths,
+        ):
+
+            (
+                RedEdgeStagingService
+                .stage_file(
+                    token=token,
+                    campaign_id=campaign_id,
+                    relative_path=(
+                        relative_path
+                    ),
+                    source_stream=(
+                        upload.stream
+                    ),
+                )
+            )
+
+        inspection = (
+            RedEdgeStagingService
+            .inspect_stage(
+                token=token,
+                campaign_id=campaign_id,
+            )
+        )
+
+        return jsonify({
+            "staging_token": token,
+            "uploaded_file_count": (
+                len(uploads)
+            ),
+            "inspection": inspection,
+        }), 201
+
+    except (
+        InvalidRedEdgeStageError,
+        InvalidRedEdgeFolderError,
+        RedEdgeImportError,
+    ) as exc:
+
+        if token is not None:
+            try:
+                (
+                    RedEdgeStagingService
+                    .delete_stage(
+                        token=token,
+                        campaign_id=campaign_id,
+                    )
+                )
+            except Exception:
+                pass
+
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 400
+
+    except RedEdgeStagingError as exc:
+
+        if token is not None:
+            try:
+                (
+                    RedEdgeStagingService
+                    .delete_stage(
+                        token=token,
+                        campaign_id=campaign_id,
+                    )
+                )
+            except Exception:
+                pass
+
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 500
+
+@app.route(
+    "/api/campaigns/<int:campaign_id>/rededge/import",
+    methods=["POST"],
+)
+def api_import_rededge_upload(
+    campaign_id
+):
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    token = data.get(
+        "staging_token"
+    )
+
+    skip_incomplete = data.get(
+        "skip_incomplete",
+        False,
+    )
+
+    if not isinstance(
+        skip_incomplete,
+        bool,
+    ):
+        return jsonify({
+            "error": True,
+            "msg": (
+                "skip_incomplete "
+                "debe ser booleano."
+            ),
+        }), 400
+
+    try:
+        stage_directory = (
+            RedEdgeStagingService
+            .get_stage_directory(
+                token=token,
+                campaign_id=campaign_id,
+            )
+        )
+
+        result = (
+            RedEdgeImportService
+            .import_folder(
+                campaign_id=campaign_id,
+                source_dir=stage_directory,
+                skip_incomplete=(
+                    skip_incomplete
+                ),
+            )
+        )
+
+        (
+            RedEdgeStagingService
+            .delete_stage(
+                token=token,
+                campaign_id=campaign_id,
+            )
+        )
+
+        return jsonify(
+            result
+        ), 201
+
+    except (
+        InvalidRedEdgeStageError,
+        InvalidRedEdgeCampaignError,
+        InvalidRedEdgeFolderError,
+        IncompleteRedEdgeFolderError,
+    ) as exc:
+
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 400
+
+    except (
+        RedEdgeImportExecutionError,
+        RedEdgeStagingError,
+    ) as exc:
+
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 500
+
+@app.route(
+    (
+        "/api/campaigns/"
+        "<int:campaign_id>/"
+        "rededge/staging/"
+        "<string:token>"
+    ),
+    methods=["DELETE"],
+)
+def api_delete_rededge_staging(
+    campaign_id,
+    token,
+):
+
+    try:
+        deleted = (
+            RedEdgeStagingService
+            .delete_stage(
+                token=token,
+                campaign_id=campaign_id,
+            )
+        )
+
+        return jsonify({
+            "deleted": deleted,
+        })
+
+    except InvalidRedEdgeStageError as exc:
+
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 404
+
+    except RedEdgeStagingError as exc:
+
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 500
+
 if __name__ == "__main__":
     app.run(
         debug=Config.FLASK_DEBUG,
