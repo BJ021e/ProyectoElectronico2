@@ -5,6 +5,15 @@ from pathlib import Path
 
 from models import ImageBand
 
+from services.campaign_service import (
+    CampaignService,
+)
+from services.capture_service import (
+    CaptureService,
+)
+from services.image_ingestion_service import (
+    ImageIngestionService,
+)
 
 class RedEdgeImportError(Exception):
     """
@@ -21,6 +30,34 @@ class InvalidRedEdgeFolderError(RedEdgeImportError):
     """
     pass
 
+class InvalidRedEdgeCampaignError(
+    RedEdgeImportError
+):
+    """
+    La campaña indicada no existe o no corresponde
+    a un sensor multiespectral.
+    """
+    pass
+
+
+class IncompleteRedEdgeFolderError(
+    RedEdgeImportError
+):
+    """
+    La carpeta contiene una o más capturas
+    multiespectrales incompletas.
+    """
+    pass
+
+
+class RedEdgeImportExecutionError(
+    RedEdgeImportError
+):
+    """
+    La carpeta era estructuralmente importable,
+    pero ocurrió un error durante la ingestión.
+    """
+    pass
 
 class RedEdgeImportService:
 
@@ -212,4 +249,217 @@ class RedEdgeImportService:
                 ignored_files
             ),
             "groups": result_groups,
+        }
+        
+    @classmethod
+    def import_folder(
+        cls,
+        *,
+        campaign_id: int,
+        source_dir: str | Path,
+        skip_incomplete: bool = False,
+    ) -> dict:
+        """
+        Importa automáticamente los grupos RedEdge
+        encontrados dentro de una carpeta.
+
+        Por defecto la operación es estricta:
+        si existe alguna captura incompleta, no se
+        importa ninguna.
+
+        Con skip_incomplete=True se importan únicamente
+        los grupos completos y se reportan los demás.
+        """
+
+        campaign = CampaignService.get_campaign(
+            campaign_id
+        )
+
+        if campaign is None:
+            raise InvalidRedEdgeCampaignError(
+                f"La campaña con ID "
+                f"{campaign_id} no existe."
+            )
+
+        if (
+            campaign["sensor_type"]
+            != "MULTISPECTRAL"
+        ):
+            raise InvalidRedEdgeCampaignError(
+                "La importación RedEdge requiere "
+                "una campaña MULTISPECTRAL."
+            )
+
+        inspection = cls.inspect_folder(
+            source_dir
+        )
+
+        if inspection["group_count"] == 0:
+            raise InvalidRedEdgeFolderError(
+                "No se detectaron capturas "
+                "RedEdge en la carpeta."
+            )
+
+        incomplete_groups = [
+            group
+            for group in inspection["groups"]
+            if not group["is_complete"]
+        ]
+
+        if (
+            incomplete_groups
+            and not skip_incomplete
+        ):
+            summary = ", ".join(
+                (
+                    f"{group['source_key']} "
+                    f"(faltan: "
+                    f"{', '.join(group['missing_bands'])})"
+                )
+                for group in incomplete_groups
+            )
+
+            raise IncompleteRedEdgeFolderError(
+                "La carpeta contiene capturas "
+                f"incompletas: {summary}"
+            )
+
+        imported_captures = []
+        skipped_groups = []
+
+        for group in inspection["groups"]:
+
+            if not group["is_complete"]:
+                skipped_groups.append(
+                    {
+                        "source_key": (
+                            group["source_key"]
+                        ),
+                        "missing_bands": (
+                            group["missing_bands"]
+                        ),
+                    }
+                )
+                continue
+
+            capture = (
+                CaptureService.create_capture(
+                    campaign_id=campaign_id
+                )
+            )
+
+            try:
+                last_result = None
+
+                for band in cls.EXPECTED_BANDS:
+
+                    source_path = (
+                        group["files"][
+                            band.value
+                        ]
+                    )
+
+                    last_result = (
+                        ImageIngestionService.ingest_file(
+                            capture_id=(
+                                capture["id"]
+                            ),
+                            band=band,
+                            source_path=source_path,
+                        )
+                    )
+
+                final_capture = (
+                    last_result["capture"]
+                )
+
+                if (
+                    final_capture["status"]
+                    != "READY"
+                ):
+                    raise RedEdgeImportExecutionError(
+                        "La captura importada "
+                        f"{group['source_key']} "
+                        "no alcanzó el estado READY."
+                    )
+
+                imported_captures.append(
+                    {
+                        "source_key": (
+                            group["source_key"]
+                        ),
+                        "capture": (
+                            final_capture
+                        ),
+                    }
+                )
+
+            except Exception as exc:
+
+                # Primero eliminamos cualquier archivo
+                # que ya se hubiese copiado.
+                try:
+                    (
+                        ImageIngestionService
+                        .remove_capture_storage(
+                            campaign_code=(
+                                campaign[
+                                    "campaign_code"
+                                ]
+                            ),
+                            sequence=(
+                                capture[
+                                    "sequence"
+                                ]
+                            ),
+                        )
+                    )
+                except Exception:
+                    pass
+
+                # Después revertimos la persistencia.
+                try:
+                    CaptureService.delete_capture(
+                        capture["id"]
+                    )
+                except Exception:
+                    pass
+
+                if isinstance(
+                    exc,
+                    RedEdgeImportExecutionError,
+                ):
+                    raise
+
+                raise RedEdgeImportExecutionError(
+                    "Falló la importación del grupo "
+                    f"{group['source_key']}: {exc}"
+                ) from exc
+
+        return {
+            "campaign_id": campaign_id,
+            "campaign_code": (
+                campaign["campaign_code"]
+            ),
+            "source_dir": (
+                inspection["source_dir"]
+            ),
+            "detected_count": (
+                inspection["group_count"]
+            ),
+            "imported_count": len(
+                imported_captures
+            ),
+            "skipped_count": len(
+                skipped_groups
+            ),
+            "imported_captures": (
+                imported_captures
+            ),
+            "skipped_groups": (
+                skipped_groups
+            ),
+            "ignored_files": (
+                inspection["ignored_files"]
+            ),
         }

@@ -252,6 +252,32 @@ class ImageIngestionService:
         return digest.hexdigest()
 
     @classmethod
+    def remove_capture_storage(
+        cls,
+        *,
+        campaign_code: str,
+        sequence: int,
+    ) -> bool:
+        """
+        Elimina el directorio físico administrado
+        correspondiente a una captura.
+        """
+
+        capture_directory = (
+            cls._storage_root()
+            / campaign_code
+            / "captures"
+            / f"{sequence:04d}"
+        )
+
+        if capture_directory.exists():
+            shutil.rmtree(
+                capture_directory
+            )
+
+        return not capture_directory.exists()
+    
+    @classmethod
     def ingest_file(
         cls,
         *,

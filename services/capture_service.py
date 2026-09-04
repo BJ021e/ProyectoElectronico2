@@ -705,3 +705,45 @@ class CaptureService:
 
         finally:
             session.close()
+            
+    @classmethod
+    def delete_capture(
+        cls,
+        capture_id: int,
+    ) -> bool:
+        """
+        Elimina una captura y sus ImageAsset asociados.
+
+        Se utiliza, entre otros casos, para revertir
+        importaciones que no pudieron completarse.
+        """
+
+        session = SessionLocal()
+
+        try:
+            capture = session.get(
+                ImageCapture,
+                capture_id,
+            )
+
+            if capture is None:
+                return False
+
+            session.delete(
+                capture
+            )
+
+            session.commit()
+
+            return True
+
+        except SQLAlchemyError as exc:
+            session.rollback()
+
+            raise CapturePersistenceError(
+                "No fue posible eliminar "
+                f"la captura: {exc}"
+            ) from exc
+
+        finally:
+            session.close()
