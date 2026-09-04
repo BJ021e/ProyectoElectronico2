@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+from datetime import (
+    datetime,
+    timezone,
+)
+
 from threading import (
     RLock,
 )
@@ -47,6 +52,7 @@ from drone.simulator_mission_controller import (
     SimulatorMissionController,
 )
 
+from drone.integration_status import IntegrationStatus
 
 class DroneServiceError(Exception):
     """
@@ -96,6 +102,10 @@ class DroneService:
     
     _mission_controller: MissionController | None = None
     
+    _last_telemetry_at: datetime | None = None
+
+    _integration_last_error: str | None = None
+
     @classmethod
     def set_provider(
         cls,
@@ -139,6 +149,10 @@ class DroneService:
             cls._simulation_runner = None
             
             cls._mission_controller = None
+            
+            cls._last_telemetry_at = None
+
+            cls._integration_last_error = None
 
     @classmethod
     def _ensure_provider_change_allowed(
@@ -221,6 +235,10 @@ class DroneService:
             cls._simulation_runner = None
             
             cls._mission_controller = None
+            
+            cls._last_telemetry_at = None
+
+            cls._integration_last_error = None
 
 
     @classmethod
@@ -1093,6 +1111,7 @@ class DroneService:
         if flight_id is None:
             return None
 
+
         if (
             state.latitude is None
             or
@@ -1103,35 +1122,37 @@ class DroneService:
 
         try:
 
-            return TelemetryService.add_point(
-                flight_id,
+            telemetry_point = (
+                TelemetryService.add_point(
+                    flight_id,
 
-                latitude=
-                    state.latitude,
+                    latitude=
+                        state.latitude,
 
-                longitude=
-                    state.longitude,
+                    longitude=
+                        state.longitude,
 
-                altitude=
-                    state.altitude,
+                    altitude=
+                        state.altitude,
 
-                speed=
-                    state.speed,
+                    speed=
+                        state.speed,
 
-                heading=
-                    state.heading,
+                    heading=
+                        state.heading,
 
-                battery=
-                    state.battery,
+                    battery=
+                        state.battery,
 
-                gps_sats=
-                    state.gps_sats,
+                    gps_sats=
+                        state.gps_sats,
 
-                flight_mode=
-                    state.flight_mode,
+                    flight_mode=
+                        state.flight_mode,
 
-                recorded_at=
-                    state.recorded_at,
+                    recorded_at=
+                        state.recorded_at,
+                )
             )
 
 
@@ -1145,6 +1166,14 @@ class DroneService:
                 f"la telemetría del vuelo "
                 f"{flight_id}: {exc}"
             ) from exc
+
+
+        cls._mark_telemetry_received(
+            state
+        )
+
+
+        return telemetry_point
          
                     
     @classmethod
@@ -1870,3 +1899,302 @@ class DroneService:
             "runtime":
                 runtime,
         }
+
+    @staticmethod
+    def _state_has_telemetry(
+        state: DroneState,
+    ) -> bool:
+        """
+        Determina si DroneState contiene al menos
+        un dato operacional de telemetría.
+
+        Evita considerar como telemetría un estado
+        vacío de conexión/desconexión.
+        """
+
+        return any(
+            value is not None
+            for value in (
+                state.latitude,
+                state.longitude,
+                state.altitude,
+                state.speed,
+                state.heading,
+                state.battery,
+                state.gps_sats,
+                state.flight_mode,
+            )
+        )
+        
+    @classmethod
+    def _mark_telemetry_received(
+        cls,
+        state: DroneState,
+    ) -> None:
+
+        if not cls._state_has_telemetry(
+            state
+        ):
+
+            return
+
+
+        with cls._lock:
+
+            cls._last_telemetry_at = (
+                state.recorded_at
+            )
+
+            cls._integration_last_error = None    
+    
+    @classmethod
+    def get_integration_status(
+        cls,
+        *,
+        stale_after_seconds: float = 5.0,
+    ) -> IntegrationStatus:
+        """
+        Devuelve el diagnóstico técnico normalizado
+        de la integración activa.
+
+        No modifica el estado del Flight.
+        """
+
+        try:
+
+            stale_after_seconds = float(
+                stale_after_seconds
+            )
+
+        except (
+            TypeError,
+            ValueError,
+        ) as exc:
+
+            raise DroneServiceError(
+                "stale_after_seconds debe "
+                "ser numérico."
+            ) from exc
+
+
+        if stale_after_seconds <= 0:
+
+            raise DroneServiceError(
+                "stale_after_seconds debe "
+                "ser mayor que 0."
+            )
+
+
+        with cls._lock:
+
+            provider = cls._provider
+
+            controller = (
+                cls._mission_controller
+            )
+
+            last_telemetry_at = (
+                cls._last_telemetry_at
+            )
+
+            integration_error = (
+                cls._integration_last_error
+            )
+
+
+        #
+        # No existe integración configurada.
+        #
+        if provider is None:
+
+            return IntegrationStatus(
+                provider=None,
+
+                configured=False,
+
+                transport_connected=False,
+
+                aircraft_online=False,
+
+                telemetry_available=False,
+
+                telemetry_fresh=False,
+
+                last_telemetry_at=None,
+
+                telemetry_age_seconds=None,
+
+                last_error=integration_error,
+
+                health="NOT_CONFIGURED",
+            )
+
+
+        #
+        # Consultamos el estado técnico actual
+        # del proveedor.
+        #
+        try:
+
+            state = provider.get_state()
+
+        except Exception as exc:
+
+            return IntegrationStatus(
+                provider=provider.name,
+
+                configured=True,
+
+                transport_connected=False,
+
+                aircraft_online=False,
+
+                telemetry_available=(
+                    last_telemetry_at
+                    is not None
+                ),
+
+                telemetry_fresh=False,
+
+                last_telemetry_at=(
+                    last_telemetry_at
+                ),
+
+                telemetry_age_seconds=None,
+
+                last_error=str(exc),
+
+                health="ERROR",
+            )
+
+
+        now = datetime.now(
+            timezone.utc
+        )
+
+
+        telemetry_age = None
+
+
+        if last_telemetry_at is not None:
+
+            telemetry_age = max(
+                0.0,
+
+                (
+                    now
+                    -
+                    last_telemetry_at
+                ).total_seconds(),
+            )
+
+
+        telemetry_available = (
+            last_telemetry_at
+            is not None
+        )
+
+
+        telemetry_fresh = (
+            telemetry_age is not None
+            and
+            telemetry_age
+            <=
+            stale_after_seconds
+        )
+
+
+        last_error = integration_error
+
+
+        #
+        # MissionController también puede informar
+        # errores técnicos.
+        #
+        if controller is not None:
+
+            try:
+
+                mission_status = (
+                    controller.status()
+                )
+
+                controller_error = (
+                    mission_status.get(
+                        "last_error"
+                    )
+                )
+
+
+                if controller_error:
+
+                    last_error = (
+                        str(controller_error)
+                    )
+
+            except Exception as exc:
+
+                last_error = str(exc)
+
+
+        #
+        # Health general.
+        #
+        if last_error:
+
+            health = "ERROR"
+
+        elif not state.connected:
+
+            health = "OFFLINE"
+
+        elif not state.aircraft_online:
+
+            health = "DEGRADED"
+
+        elif not telemetry_available:
+
+            health = "CONNECTED"
+
+        elif not telemetry_fresh:
+
+            health = "DEGRADED"
+
+        else:
+
+            health = "ONLINE"
+
+
+        return IntegrationStatus(
+            provider=provider.name,
+
+            configured=True,
+
+            transport_connected=bool(
+                state.connected
+            ),
+
+            aircraft_online=bool(
+                state.aircraft_online
+            ),
+
+            telemetry_available=(
+                telemetry_available
+            ),
+
+            telemetry_fresh=(
+                telemetry_fresh
+            ),
+
+            last_telemetry_at=(
+                last_telemetry_at
+            ),
+
+            telemetry_age_seconds=(
+                telemetry_age
+            ),
+
+            last_error=last_error,
+
+            health=health,
+        )

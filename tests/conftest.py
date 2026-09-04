@@ -101,6 +101,10 @@ def _reset_drone_runtime() -> None:
         DroneService._active_route_id = None
 
         DroneService._active_flight_id = None
+        
+        DroneService._last_telemetry_at = None
+
+        DroneService._integration_last_error = None
 
 
 # ---------------------------------------------------------
