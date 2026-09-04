@@ -62,3 +62,8 @@ data/*.sqlite
 data/*.sqlite3
 
 data/red-edge_staging/
+
+data/campaigns/
+
+static/uploads_parcelas/FOTASOS/
+static/uploads_parcelas/FOTASOS.zip
