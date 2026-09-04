@@ -401,7 +401,139 @@ class DJITestBackend:
                     self._last_error,
             }
 
+    def _copy_state_with_connectivity(
+        self,
+        *,
+        connected: bool,
+        aircraft_online: bool,
+    ) -> DroneState:
 
+        state = self._state
+
+
+        return DroneState(
+            provider="DJI",
+
+            connected=connected,
+
+            aircraft_online=aircraft_online,
+
+            latitude=state.latitude,
+
+            longitude=state.longitude,
+
+            altitude=state.altitude,
+
+            speed=state.speed,
+
+            heading=state.heading,
+
+            battery=state.battery,
+
+            gps_sats=state.gps_sats,
+
+            flight_mode=state.flight_mode,
+
+            #
+            # No es telemetría nueva.
+            # Conservamos su timestamp.
+            #
+            recorded_at=state.recorded_at,
+        )
+        
+    def simulate_transport_loss(
+        self
+    ) -> None:
+        """
+        Simula una pérdida inesperada del transporte.
+
+        La misión técnica puede continuar internamente,
+        pero dejan de emitirse estados hacia la aplicación.
+        """
+
+        with self._lock:
+
+            if not self._connected:
+
+                raise DJIBackendError(
+                    "El transporte DJI de prueba "
+                    "ya está desconectado."
+                )
+
+
+            self._connected = False
+
+            self._aircraft_online = False
+
+
+            self._state = (
+                self._copy_state_with_connectivity(
+                    connected=False,
+                    aircraft_online=False,
+                )
+            )
+    
+    def simulate_transport_recovery(
+        self
+    ) -> None:
+        """
+        Recupera el transporte y sincroniza con la
+        aplicación el último estado conocido.
+        """
+
+        with self._lock:
+
+            if self._connected:
+
+                raise DJIBackendError(
+                    "El transporte DJI de prueba "
+                    "ya está conectado."
+                )
+
+
+            self._connected = True
+
+            self._aircraft_online = True
+
+
+            self._state = (
+                self._copy_state_with_connectivity(
+                    connected=True,
+                    aircraft_online=True,
+                )
+            )
+
+
+            state = self._state
+
+            callback = self._on_state
+
+            mission_running = (
+                self._running
+            )
+
+
+            has_telemetry = (
+                state.latitude is not None
+                and
+                state.longitude is not None
+            )
+
+
+        #
+        # Sincronización fuera del lock.
+        #
+        if (
+            callback is not None
+            and
+            has_telemetry
+        ):
+
+            callback(
+                state,
+                mission_running,
+            )
+                
     def _validate_execution_ready(
         self
     ) -> None:
@@ -547,9 +679,17 @@ class DJITestBackend:
                     callback = (
                         self._on_state
                     )
+                    
+                    transport_connected = (
+                        self._connected
+                    )
 
 
-                if callback is not None:
+                if (
+                    callback is not None
+                    and
+                    transport_connected
+                ):
 
                     callback(
                         state,
@@ -630,9 +770,11 @@ class DJITestBackend:
         return DroneState(
             provider="DJI",
 
-            connected=True,
+            connected=self._connected,
 
-            aircraft_online=True,
+            aircraft_online=(
+                self._aircraft_online
+            ),
 
             latitude=float(
                 waypoint["latitude"]

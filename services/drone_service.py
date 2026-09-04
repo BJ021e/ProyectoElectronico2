@@ -2067,11 +2067,7 @@ class DroneService:
                 health="ERROR",
             )
 
-
-        now = datetime.now(
-            timezone.utc
-        )
-
+        now = cls._utcnow()
 
         telemetry_age = None
 
@@ -2197,4 +2193,17 @@ class DroneService:
             last_error=last_error,
 
             health=health,
+        )
+        
+    @staticmethod
+    def _utcnow() -> datetime:
+        """
+        Obtiene la hora UTC actual.
+
+        Se mantiene separada para permitir pruebas
+        deterministas de freshness.
+        """
+
+        return datetime.now(
+            timezone.utc
         )
