@@ -242,3 +242,101 @@ def test_campaign_detail_uses_batch_staging_api():
         "/inspect"
         in html
     )
+    
+def test_campaign_detail_contains_gis_viewer():
+
+    app.config["TESTING"] = True
+
+    client = app.test_client()
+
+    response = client.get(
+        "/campaigns/20"
+    )
+
+    assert response.status_code == 200
+
+    html = response.get_data(
+        as_text=True
+    )
+
+    assert (
+        'id="campaignMap"'
+        in html
+    )
+
+    assert "Visor GIS" in html
+
+    assert (
+        'id="gisCaptureCount"'
+        in html
+    )
+
+    assert (
+        'id="gisProductCount"'
+        in html
+    )
+
+
+def test_campaign_detail_loads_leaflet():
+
+    app.config["TESTING"] = True
+
+    client = app.test_client()
+
+    response = client.get(
+        "/campaigns/20"
+    )
+
+    html = response.get_data(
+        as_text=True
+    )
+
+    assert (
+        "leaflet@1.9.4"
+        in html
+    )
+
+    assert (
+        "initializeCampaignMap"
+        in html
+    )
+
+    assert (
+        "renderCampaignMap"
+        in html
+    )
+
+
+def test_campaign_detail_renders_geospatial_geometries():
+
+    app.config["TESTING"] = True
+
+    client = app.test_client()
+
+    response = client.get(
+        "/campaigns/20"
+    )
+
+    html = response.get_data(
+        as_text=True
+    )
+
+    assert (
+        "getCaptureCoordinate"
+        in html
+    )
+
+    assert (
+        "getProductWgs84Bounds"
+        in html
+    )
+
+    assert (
+        "renderCaptureGeometries"
+        in html
+    )
+
+    assert (
+        "renderProductGeometries"
+        in html
+    )

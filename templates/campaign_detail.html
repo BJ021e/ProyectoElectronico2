@@ -17,6 +17,13 @@
         href="{{ url_for('static', filename='css/styles.css') }}"
     >
 
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin=""
+    >
+
     <style>
 
         body {
@@ -683,6 +690,106 @@
                 grid-template-columns: 1fr;
             }
 
+            .gis-summary {
+                grid-template-columns: 1fr;
+            }
+
+            .campaign-gis-map {
+                height: 380px;
+            }
+
+        }
+
+        /* =========================================
+        CAMPAIGN GIS
+        ========================================= */
+
+        .gis-section-description {
+            margin: 6px 0 0 0;
+            color: #94a3b8;
+            font-size: 0.86rem;
+        }
+
+        .gis-summary {
+            display: grid;
+
+            grid-template-columns:
+                repeat(
+                    2,
+                    minmax(0, 1fr)
+                );
+
+            gap: 12px;
+
+            margin-bottom: 16px;
+        }
+
+        .gis-summary-item {
+            display: flex;
+
+            align-items: center;
+            justify-content: space-between;
+
+            gap: 16px;
+
+            padding: 12px 14px;
+
+            background: #111827;
+
+            border:
+                1px solid #334155;
+
+            border-radius: 9px;
+        }
+
+        .gis-summary-item span {
+            color: #94a3b8;
+            font-size: 0.82rem;
+        }
+
+        .gis-summary-item strong {
+            font-size: 1.05rem;
+        }
+
+        .gis-map-status {
+            padding: 11px 14px;
+
+            margin-bottom: 12px;
+
+            border:
+                1px solid #334155;
+
+            border-radius: 8px;
+
+            background: #0f172a;
+
+            color: #94a3b8;
+
+            font-size: 0.82rem;
+        }
+
+        .campaign-gis-map {
+            width: 100%;
+            height: 480px;
+
+            border:
+                1px solid #334155;
+
+            border-radius: 10px;
+
+            overflow: hidden;
+
+            background: #0f172a;
+        }
+
+        .campaign-gis-map .leaflet-popup-content-wrapper,
+        .campaign-gis-map .leaflet-popup-tip {
+            background: #1e293b;
+            color: #f8fafc;
+        }
+
+        .campaign-gis-map .leaflet-control-layers {
+            color: #111827;
         }
 
     </style>
@@ -950,7 +1057,71 @@
                 </div>
 
             </section>
+            
+            <section class="section-card">
 
+                <div class="section-header">
+
+                    <div>
+
+                        <h2 class="section-title">
+                            Visor GIS
+                        </h2>
+
+                        <p class="gis-section-description">
+                            Ubicación de capturas y extensión
+                            de productos geoespaciales.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="gis-summary">
+
+                    <div class="gis-summary-item">
+
+                        <span>
+                            Capturas georreferenciadas
+                        </span>
+
+                        <strong id="gisCaptureCount">
+                            0
+                        </strong>
+
+                    </div>
+
+
+                    <div class="gis-summary-item">
+
+                        <span>
+                            Productos con extensión
+                        </span>
+
+                        <strong id="gisProductCount">
+                            0
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="campaignMapStatus"
+                    class="gis-map-status"
+                >
+                    Preparando visor...
+                </div>
+
+
+                <div
+                    id="campaignMap"
+                    class="campaign-gis-map"
+                ></div>
+
+            </section>
 
             <!-- CAPTURAS -->
 
@@ -1245,6 +1416,12 @@
 
 </div>
 
+<script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+></script>
+
 <script>
 
 const CAMPAIGN_ID =
@@ -1254,6 +1431,14 @@ let currentCampaign = null;
 let currentCaptures = [];
 let currentJobs = [];
 let currentProducts = [];
+
+let campaignMap = null;
+
+let gisCaptureLayer = null;
+
+let gisProductLayer = null;
+
+let gisLayerControl = null;
 
 let processingInProgress = false;
 
@@ -2790,6 +2975,94 @@ async function cancelRedEdgeImport() {
 }
 
 /* ===============================================
+   GIS
+   =============================================== */
+
+function initializeCampaignMap() {
+
+    if (campaignMap) {
+        return true;
+    }
+
+
+    const status =
+        document.getElementById(
+            "campaignMapStatus"
+        );
+
+
+    if (typeof L === "undefined") {
+
+        status.textContent =
+            "Leaflet no pudo cargarse.";
+
+        return false;
+    }
+
+
+    campaignMap =
+        L.map(
+            "campaignMap",
+            {
+                zoomControl: true,
+            }
+        );
+
+
+    L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+            maxZoom: 19,
+
+            attribution:
+                "&copy; OpenStreetMap contributors",
+        }
+    ).addTo(
+        campaignMap
+    );
+
+
+    gisCaptureLayer =
+        L.layerGroup()
+        .addTo(
+            campaignMap
+        );
+
+
+    gisProductLayer =
+        L.layerGroup()
+        .addTo(
+            campaignMap
+        );
+
+
+    gisLayerControl =
+        L.control.layers(
+            null,
+            {
+                "Capturas":
+                    gisCaptureLayer,
+
+                "Extensión de productos":
+                    gisProductLayer,
+            },
+            {
+                collapsed: false,
+            }
+        ).addTo(
+            campaignMap
+        );
+
+
+    campaignMap.setView(
+        [0, 0],
+        2
+    );
+
+    return true;
+}
+
+/* ===============================================
    API
    =============================================== */
 
@@ -2826,10 +3099,428 @@ async function fetchJson(
         );
     }
 
-
     return data;
 }
 
+function getCaptureCoordinate(
+    capture
+) {
+
+    const latitude =
+        Number(
+            capture.latitude
+        );
+
+    const longitude =
+        Number(
+            capture.longitude
+        );
+
+
+    if (
+        !Number.isFinite(
+            latitude
+        )
+        ||
+        !Number.isFinite(
+            longitude
+        )
+    ) {
+        return null;
+    }
+
+
+    if (
+        latitude < -90
+        ||
+        latitude > 90
+        ||
+        longitude < -180
+        ||
+        longitude > 180
+    ) {
+        return null;
+    }
+
+
+    return [
+        latitude,
+        longitude,
+    ];
+}
+
+function getProductWgs84Bounds(
+    product
+) {
+
+    const bounds =
+        product.wgs84_bounds
+        ?? product.bounds_wgs84
+        ?? null;
+
+
+    if (!bounds) {
+        return null;
+    }
+
+
+    const west =
+        Number(
+            bounds.left
+            ?? bounds.west
+            ?? bounds.min_x
+            ?? bounds.minx
+        );
+
+
+    const south =
+        Number(
+            bounds.bottom
+            ?? bounds.south
+            ?? bounds.min_y
+            ?? bounds.miny
+        );
+
+
+    const east =
+        Number(
+            bounds.right
+            ?? bounds.east
+            ?? bounds.max_x
+            ?? bounds.maxx
+        );
+
+
+    const north =
+        Number(
+            bounds.top
+            ?? bounds.north
+            ?? bounds.max_y
+            ?? bounds.maxy
+        );
+
+
+    if (
+        !Number.isFinite(west)
+        ||
+        !Number.isFinite(south)
+        ||
+        !Number.isFinite(east)
+        ||
+        !Number.isFinite(north)
+    ) {
+        return null;
+    }
+
+
+    if (
+        west < -180
+        ||
+        east > 180
+        ||
+        south < -90
+        ||
+        north > 90
+        ||
+        west >= east
+        ||
+        south >= north
+    ) {
+        return null;
+    }
+
+
+    return [
+        [
+            south,
+            west,
+        ],
+        [
+            north,
+            east,
+        ],
+    ];
+}
+
+function renderCaptureGeometries(
+    mapBounds
+) {
+
+    gisCaptureLayer.clearLayers();
+
+
+    let validCount = 0;
+
+
+    currentCaptures.forEach(
+        (capture) => {
+
+            const coordinate =
+                getCaptureCoordinate(
+                    capture
+                );
+
+
+            if (!coordinate) {
+                return;
+            }
+
+
+            validCount += 1;
+
+
+            const marker =
+                L.circleMarker(
+                    coordinate,
+                    {
+                        radius: 6,
+                        weight: 2,
+                        fillOpacity: 0.8,
+                    }
+                );
+
+
+            marker.bindPopup(
+                `
+                    <strong>
+                        ${
+                            escapeHtml(
+                                capture.capture_code
+                                ?? "Captura"
+                            )
+                        }
+                    </strong>
+
+                    <br>
+
+                    Estado:
+                    ${
+                        escapeHtml(
+                            capture.status
+                            ?? "-"
+                        )
+                    }
+
+                    <br>
+
+                    Latitud:
+                    ${coordinate[0].toFixed(6)}
+
+                    <br>
+
+                    Longitud:
+                    ${coordinate[1].toFixed(6)}
+                `
+            );
+
+
+            marker.addTo(
+                gisCaptureLayer
+            );
+
+
+            mapBounds.push(
+                coordinate
+            );
+        }
+    );
+
+
+    document.getElementById(
+        "gisCaptureCount"
+    ).textContent =
+        validCount;
+
+
+    return validCount;
+}
+
+function renderProductGeometries(
+    mapBounds
+) {
+
+    gisProductLayer.clearLayers();
+
+
+    let validCount = 0;
+
+
+    currentProducts.forEach(
+        (product) => {
+
+            const bounds =
+                getProductWgs84Bounds(
+                    product
+                );
+
+
+            if (!bounds) {
+                return;
+            }
+
+
+            validCount += 1;
+
+
+            const rectangle =
+                L.rectangle(
+                    bounds,
+                    {
+                        weight: 2,
+                        fillOpacity: 0.08,
+                    }
+                );
+
+
+            rectangle.bindPopup(
+                `
+                    <strong>
+                        ${
+                            escapeHtml(
+                                product.product_code
+                                ?? "Producto"
+                            )
+                        }
+                    </strong>
+
+                    <br>
+
+                    ${
+                        escapeHtml(
+                            product.name
+                            ?? "-"
+                        )
+                    }
+
+                    <br>
+
+                    Tipo:
+                    ${
+                        escapeHtml(
+                            product.product_type
+                            ?? product.type
+                            ?? "-"
+                        )
+                    }
+
+                    <br>
+
+                    EPSG:
+                    ${
+                        escapeHtml(
+                            String(
+                                product.epsg
+                                ?? "-"
+                            )
+                        )
+                    }
+                `
+            );
+
+
+            rectangle.addTo(
+                gisProductLayer
+            );
+
+
+            mapBounds.push(
+                bounds[0]
+            );
+
+            mapBounds.push(
+                bounds[1]
+            );
+        }
+    );
+
+
+    document.getElementById(
+        "gisProductCount"
+    ).textContent =
+        validCount;
+
+
+    return validCount;
+}
+
+function renderCampaignMap() {
+
+    const initialized =
+        initializeCampaignMap();
+
+
+    if (!initialized) {
+        return;
+    }
+
+
+    const mapBounds = [];
+
+
+    const captureCount =
+        renderCaptureGeometries(
+            mapBounds
+        );
+
+
+    const productCount =
+        renderProductGeometries(
+            mapBounds
+        );
+
+
+    const status =
+        document.getElementById(
+            "campaignMapStatus"
+        );
+
+
+    if (mapBounds.length > 0) {
+
+        campaignMap.fitBounds(
+            mapBounds,
+            {
+                padding: [
+                    30,
+                    30,
+                ],
+
+                maxZoom: 18,
+            }
+        );
+
+
+        status.textContent =
+            (
+                `${captureCount} captura(s) `
+                + "georreferenciada(s) y "
+                + `${productCount} producto(s) `
+                + "con extensión geográfica."
+            );
+
+    } else {
+
+        campaignMap.setView(
+            [0, 0],
+            2
+        );
+
+
+        status.textContent =
+            (
+                "La campaña todavía no posee "
+                + "geometrías WGS84 disponibles."
+            );
+    }
+
+
+    window.setTimeout(
+        () => {
+            campaignMap.invalidateSize();
+        },
+        0
+    );
+}
 
 /* ===============================================
    CARGA COMPLETA
@@ -2908,6 +3599,7 @@ async function loadCampaignDetail() {
             currentProducts
         );
 
+        renderCampaignMap();
 
         updateProcessButton();
 
