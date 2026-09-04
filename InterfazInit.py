@@ -607,6 +607,22 @@ def flight_history():
         "flight_history.html"
     )
 
+@app.route("/campaigns")
+def campaigns_view():
+    return render_template(
+        "campaigns.html"
+    )
+
+
+@app.route("/campaigns/<int:campaign_id>")
+def campaign_detail_view(
+    campaign_id
+):
+    return render_template(
+        "campaign_detail.html",
+        campaign_id=campaign_id,
+    )
+
 @app.route("/flight_history/<int:flight_id>")
 def flight_detail(flight_id):
     return render_template(

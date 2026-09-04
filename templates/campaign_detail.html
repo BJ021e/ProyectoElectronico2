@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Detalle de Campaña</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/styles.css') }}"
+    >
+
+    <style>
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+        }
+
+        .page {
+            min-height: 100vh;
+            padding: 32px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .back-button {
+            display: inline-block;
+
+            margin-bottom: 24px;
+
+            text-decoration: none;
+            color: #e2e8f0;
+
+            border: 1px solid #334155;
+            border-radius: 8px;
+
+            padding: 10px 16px;
+        }
+
+        .placeholder {
+            background: #1e293b;
+
+            border: 1px solid #334155;
+            border-radius: 14px;
+
+            padding: 40px;
+
+            color: #94a3b8;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<div class="page">
+
+    <div class="container">
+
+        <a
+            href="/campaigns"
+            class="back-button"
+        >
+            Volver a campañas
+        </a>
+
+        <h1>
+            Detalle de campaña
+        </h1>
+
+        <div class="placeholder">
+
+            Preparando campaña
+            {{ campaign_id }}...
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+    const CAMPAIGN_ID =
+        {{ campaign_id | tojson }};
+</script>
+
+</body>
+
+</html>

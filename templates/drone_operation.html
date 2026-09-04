@@ -71,6 +71,31 @@
             color: #94a3b8;
         }
 
+        .operation-navigation {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+
+        .operation-navigation a {
+            text-decoration: none;
+
+            color: #e2e8f0;
+
+            border: 1px solid #334155;
+            border-radius: 8px;
+
+            padding: 8px 12px;
+
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .operation-navigation a:hover {
+            background:
+                rgba(148, 163, 184, 0.08);
+        }
 
         .connection-area {
             display: flex;
@@ -517,7 +542,20 @@
                 </p>
 
             </div>
+            
+            <div class="operation-navigation">
 
+                <a href="/flight_history">
+                    Historial de vuelos
+                </a>
+
+                <a
+                    href="{{ url_for('campaigns_view') }}"
+                >
+                    Campañas
+                </a>
+
+            </div>
 
             <div class="connection-area">
 

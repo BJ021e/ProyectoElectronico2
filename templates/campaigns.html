@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Campañas de Adquisición</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/styles.css') }}"
+    >
+
+    <style>
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+        }
+
+        .campaign-page {
+            min-height: 100vh;
+            padding: 32px;
+        }
+
+        .campaign-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* =========================================
+           HEADER
+           ========================================= */
+
+        .campaign-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .campaign-title h1 {
+            margin: 0;
+            font-size: 2rem;
+        }
+
+        .campaign-title p {
+            margin: 8px 0 0 0;
+            color: #94a3b8;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .button {
+            border: 1px solid #3b82f6;
+            background: transparent;
+            color: #60a5fa;
+
+            padding: 10px 16px;
+
+            border-radius: 8px;
+
+            cursor: pointer;
+            font-weight: 600;
+
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .button:hover {
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .button-primary {
+            background: #2563eb;
+            color: #ffffff;
+        }
+
+        .button-primary:hover {
+            background: #1d4ed8;
+        }
+
+        .button-secondary {
+            border-color: #334155;
+            color: #e2e8f0;
+        }
+
+        /* =========================================
+           TABLE
+           ========================================= */
+
+        .campaign-card {
+            background: #1e293b;
+
+            border: 1px solid #334155;
+            border-radius: 14px;
+
+            overflow: hidden;
+        }
+
+        .campaign-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .campaign-table th,
+        .campaign-table td {
+            padding: 16px 18px;
+            text-align: left;
+
+            border-bottom:
+                1px solid #334155;
+        }
+
+        .campaign-table th {
+            color: #94a3b8;
+
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        .campaign-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .campaign-table tbody tr:hover {
+            background:
+                rgba(148, 163, 184, 0.04);
+        }
+
+        .campaign-code {
+            font-weight: 700;
+            color: #f8fafc;
+        }
+
+        .campaign-name {
+            font-weight: 600;
+        }
+
+        .secondary-text {
+            margin-top: 5px;
+
+            color: #94a3b8;
+            font-size: 0.8rem;
+        }
+
+        /* =========================================
+           BADGES
+           ========================================= */
+
+        .badge {
+            display: inline-block;
+
+            padding: 5px 10px;
+
+            border-radius: 999px;
+
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .status-created {
+            color: #fbbf24;
+            background:
+                rgba(245, 158, 11, 0.15);
+        }
+
+        .status-capturing {
+            color: #60a5fa;
+            background:
+                rgba(59, 130, 246, 0.15);
+        }
+
+        .status-ready {
+            color: #22d3ee;
+            background:
+                rgba(34, 211, 238, 0.15);
+        }
+
+        .status-processing {
+            color: #c084fc;
+            background:
+                rgba(192, 132, 252, 0.15);
+        }
+
+        .status-completed {
+            color: #34d399;
+            background:
+                rgba(16, 185, 129, 0.15);
+        }
+
+        .status-error {
+            color: #f87171;
+            background:
+                rgba(239, 68, 68, 0.15);
+        }
+
+        .status-archived {
+            color: #cbd5e1;
+            background:
+                rgba(148, 163, 184, 0.15);
+        }
+
+        .sensor-multispectral {
+            color: #a78bfa;
+            background:
+                rgba(139, 92, 246, 0.15);
+        }
+
+        .sensor-rgb {
+            color: #60a5fa;
+            background:
+                rgba(59, 130, 246, 0.15);
+        }
+
+        /* =========================================
+           STATES
+           ========================================= */
+
+        .loading-state,
+        .empty-state,
+        .error-state {
+            padding: 48px 24px;
+            text-align: center;
+            color: #94a3b8;
+        }
+
+        .error-state {
+            color: #f87171;
+        }
+
+        /* =========================================
+           MODAL
+           ========================================= */
+
+        .campaign-modal-backdrop {
+            position: fixed;
+
+            inset: 0;
+
+            background:
+                rgba(2, 6, 23, 0.82);
+
+            display: none;
+            align-items: center;
+            justify-content: center;
+
+            padding: 24px;
+
+            z-index: 2000;
+        }
+
+        .campaign-modal-backdrop.open {
+            display: flex;
+        }
+
+        .campaign-modal-panel {
+            width: 100%;
+            max-width: 620px;
+
+            max-height: calc(100vh - 48px);
+            overflow-y: auto;
+
+            background: #1e293b;
+
+            border: 1px solid #334155;
+            border-radius: 14px;
+
+            padding: 24px;
+        }
+
+        .campaign-modal-header {
+            display: flex;
+
+            justify-content: space-between;
+            align-items: flex-start;
+
+            gap: 16px;
+
+            margin-bottom: 24px;
+        }
+
+        .campaign-modal-header h2 {
+            margin: 0;
+            font-size: 1.35rem;
+        }
+
+        .campaign-modal-header p {
+            color: #94a3b8;
+            margin: 7px 0 0 0;
+        }
+
+        .close-button {
+            border: none;
+            background: transparent;
+
+            color: #94a3b8;
+
+            font-size: 1.4rem;
+            cursor: pointer;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+
+            gap: 16px;
+        }
+
+        .form-field {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .form-field.full {
+            grid-column: 1 / -1;
+        }
+
+        .form-field label {
+            color: #cbd5e1;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .form-field input,
+        .form-field select,
+        .form-field textarea {
+            box-sizing: border-box;
+
+            width: 100%;
+
+            background: #0f172a;
+            color: #f8fafc;
+
+            border: 1px solid #334155;
+            border-radius: 8px;
+
+            padding: 11px 12px;
+
+            font: inherit;
+        }
+
+        .form-field textarea {
+            min-height: 90px;
+            resize: vertical;
+        }
+
+        .form-field input:focus,
+        .form-field select:focus,
+        .form-field textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+
+            gap: 10px;
+
+            margin-top: 24px;
+        }
+
+        .form-message {
+            min-height: 20px;
+
+            margin-top: 16px;
+
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+
+        .form-message.error {
+            color: #f87171;
+        }
+
+        /* =========================================
+           RESPONSIVE
+           ========================================= */
+
+        @media (max-width: 900px) {
+
+            .campaign-header {
+                flex-direction: column;
+            }
+
+            .campaign-card {
+                overflow-x: auto;
+            }
+
+            .campaign-table {
+                min-width: 950px;
+            }
+
+        }
+
+        @media (max-width: 650px) {
+
+            .campaign-page {
+                padding: 18px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-field.full {
+                grid-column: auto;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<div class="campaign-page">
+
+    <div class="campaign-container">
+
+        <header class="campaign-header">
+
+            <div class="campaign-title">
+
+                <h1>
+                    Campañas de adquisición
+                </h1>
+
+                <p>
+                    Organiza las campañas aéreas,
+                    capturas y productos geoespaciales.
+                </p>
+
+            </div>
+
+
+            <div class="header-actions">
+
+                <a
+                    href="/flight_history"
+                    class="
+                        button
+                        button-secondary
+                    "
+                >
+                    Historial de vuelos
+                </a>
+
+                <button
+                    id="newCampaignButton"
+                    class="
+                        button
+                        button-primary
+                    "
+                    type="button"
+                >
+                    Nueva campaña
+                </button>
+
+            </div>
+
+        </header>
+
+
+        <section class="campaign-card">
+
+            <div
+                id="campaignLoading"
+                class="loading-state"
+            >
+                Cargando campañas...
+            </div>
+
+
+            <table
+                id="campaignTable"
+                class="campaign-table"
+                style="display: none;"
+            >
+
+                <thead>
+
+                    <tr>
+                        <th>Código</th>
+                        <th>Campaña</th>
+                        <th>Sensor</th>
+                        <th>Estado</th>
+                        <th>Creada</th>
+                        <th>Vuelo</th>
+                        <th></th>
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="campaignBody">
+                </tbody>
+
+            </table>
+
+        </section>
+
+    </div>
+
+</div>
+
+
+<!-- =============================================
+     MODAL NUEVA CAMPAÑA
+     ============================================= -->
+
+<div
+    id="campaignModal"
+    class="campaign-modal-backdrop"
+>
+
+    <div class="campaign-modal-panel">
+
+        <div class="campaign-modal-header">
+
+            <div>
+
+                <h2>
+                    Nueva campaña
+                </h2>
+
+                <p>
+                    Registra una campaña de adquisición
+                    antes de incorporar sus imágenes.
+                </p>
+
+            </div>
+
+            <button
+                id="closeModalButton"
+                class="close-button"
+                type="button"
+                aria-label="Cerrar"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <form id="campaignForm">
+
+            <div class="form-grid">
+
+                <div class="form-field full">
+
+                    <label for="campaignName">
+                        Nombre *
+                    </label>
+
+                    <input
+                        id="campaignName"
+                        type="text"
+                        maxlength="120"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-field">
+
+                    <label for="sensorType">
+                        Tipo de sensor *
+                    </label>
+
+                    <select
+                        id="sensorType"
+                        required
+                    >
+                        <option
+                            value="MULTISPECTRAL"
+                        >
+                            Multiespectral
+                        </option>
+
+                        <option
+                            value="RGB"
+                        >
+                            RGB
+                        </option>
+                    </select>
+
+                </div>
+
+
+                <div class="form-field">
+
+                    <label for="sensorModel">
+                        Modelo del sensor
+                    </label>
+
+                    <input
+                        id="sensorModel"
+                        type="text"
+                        maxlength="120"
+                        value="MicaSense RedEdge-3"
+                    >
+
+                </div>
+
+
+                <div class="form-field full">
+
+                    <label for="campaignDescription">
+                        Descripción
+                    </label>
+
+                    <textarea
+                        id="campaignDescription"
+                    ></textarea>
+
+                </div>
+
+
+                <div class="form-field full">
+
+                    <label for="campaignNotes">
+                        Notas
+                    </label>
+
+                    <textarea
+                        id="campaignNotes"
+                    ></textarea>
+
+                </div>
+
+            </div>
+
+
+            <div
+                id="formMessage"
+                class="form-message"
+            ></div>
+
+
+            <div class="form-actions">
+
+                <button
+                    id="cancelModalButton"
+                    type="button"
+                    class="
+                        button
+                        button-secondary
+                    "
+                >
+                    Cancelar
+                </button>
+
+                <button
+                    id="saveCampaignButton"
+                    type="submit"
+                    class="
+                        button
+                        button-primary
+                    "
+                >
+                    Crear campaña
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<script>
+
+function formatDate(value) {
+
+    if (!value) {
+        return "--";
+    }
+
+    const date =
+        new Date(value);
+
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+        return value;
+    }
+
+    return date.toLocaleString();
+}
+
+
+function escapeHtml(value) {
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+        return "";
+    }
+
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+
+function getStatusClass(status) {
+
+    switch (status) {
+
+        case "CREATED":
+            return "status-created";
+
+        case "CAPTURING":
+            return "status-capturing";
+
+        case "READY":
+            return "status-ready";
+
+        case "PROCESSING":
+            return "status-processing";
+
+        case "COMPLETED":
+            return "status-completed";
+
+        case "ERROR":
+            return "status-error";
+
+        case "ARCHIVED":
+            return "status-archived";
+
+        default:
+            return "status-archived";
+    }
+}
+
+
+function getSensorClass(sensorType) {
+
+    if (
+        sensorType === "MULTISPECTRAL"
+    ) {
+        return "sensor-multispectral";
+    }
+
+    return "sensor-rgb";
+}
+
+
+function getSensorLabel(sensorType) {
+
+    if (
+        sensorType === "MULTISPECTRAL"
+    ) {
+        return "Multiespectral";
+    }
+
+    if (
+        sensorType === "RGB"
+    ) {
+        return "RGB";
+    }
+
+    return sensorType ?? "--";
+}
+
+
+function renderCampaigns(campaigns) {
+
+    const loading =
+        document.getElementById(
+            "campaignLoading"
+        );
+
+    const table =
+        document.getElementById(
+            "campaignTable"
+        );
+
+    const body =
+        document.getElementById(
+            "campaignBody"
+        );
+
+    body.innerHTML = "";
+
+
+    if (!campaigns.length) {
+
+        table.style.display =
+            "none";
+
+        loading.className =
+            "empty-state";
+
+        loading.style.display =
+            "block";
+
+        loading.textContent =
+            "Todavía no existen campañas registradas.";
+
+        return;
+    }
+
+
+    campaigns.forEach(
+        (campaign) => {
+
+            const row =
+                document.createElement(
+                    "tr"
+                );
+
+            const campaignCode =
+                escapeHtml(
+                    campaign.campaign_code
+                );
+
+            const campaignName =
+                escapeHtml(
+                    campaign.name ?? "--"
+                );
+
+            const sensorModel =
+                escapeHtml(
+                    campaign.sensor_model
+                    ?? "Modelo no especificado"
+                );
+
+            const status =
+                escapeHtml(
+                    campaign.status
+                    ?? "--"
+                );
+
+            const sensorType =
+                escapeHtml(
+                    campaign.sensor_type
+                    ?? "--"
+                );
+
+            const flight =
+                campaign.flight_id
+                ? `#${campaign.flight_id}`
+                : "Sin vincular";
+
+            row.innerHTML = `
+                <td>
+                    <span class="campaign-code">
+                        ${campaignCode}
+                    </span>
+                </td>
+
+                <td>
+                    <div class="campaign-name">
+                        ${campaignName}
+                    </div>
+
+                    <div class="secondary-text">
+                        ${sensorModel}
+                    </div>
+                </td>
+
+                <td>
+                    <span
+                        class="
+                            badge
+                            ${getSensorClass(
+                                campaign.sensor_type
+                            )}
+                        "
+                    >
+                        ${getSensorLabel(
+                            sensorType
+                        )}
+                    </span>
+                </td>
+
+                <td>
+                    <span
+                        class="
+                            badge
+                            ${getStatusClass(
+                                campaign.status
+                            )}
+                        "
+                    >
+                        ${status}
+                    </span>
+                </td>
+
+                <td>
+                    ${formatDate(
+                        campaign.created_at
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHtml(flight)}
+                </td>
+
+                <td>
+                    <a
+                        class="button"
+                        href="/campaigns/${campaign.id}"
+                    >
+                        Ver
+                    </a>
+                </td>
+            `;
+
+            body.appendChild(
+                row
+            );
+        }
+    );
+
+
+    loading.style.display =
+        "none";
+
+    table.style.display =
+        "table";
+}
+
+
+async function loadCampaigns() {
+
+    const loading =
+        document.getElementById(
+            "campaignLoading"
+        );
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/campaigns"
+            );
+
+        if (!response.ok) {
+
+            const data =
+                await response.json();
+
+            throw new Error(
+                data.msg
+                ?? `HTTP ${response.status}`
+            );
+        }
+
+        const data =
+            await response.json();
+
+        renderCampaigns(
+            data.campaigns ?? []
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Error cargando campañas:",
+            error
+        );
+
+        loading.className =
+            "error-state";
+
+        loading.style.display =
+            "block";
+
+        loading.textContent =
+            "No fue posible cargar las campañas.";
+    }
+}
+
+
+function openModal() {
+
+    document.getElementById(
+        "campaignModal"
+    ).classList.add(
+        "open"
+    );
+
+    document.getElementById(
+        "campaignName"
+    ).focus();
+}
+
+
+function closeModal() {
+
+    document.getElementById(
+        "campaignModal"
+    ).classList.remove(
+        "open"
+    );
+
+    document.getElementById(
+        "formMessage"
+    ).textContent = "";
+}
+
+
+async function createCampaign(
+    event
+) {
+
+    event.preventDefault();
+
+    const button =
+        document.getElementById(
+            "saveCampaignButton"
+        );
+
+    const message =
+        document.getElementById(
+            "formMessage"
+        );
+
+    const payload = {
+        name:
+            document.getElementById(
+                "campaignName"
+            ).value.trim(),
+
+        sensor_type:
+            document.getElementById(
+                "sensorType"
+            ).value,
+
+        sensor_model:
+            document.getElementById(
+                "sensorModel"
+            ).value.trim()
+            || null,
+
+        description:
+            document.getElementById(
+                "campaignDescription"
+            ).value.trim()
+            || null,
+
+        notes:
+            document.getElementById(
+                "campaignNotes"
+            ).value.trim()
+            || null,
+    };
+
+
+    button.disabled = true;
+
+    message.className =
+        "form-message";
+
+    message.textContent =
+        "Creando campaña...";
+
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/campaigns",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify(
+                            payload
+                        ),
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.msg
+                ?? `HTTP ${response.status}`
+            );
+        }
+
+
+        document.getElementById(
+            "campaignForm"
+        ).reset();
+
+        document.getElementById(
+            "sensorModel"
+        ).value =
+            "MicaSense RedEdge-3";
+
+        closeModal();
+
+        await loadCampaigns();
+
+    } catch (error) {
+
+        console.error(
+            "Error creando campaña:",
+            error
+        );
+
+        message.className =
+            "form-message error";
+
+        message.textContent =
+            error.message;
+
+    } finally {
+
+        button.disabled =
+            false;
+    }
+}
+
+
+function updateSensorModel() {
+
+    const sensorType =
+        document.getElementById(
+            "sensorType"
+        ).value;
+
+    const sensorModel =
+        document.getElementById(
+            "sensorModel"
+        );
+
+    if (
+        sensorType === "MULTISPECTRAL"
+    ) {
+
+        if (
+            !sensorModel.value.trim()
+            ||
+            sensorModel.value === "RGB"
+        ) {
+            sensorModel.value =
+                "MicaSense RedEdge-3";
+        }
+
+    } else {
+
+        if (
+            sensorModel.value
+            === "MicaSense RedEdge-3"
+        ) {
+            sensorModel.value =
+                "";
+        }
+    }
+}
+
+
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+
+        document.getElementById(
+            "newCampaignButton"
+        ).addEventListener(
+            "click",
+            openModal
+        );
+
+        document.getElementById(
+            "closeModalButton"
+        ).addEventListener(
+            "click",
+            closeModal
+        );
+
+        document.getElementById(
+            "cancelModalButton"
+        ).addEventListener(
+            "click",
+            closeModal
+        );
+
+        document.getElementById(
+            "campaignForm"
+        ).addEventListener(
+            "submit",
+            createCampaign
+        );
+
+        document.getElementById(
+            "sensorType"
+        ).addEventListener(
+            "change",
+            updateSensorModel
+        );
+
+        document.getElementById(
+            "campaignModal"
+        ).addEventListener(
+            "click",
+            (event) => {
+
+                if (
+                    event.target.id
+                    === "campaignModal"
+                ) {
+                    closeModal();
+                }
+            }
+        );
+
+        loadCampaigns();
+    }
+);
+
+</script>
+
+</body>
+
+</html>
