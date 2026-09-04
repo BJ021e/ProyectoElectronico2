@@ -615,6 +615,52 @@
             margin-top: 22px;
         }
 
+        .rededge-progress {
+            margin-bottom: 18px;
+        }
+
+        .rededge-progress-header {
+            display: flex;
+
+            justify-content:
+                space-between;
+
+            align-items: center;
+
+            gap: 12px;
+
+            margin-bottom: 8px;
+
+            color: #cbd5e1;
+
+            font-size: 0.82rem;
+        }
+
+        .rededge-progress-track {
+            width: 100%;
+            height: 9px;
+
+            overflow: hidden;
+
+            border-radius: 999px;
+
+            background: #0f172a;
+
+            border: 1px solid #334155;
+        }
+
+        .rededge-progress-bar {
+            width: 0%;
+            height: 100%;
+
+            border-radius: inherit;
+
+            background: #2563eb;
+
+            transition:
+                width 0.2s ease;
+        }
+
         /* =========================================
            RESPONSIVE
            ========================================= */
@@ -1074,6 +1120,34 @@
             Preparando importación...
         </div>
 
+        <div
+            id="redEdgeUploadProgress"
+            class="rededge-progress"
+            style="display: none;"
+        >
+
+            <div class="rededge-progress-header">
+
+                <span id="redEdgeProgressLabel">
+                    Subiendo archivos...
+                </span>
+
+                <strong id="redEdgeProgressValue">
+                    0 %
+                </strong>
+
+            </div>
+
+            <div class="rededge-progress-track">
+
+                <div
+                    id="redEdgeProgressBar"
+                    class="rededge-progress-bar"
+                ></div>
+
+            </div>
+
+        </div>
 
         <div
             id="redEdgeSummary"
@@ -1191,6 +1265,14 @@ let redEdgeUploadInProgress = false;
 
 let redEdgeImportInProgress = false;
 
+const RED_EDGE_BATCH_MAX_FILES =
+    25;
+
+const RED_EDGE_BATCH_TARGET_BYTES =
+    32 * 1024 * 1024;
+
+const RED_EDGE_BATCH_MAX_ATTEMPTS =
+    3;
 
 /* ===============================================
    UTILIDADES
@@ -2047,6 +2129,23 @@ function resetRedEdgeModal() {
         "redEdgeModalDescription"
     ).textContent =
         "Inspeccionando archivos...";
+
+    document.getElementById(
+        "redEdgeUploadProgress"
+    ).style.display =
+        "none";
+
+
+    document.getElementById(
+        "redEdgeProgressBar"
+    ).style.width =
+        "0%";
+
+
+    document.getElementById(
+        "redEdgeProgressValue"
+    ).textContent =
+        "0 %";
 }
 
 
@@ -2258,7 +2357,6 @@ async function selectRedEdgeFolder() {
     input.click();
 }
 
-
 async function inspectSelectedRedEdgeFolder(
     event
 ) {
@@ -2334,68 +2432,97 @@ async function inspectSelectedRedEdgeFolder(
     message.className =
         "rededge-message";
 
+
     message.textContent =
-        `Subiendo e inspeccionando ${tiffFiles.length} archivo(s)...`;
+        (
+            `Preparando ${tiffFiles.length} `
+            + "archivo(s)..."
+        );
+
+
+    updateRedEdgeProgress(
+        0,
+        tiffFiles.length
+    );
 
 
     try {
 
-        const formData =
-            new FormData();
+        redEdgeStagingToken =
+            await createRedEdgeStage();
 
 
-        const relativePaths = [];
+        const batches =
+            buildRedEdgeBatches(
+                tiffFiles
+            );
 
 
-        tiffFiles.forEach(
-            (file) => {
+        let uploadedCount = 0;
 
-                formData.append(
-                    "files",
-                    file,
-                    file.name
+
+        for (
+            let index = 0;
+            index < batches.length;
+            index += 1
+        ) {
+
+            const batch =
+                batches[index];
+
+
+            message.textContent =
+                (
+                    `Subiendo lote `
+                    + `${index + 1} `
+                    + `de ${batches.length}...`
                 );
 
 
-                relativePaths.push(
-                    file.webkitRelativePath
-                    || file.name
-                );
-            }
-        );
+            await uploadRedEdgeBatchWithRetry(
+                batch,
+                index
+            );
 
 
-        formData.append(
-            "relative_paths",
-            JSON.stringify(
-                relativePaths
-            )
-        );
+            uploadedCount +=
+                batch.length;
 
 
-        const payload =
+            updateRedEdgeProgress(
+                uploadedCount,
+                tiffFiles.length
+            );
+        }
+
+
+        message.textContent =
+            "Analizando estructura RedEdge...";
+
+
+        const inspectionPayload =
             await fetchJson(
-                `/api/campaigns/${CAMPAIGN_ID}/rededge/inspect`,
+                (
+                    `/api/campaigns/${CAMPAIGN_ID}`
+                    + `/rededge/staging/`
+                    + `${redEdgeStagingToken}`
+                    + "/inspect"
+                ),
                 {
                     method: "POST",
-                    body: formData,
                 }
             );
 
 
-        redEdgeStagingToken =
-            payload.staging_token;
-
-
         renderRedEdgeInspection(
-            payload.inspection
+            inspectionPayload.inspection
         );
 
 
     } catch (error) {
 
         console.error(
-            "Error inspeccionando RedEdge:",
+            "Error cargando RedEdge:",
             error
         );
 
@@ -2406,6 +2533,41 @@ async function inspectSelectedRedEdgeFolder(
 
         message.textContent =
             error.message;
+
+
+        /*
+         * Si la subida no pudo completarse,
+         * intentamos retirar el staging parcial.
+         */
+        if (redEdgeStagingToken) {
+
+            try {
+
+                await fetchJson(
+                    (
+                        `/api/campaigns/${CAMPAIGN_ID}`
+                        + `/rededge/staging/`
+                        + `${redEdgeStagingToken}`
+                    ),
+                    {
+                        method: "DELETE",
+                    }
+                );
+
+            } catch (
+                cleanupError
+            ) {
+
+                console.error(
+                    "Error limpiando staging parcial:",
+                    cleanupError
+                );
+            }
+
+
+            redEdgeStagingToken =
+                null;
+        }
 
 
     } finally {
@@ -2426,6 +2588,7 @@ async function inspectSelectedRedEdgeFolder(
             false;
     }
 }
+
 
 async function confirmRedEdgeImport(
     skipIncomplete
@@ -2956,6 +3119,260 @@ document.addEventListener(
         loadCampaignDetail();
     }
 );
+
+function buildRedEdgeBatches(
+    files
+) {
+
+    const batches = [];
+
+    let currentBatch = [];
+    let currentBytes = 0;
+
+
+    files.forEach(
+        (file) => {
+
+            const exceedsFileCount =
+                (
+                    currentBatch.length
+                    >= RED_EDGE_BATCH_MAX_FILES
+                );
+
+
+            const exceedsTargetBytes =
+                (
+                    currentBatch.length > 0
+                    &&
+                    (
+                        currentBytes
+                        + file.size
+                    )
+                    > RED_EDGE_BATCH_TARGET_BYTES
+                );
+
+
+            if (
+                exceedsFileCount
+                ||
+                exceedsTargetBytes
+            ) {
+
+                batches.push(
+                    currentBatch
+                );
+
+                currentBatch = [];
+                currentBytes = 0;
+            }
+
+
+            currentBatch.push(
+                file
+            );
+
+            currentBytes +=
+                file.size;
+        }
+    );
+
+
+    if (currentBatch.length) {
+
+        batches.push(
+            currentBatch
+        );
+    }
+
+
+    return batches;
+}
+
+function updateRedEdgeProgress(
+    uploadedCount,
+    totalCount
+) {
+
+    const progress =
+        document.getElementById(
+            "redEdgeUploadProgress"
+        );
+
+    const progressBar =
+        document.getElementById(
+            "redEdgeProgressBar"
+        );
+
+    const progressValue =
+        document.getElementById(
+            "redEdgeProgressValue"
+        );
+
+    const progressLabel =
+        document.getElementById(
+            "redEdgeProgressLabel"
+        );
+
+
+    const percentage =
+        totalCount > 0
+        ? Math.round(
+            (
+                uploadedCount
+                / totalCount
+            )
+            * 100
+        )
+        : 0;
+
+
+    progress.style.display =
+        "block";
+
+
+    progressBar.style.width =
+        `${percentage}%`;
+
+
+    progressValue.textContent =
+        `${percentage} %`;
+
+
+    progressLabel.textContent =
+        (
+            `${uploadedCount} de `
+            + `${totalCount} archivos`
+        );
+}
+
+async function createRedEdgeStage() {
+
+    const payload =
+        await fetchJson(
+            `/api/campaigns/${CAMPAIGN_ID}/rededge/staging`,
+            {
+                method: "POST",
+            }
+        );
+
+
+    if (!payload.staging_token) {
+
+        throw new Error(
+            "El servidor no devolvió "
+            + "un token de staging."
+        );
+    }
+
+
+    return payload.staging_token;
+}
+
+async function uploadRedEdgeBatchWithRetry(
+    batch,
+    batchIndex
+) {
+
+    let lastError = null;
+
+
+    for (
+        let attempt = 1;
+        attempt
+            <= RED_EDGE_BATCH_MAX_ATTEMPTS;
+        attempt += 1
+    ) {
+
+        try {
+
+            return await uploadRedEdgeBatch(
+                batch
+            );
+
+        } catch (error) {
+
+            lastError = error;
+
+
+            console.warn(
+                (
+                    `Lote ${batchIndex + 1} `
+                    + `falló en intento ${attempt}:`
+                ),
+                error
+            );
+
+
+            if (
+                attempt < RED_EDGE_BATCH_MAX_ATTEMPTS
+            ) {
+
+                await new Promise(
+                    (resolve) =>
+                        setTimeout(
+                            resolve,
+                            700 * attempt
+                        )
+                );
+            }
+        }
+    }
+
+
+    throw lastError;
+}
+
+async function uploadRedEdgeBatch(
+    batch
+) {
+
+    const formData =
+        new FormData();
+
+
+    const relativePaths = [];
+
+
+    batch.forEach(
+        (file) => {
+
+            formData.append(
+                "files",
+                file,
+                file.name
+            );
+
+
+            relativePaths.push(
+                file.webkitRelativePath
+                || file.name
+            );
+        }
+    );
+
+
+    formData.append(
+        "relative_paths",
+        JSON.stringify(
+            relativePaths
+        )
+    );
+
+
+    return fetchJson(
+        (
+            `/api/campaigns/${CAMPAIGN_ID}`
+            + `/rededge/staging/`
+            + `${redEdgeStagingToken}/files`
+        ),
+        {
+            method: "POST",
+            body: formData,
+        }
+    );
+}
+
+
 
 </script>
 

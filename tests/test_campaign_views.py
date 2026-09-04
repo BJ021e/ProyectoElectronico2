@@ -168,13 +168,10 @@ def test_campaign_detail_uses_rededge_import_api():
         "/campaigns/9"
     )
 
+    assert response.status_code == 200
+
     html = response.get_data(
         as_text=True
-    )
-
-    assert (
-        "/rededge/inspect"
-        in html
     )
 
     assert (
@@ -184,5 +181,64 @@ def test_campaign_detail_uses_rededge_import_api():
 
     assert (
         "/rededge/staging/"
+        in html
+    )
+    
+def test_campaign_detail_contains_rededge_progress():
+
+    app.config["TESTING"] = True
+
+    client = app.test_client()
+
+    response = client.get(
+        "/campaigns/11"
+    )
+
+    html = response.get_data(
+        as_text=True
+    )
+
+    assert (
+        'id="redEdgeUploadProgress"'
+        in html
+    )
+
+    assert (
+        'id="redEdgeProgressBar"'
+        in html
+    )
+
+    assert (
+        "buildRedEdgeBatches"
+        in html
+    )
+
+
+def test_campaign_detail_uses_batch_staging_api():
+
+    app.config["TESTING"] = True
+
+    client = app.test_client()
+
+    response = client.get(
+        "/campaigns/11"
+    )
+
+    html = response.get_data(
+        as_text=True
+    )
+
+    assert (
+        "/rededge/staging"
+        in html
+    )
+
+    assert (
+        "/files"
+        in html
+    )
+
+    assert (
+        "/inspect"
         in html
     )

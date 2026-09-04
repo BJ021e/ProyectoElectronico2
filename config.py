@@ -88,3 +88,10 @@ class Config:
         "RED_EDGE_STAGING_ROOT",
         "data/rededge_staging",
     )
+    
+    RED_EDGE_UPLOAD_BATCH_MAX_FILES = int(
+        os.getenv(
+            "RED_EDGE_UPLOAD_BATCH_MAX_FILES",
+            "25",
+        )
+    )
