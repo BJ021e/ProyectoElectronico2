@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from models.telemetry import TelemetryPoint
+    from models.campaign import Campaign
 
 class FlightStatus(str, PyEnum):
     CREATED = "CREATED"
@@ -76,6 +77,11 @@ class Flight(Base):
         "TelemetryPoint",
         back_populates="flight",
         cascade="all, delete-orphan"
+    )
+    
+    campaigns: Mapped[list["Campaign"]] = relationship(
+        "Campaign",
+        back_populates="flight",
     )
     
     def __repr__(self) -> str:

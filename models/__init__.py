@@ -3,6 +3,11 @@ from models.telemetry import TelemetryPoint, TelemetrySource
 from models.route import Route, RouteStatus
 from models.waypoint import Waypoint
 from models.flight_route_assignment import FlightRouteAssignment
+from models.campaign import (
+    Campaign,
+    CampaignStatus,
+    SensorType,
+)
 
 __all__ = [
     "Flight",
@@ -13,4 +18,7 @@ __all__ = [
     "RouteStatus",
     "Waypoint",
     "FlightRouteAssignment",
+    "Campaign",
+    "CampaignStatus",
+    "SensorType",
 ]
