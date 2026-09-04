@@ -424,3 +424,39 @@ def test_campaign_detail_selects_primary_raster_product():
         "ORTHOMOSAIC_MULTISPECTRAL"
         in html
     )
+    
+def test_campaign_detail_does_not_convert_missing_coordinates_to_zero():
+
+    app.config["TESTING"] = True
+
+    client = app.test_client()
+
+    response = client.get(
+        "/campaigns/30"
+    )
+
+    assert response.status_code == 200
+
+    html = response.get_data(
+        as_text=True
+    )
+
+    assert (
+        "rawLatitude === null"
+        in html
+    )
+
+    assert (
+        "rawLongitude === null"
+        in html
+    )
+
+    assert (
+        "rawLatitude === undefined"
+        in html
+    )
+
+    assert (
+        "rawLongitude === undefined"
+        in html
+    )

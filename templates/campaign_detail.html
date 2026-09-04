@@ -3308,14 +3308,53 @@ function getCaptureCoordinate(
     capture
 ) {
 
+    const rawLatitude =
+        capture.latitude;
+
+    const rawLongitude =
+        capture.longitude;
+
+
+    if (
+        rawLatitude === null
+        ||
+        rawLatitude === undefined
+        ||
+        rawLongitude === null
+        ||
+        rawLongitude === undefined
+    ) {
+        return null;
+    }
+
+
+    if (
+        (
+            typeof rawLatitude
+            === "string"
+            &&
+            !rawLatitude.trim()
+        )
+        ||
+        (
+            typeof rawLongitude
+            === "string"
+            &&
+            !rawLongitude.trim()
+        )
+    ) {
+        return null;
+    }
+
+
     const latitude =
         Number(
-            capture.latitude
+            rawLatitude
         );
 
     const longitude =
         Number(
-            capture.longitude
+            rawLongitude
         );
 
 
@@ -3350,6 +3389,7 @@ function getCaptureCoordinate(
         longitude,
     ];
 }
+
 
 function getProductWgs84Bounds(
     product

@@ -15,6 +15,11 @@ from services.image_ingestion_service import (
     ImageIngestionService,
 )
 
+from services.micasense_metadata_service import (
+    MicaSenseMetadataError,
+    MicaSenseMetadataService,
+)
+
 class RedEdgeImportError(Exception):
     """
     Error producido durante la inspección o importación
@@ -341,12 +346,74 @@ class RedEdgeImportService:
                     }
                 )
                 continue
+            
+            metadata_files = {}
 
+            for (
+                band,
+                source_path,
+            ) in group["files"].items():
+
+                band_name = (
+                    band.value
+                    if hasattr(
+                        band,
+                        "value",
+                    )
+                    else str(band)
+                )
+
+                resolved_source = Path(
+                    source_path
+                )
+
+                if not resolved_source.is_absolute():
+                    resolved_source = (
+                        source_root
+                        / resolved_source
+                    )
+
+                metadata_files[
+                    band_name
+                ] = (
+                    resolved_source.resolve()
+                )
+
+            try:
+                capture_metadata = (
+                    MicaSenseMetadataService
+                    .extract_capture_metadata(
+                        metadata_files
+                    )
+                )
+
+            except MicaSenseMetadataError as exc:
+                raise RedEdgeImportExecutionError(
+                    "Los metadatos MicaSense "
+                    f"del grupo "
+                    f"{group['source_key']} "
+                    "no son válidos: "
+                    f"{exc}"
+                ) from exc
+            
             capture = (
                 CaptureService.create_capture(
-                    campaign_id=campaign_id
+                    campaign_id=campaign_id,
+                    latitude=(
+                        capture_metadata.latitude
+                    ),
+                    longitude=(
+                        capture_metadata.longitude
+                    ),
+                    altitude=(
+                        capture_metadata.altitude
+                    ),
+                    captured_at=(
+                        capture_metadata.captured_at
+                    ),
                 )
             )
+            
 
             try:
                 last_result = None
