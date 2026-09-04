@@ -95,3 +95,10 @@ class Config:
             "25",
         )
     )
+    
+    RED_EDGE_STAGING_MAX_AGE_HOURS = int(
+        os.getenv(
+            "RED_EDGE_STAGING_MAX_AGE_HOURS",
+            "24",
+        )
+    )

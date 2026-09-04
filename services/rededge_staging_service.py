@@ -217,6 +217,277 @@ class RedEdgeStagingService:
             ) from exc
 
     @classmethod
+    def cleanup_expired_stages(
+        cls,
+        *,
+        max_age_hours: int | None = None,
+        now: datetime | None = None,
+    ) -> dict:
+        """
+        Elimina stagings RedEdge que hayan superado
+        el tiempo máximo permitido.
+
+        Los directorios o metadatos inválidos se
+        reportan pero no se eliminan automáticamente.
+        """
+
+        if max_age_hours is None:
+            max_age_hours = (
+                Config
+                .RED_EDGE_STAGING_MAX_AGE_HOURS
+            )
+
+        if (
+            not isinstance(
+                max_age_hours,
+                int,
+            )
+            or max_age_hours <= 0
+        ):
+            raise RedEdgeStagingError(
+                "max_age_hours debe "
+                "ser un entero mayor que cero."
+            )
+
+        if now is None:
+            now = datetime.now(
+                timezone.utc
+            )
+
+        if now.tzinfo is None:
+            raise RedEdgeStagingError(
+                "now debe contener "
+                "información de zona horaria."
+            )
+
+        now_utc = now.astimezone(
+            timezone.utc
+        )
+
+        root = (
+            cls._staging_root()
+        )
+
+        if not root.exists():
+            return {
+                "scanned_count": 0,
+                "deleted_count": 0,
+                "kept_count": 0,
+                "invalid_count": 0,
+                "deleted_tokens": [],
+                "invalid_entries": [],
+            }
+
+        if not root.is_dir():
+            raise RedEdgeStagingError(
+                "La raíz de staging "
+                "no corresponde a un directorio."
+            )
+
+        scanned_count = 0
+        deleted_tokens = []
+        invalid_entries = []
+        kept_count = 0
+
+        try:
+            entries = list(
+                root.iterdir()
+            )
+
+        except OSError as exc:
+            raise RedEdgeStagingError(
+                "No fue posible inspeccionar "
+                f"el staging: {exc}"
+            ) from exc
+
+        for entry in entries:
+
+            if not entry.is_dir():
+                continue
+
+            token = entry.name
+
+            if not cls.TOKEN_PATTERN.fullmatch(
+                token
+            ):
+                invalid_entries.append({
+                    "entry": token,
+                    "reason": (
+                        "Nombre de staging inválido."
+                    ),
+                })
+
+                continue
+
+            scanned_count += 1
+
+            metadata_path = (
+                entry
+                / cls.METADATA_FILENAME
+            )
+
+            if not metadata_path.exists():
+
+                invalid_entries.append({
+                    "entry": token,
+                    "reason": (
+                        "No existe metadata."
+                    ),
+                })
+
+                continue
+
+            try:
+                metadata = json.loads(
+                    metadata_path.read_text(
+                        encoding="utf-8"
+                    )
+                )
+
+            except (
+                OSError,
+                json.JSONDecodeError,
+            ):
+
+                invalid_entries.append({
+                    "entry": token,
+                    "reason": (
+                        "Metadata inválida."
+                    ),
+                })
+
+                continue
+
+            created_at_raw = (
+                metadata.get(
+                    "created_at"
+                )
+            )
+
+            if (
+                not isinstance(
+                    created_at_raw,
+                    str,
+                )
+                or not created_at_raw.strip()
+            ):
+
+                invalid_entries.append({
+                    "entry": token,
+                    "reason": (
+                        "created_at ausente."
+                    ),
+                })
+
+                continue
+
+            try:
+                created_at = (
+                    datetime.fromisoformat(
+                        created_at_raw
+                    )
+                )
+
+            except ValueError:
+
+                invalid_entries.append({
+                    "entry": token,
+                    "reason": (
+                        "created_at inválido."
+                    ),
+                })
+
+                continue
+
+            if created_at.tzinfo is None:
+
+                invalid_entries.append({
+                    "entry": token,
+                    "reason": (
+                        "created_at no posee "
+                        "zona horaria."
+                    ),
+                })
+
+                continue
+
+            created_at_utc = (
+                created_at.astimezone(
+                    timezone.utc
+                )
+            )
+
+            age_seconds = (
+                now_utc
+                - created_at_utc
+            ).total_seconds()
+
+            max_age_seconds = (
+                max_age_hours
+                * 60
+                * 60
+            )
+
+            if age_seconds < 0:
+
+                invalid_entries.append({
+                    "entry": token,
+                    "reason": (
+                        "created_at se encuentra "
+                        "en el futuro."
+                    ),
+                })
+
+                continue
+
+            if (
+                age_seconds
+                < max_age_seconds
+            ):
+                kept_count += 1
+                continue
+
+            try:
+                shutil.rmtree(
+                    entry
+                )
+
+            except OSError as exc:
+
+                invalid_entries.append({
+                    "entry": token,
+                    "reason": (
+                        "No fue posible eliminar: "
+                        f"{exc}"
+                    ),
+                })
+
+                continue
+
+            deleted_tokens.append(
+                token
+            )
+
+        return {
+            "scanned_count": (
+                scanned_count
+            ),
+            "deleted_count": len(
+                deleted_tokens
+            ),
+            "kept_count": kept_count,
+            "invalid_count": len(
+                invalid_entries
+            ),
+            "deleted_tokens": (
+                deleted_tokens
+            ),
+            "invalid_entries": (
+                invalid_entries
+            ),
+        }
+    
+    @classmethod
     def create_stage(
         cls,
         *,
@@ -239,7 +510,9 @@ class RedEdgeStagingService:
             parents=True,
             exist_ok=True,
         )
-
+        
+        cls.cleanup_expired_stages()
+        
         token = uuid4().hex
 
         stage_directory = (
