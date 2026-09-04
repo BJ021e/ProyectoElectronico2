@@ -73,3 +73,8 @@ class Config:
             "5.0"
         )
     )
+    
+    CAMPAIGN_STORAGE_ROOT = os.getenv(
+        "CAMPAIGN_STORAGE_ROOT",
+        "data/campaigns",
+    )
