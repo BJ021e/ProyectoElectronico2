@@ -17,6 +17,11 @@ from models import (
     SensorType,
 )
 
+from services.campaign_lifecycle import (
+    CampaignLifecycleError,
+    CampaignLifecyclePolicy,
+)
+
 
 class CapturePersistenceError(Exception):
     """
@@ -356,6 +361,19 @@ class CaptureService:
                     f"La campaña con ID "
                     f"{campaign_id} no existe."
                 )
+            
+            try:
+                (
+                    CampaignLifecyclePolicy
+                    .assert_capture_mutation_allowed(
+                        campaign
+                    )
+                )
+
+            except CampaignLifecycleError as exc:
+                raise InvalidCaptureError(
+                    str(exc)
+                ) from exc    
 
             statement = select(
                 func.max(
@@ -392,7 +410,16 @@ class CaptureService:
             )
 
             session.add(capture)
-
+            session.flush()
+            
+            (
+                CampaignLifecyclePolicy
+                .synchronize_capture_state(
+                    session,
+                    campaign,
+                )
+            )
+            
             session.commit()
 
             capture = cls._get_capture_entity(
@@ -444,8 +471,7 @@ class CaptureService:
             or not original_filename.strip()
         ):
             raise InvalidCaptureError(
-                "El nombre original "
-                "del archivo es obligatorio."
+                "El nombre original del archivo es obligatorio."
             )
 
         if (
@@ -456,8 +482,7 @@ class CaptureService:
             or not storage_path.strip()
         ):
             raise InvalidCaptureError(
-                "La ruta de almacenamiento "
-                "es obligatoria."
+                "La ruta de almacenamiento es obligatoria."
             )
 
         session = SessionLocal()
@@ -473,7 +498,31 @@ class CaptureService:
                     f"La captura con ID "
                     f"{capture_id} no existe."
                 )
+            
+            campaign = session.get(
+                Campaign,
+                capture.campaign_id,
+            )
 
+            if campaign is None:
+                raise InvalidCaptureError(
+                    "La campaña asociada "
+                    "a la captura no existe."
+                )
+
+            try:
+                (
+                    CampaignLifecyclePolicy
+                    .assert_capture_mutation_allowed(
+                        campaign
+                    )
+                )
+
+            except CampaignLifecycleError as exc:
+                raise InvalidCaptureError(
+                    str(exc)
+                ) from exc
+                
             expected_bands = (
                 cls._expected_bands(
                     capture.campaign.sensor_type
@@ -537,6 +586,16 @@ class CaptureService:
                 capture,
             )
 
+            session.flush()
+
+            (
+                CampaignLifecyclePolicy
+                .synchronize_capture_state(
+                    session,
+                    campaign,
+                )
+            )
+            
             session.commit()
 
             capture = cls._get_capture_entity(
@@ -726,11 +785,44 @@ class CaptureService:
                 capture_id,
             )
 
+            campaign = session.get(
+                Campaign,
+                capture.campaign_id,
+            )
+
+            if campaign is None:
+                raise InvalidCaptureError(
+                    "La campaña asociada a la captura no existe."
+                )
+
+            try:
+                (
+                    CampaignLifecyclePolicy
+                    .assert_capture_mutation_allowed(
+                        campaign
+                    )
+                )
+
+            except CampaignLifecycleError as exc:
+                raise InvalidCaptureError(
+                    str(exc)
+                ) from exc
+                
             if capture is None:
                 return False
 
             session.delete(
                 capture
+            )
+
+            session.flush()
+
+            (
+                CampaignLifecyclePolicy
+                .synchronize_capture_state(
+                    session,
+                    campaign,
+                )
             )
 
             session.commit()

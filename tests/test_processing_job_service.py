@@ -9,14 +9,39 @@ from services.processing_job_service import (
     ProcessingJobService,
 )
 
+from services.capture_service import (
+    CaptureService,
+)
 
 def create_campaign():
 
-    return CampaignService.create_campaign(
-        name="Campaña processing job",
-        sensor_type="RGB",
+    campaign = (
+        CampaignService.create_campaign(
+            name="Campaña processing job",
+            sensor_type="RGB",
+        )
     )
 
+    capture = (
+        CaptureService.create_capture(
+            campaign_id=campaign["id"]
+        )
+    )
+
+    CaptureService.add_asset(
+        capture_id=capture["id"],
+        band="RGB",
+        original_filename="input.jpg",
+        storage_path=(
+            "test/input.jpg"
+        ),
+    )
+
+    return (
+        CampaignService.get_campaign(
+            campaign["id"]
+        )
+    )
 
 def test_create_job_starts_pending():
 

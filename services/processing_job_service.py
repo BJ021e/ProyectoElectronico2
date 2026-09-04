@@ -13,6 +13,10 @@ from models import (
     ProcessingJobStatus,
 )
 
+from services.campaign_lifecycle import (
+    CampaignLifecycleError,
+    CampaignLifecyclePolicy,
+)
 
 class ProcessingJobPersistenceError(Exception):
     """
@@ -116,6 +120,19 @@ class ProcessingJobService:
                     f"{campaign_id} no existe."
                 )
 
+            try:
+                (
+                    CampaignLifecyclePolicy
+                    .assert_processing_allowed(
+                        campaign
+                    )
+                )
+
+            except CampaignLifecycleError as exc:
+                raise InvalidProcessingJobError(
+                    str(exc)
+                ) from exc
+            
             job = ProcessingJob(
                 job_code=(
                     f"TEMP-{uuid4().hex}"
@@ -179,6 +196,16 @@ class ProcessingJobService:
                     f"El trabajo con ID "
                     f"{job_id} no existe."
                 )
+                
+            campaign = session.get(
+                Campaign,
+                job.campaign_id,
+            )
+
+            if campaign is None:
+                raise InvalidProcessingJobError(
+                    "La campaña asociada al trabajo no existe."
+                )    
 
             if (
                 job.status
@@ -186,15 +213,29 @@ class ProcessingJobService:
             ):
                 raise (
                     InvalidProcessingJobTransitionError(
-                        "Solo puede iniciarse un "
-                        "trabajo en estado PENDING."
+                        "Solo puede iniciarse un trabajo en estado PENDING."
+                    )
+                )
+            
+            try:
+                (
+                    CampaignLifecyclePolicy
+                    .mark_processing(
+                        campaign
                     )
                 )
 
+            except CampaignLifecycleError as exc:
+                raise (
+                    InvalidProcessingJobTransitionError(
+                        str(exc)
+                    )
+                ) from exc
+                
             job.status = (
                 ProcessingJobStatus.RUNNING
             )
-
+                
             job.started_at = datetime.now(
                 timezone.utc
             )
@@ -244,17 +285,42 @@ class ProcessingJobService:
                     f"{job_id} no existe."
                 )
 
+            campaign = session.get(
+                Campaign,
+                job.campaign_id,
+            )
+
+            if campaign is None:
+                raise InvalidProcessingJobError(
+                    "La campaña asociada "
+                    "al trabajo no existe."
+                )
+                
             if (
                 job.status
                 != ProcessingJobStatus.RUNNING
             ):
                 raise (
                     InvalidProcessingJobTransitionError(
-                        "Solo puede completarse un "
-                        "trabajo en estado RUNNING."
+                        "Solo puede completarse un trabajo en estado RUNNING."
                     )
                 )
 
+            try:
+                (
+                    CampaignLifecyclePolicy
+                    .mark_completed(
+                        campaign
+                    )
+                )
+
+            except CampaignLifecycleError as exc:
+                raise (
+                    InvalidProcessingJobTransitionError(
+                        str(exc)
+                    )
+                ) from exc
+                
             job.status = (
                 ProcessingJobStatus.COMPLETED
             )
@@ -319,20 +385,52 @@ class ProcessingJobService:
                     f"{job_id} no existe."
                 )
 
+            campaign = session.get(
+                Campaign,
+                job.campaign_id,
+            )
+
+            if campaign is None:
+                raise InvalidProcessingJobError(
+                    "La campaña asociada al trabajo no existe."
+                )
+            previous_status = (
+                job.status
+            )
+            
             if job.status not in {
                 ProcessingJobStatus.PENDING,
                 ProcessingJobStatus.RUNNING,
             }:
                 raise (
                     InvalidProcessingJobTransitionError(
-                        "Solo puede marcarse FAILED "
-                        "un trabajo PENDING o RUNNING."
+                        "Solo puede marcarse FAILED un trabajo PENDING o RUNNING."
                     )
                 )
 
             job.status = (
                 ProcessingJobStatus.FAILED
             )
+            
+            if (
+                previous_status
+                == ProcessingJobStatus.RUNNING
+            ):
+
+                try:
+                    (
+                        CampaignLifecyclePolicy
+                        .mark_error(
+                            campaign
+                        )
+                    )
+
+                except CampaignLifecycleError as exc:
+                    raise (
+                        InvalidProcessingJobTransitionError(
+                            str(exc)
+                        )
+                    ) from exc
 
             job.finished_at = datetime.now(
                 timezone.utc
