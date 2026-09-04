@@ -295,23 +295,61 @@ class DroneService:
     # =================================================
     # SIMULADOR
     # =================================================
-
     @classmethod
-    def configure_simulator(
+    def configure_operation(
         cls,
-        route_id: int,
         *,
-        step_fraction: float = 0.20,
-        initial_battery: float = 100.0,
+        provider: DroneProvider,
+        mission_controller: MissionController,
+        route_id: int,
     ) -> DroneState:
         """
-        Crea un DroneSimulator, carga una Route
-        persistente y lo establece como proveedor
-        activo.
+        Configura atómicamente los componentes técnicos
+        necesarios para ejecutar una operación.
 
-        El simulador queda configurado pero todavía
-        desconectado.
+        DroneService carga la Route persistente, mientras
+        que MissionController se encarga de traducirla
+        al mecanismo técnico correspondiente.
         """
+
+        if not isinstance(
+            provider,
+            DroneProvider
+        ):
+
+            raise InvalidDroneProviderError(
+                "El proveedor no cumple "
+                "el contrato DroneProvider."
+            )
+
+
+        if not isinstance(
+            mission_controller,
+            MissionController
+        ):
+
+            raise DroneServiceError(
+                "El controlador no cumple "
+                "el contrato MissionController."
+            )
+
+
+        if (
+            provider.name
+            !=
+            mission_controller.name
+        ):
+
+            raise DroneServiceError(
+                "El proveedor y el controlador "
+                "de misión no son compatibles: "
+                f"{provider.name} != "
+                f"{mission_controller.name}."
+            )
+
+
+        cls._ensure_provider_change_allowed()
+
 
         try:
 
@@ -322,22 +360,76 @@ class DroneService:
         except RoutePersistenceError as exc:
 
             raise DroneServiceError(
-                f"No fue posible cargar la ruta: {exc}"
+                f"No fue posible cargar "
+                f"la ruta {route_id}: {exc}"
             ) from exc
 
 
         if route is None:
 
             raise DroneServiceError(
-                f"La ruta con ID {route_id} no existe."
+                f"La ruta con ID "
+                f"{route_id} no existe."
             )
 
 
-        waypoints = route.get(
-            "waypoints",
-            []
+        waypoints = (
+            route.get(
+                "waypoints",
+                []
+            )
         )
 
+
+        try:
+
+            mission_controller.configure(
+                waypoints
+            )
+
+        except MissionControllerError as exc:
+
+            raise DroneServiceError(
+                "No fue posible configurar "
+                f"la misión: {exc}"
+            ) from exc
+
+
+        #
+        # set_provider() libera correctamente
+        # el runtime anterior.
+        #
+        cls.set_provider(
+            provider
+        )
+
+
+        with cls._lock:
+
+            cls._mission_controller = (
+                mission_controller
+            )
+
+            cls._active_route_id = (
+                route_id
+            )
+
+
+        return provider.get_state()
+    
+    @classmethod
+    def configure_simulator(
+        cls,
+        route_id: int,
+        *,
+        step_fraction: float = 0.20,
+        initial_battery: float = 100.0,
+    ) -> DroneState:
+        """
+        Construye los componentes específicos
+        de simulación y delega la configuración
+        operacional común.
+        """
 
         simulator = DroneSimulator(
             step_fraction=step_fraction,
@@ -345,50 +437,31 @@ class DroneService:
         )
 
 
-        try:
-
-            simulator.load_route(
-                waypoints
-            )
-
-        except DroneSimulatorError as exc:
-
-            raise DroneServiceError(
-                "No fue posible configurar "
-                f"el simulador: {exc}"
-            ) from exc
-
-
-        #
-        # set_provider() valida el lifecycle y libera
-        # correctamente el runtime anterior.
-        #
-        cls.set_provider(
-            simulator
-        )
-
-
         runner = SimulationRunner(
             simulator=simulator,
-            on_state=cls._handle_simulation_state,
+            on_state=cls._handle_mission_state,
         )
+
 
         controller = SimulatorMissionController(
             simulator=simulator,
             runner=runner,
         )
 
+
+        state = cls.configure_operation(
+            provider=simulator,
+            mission_controller=controller,
+            route_id=route_id,
+        )
+
+
         with cls._lock:
 
             cls._simulation_runner = runner
-            
-            cls._mission_controller = controller
-
-            cls._active_route_id = route_id
 
 
-        return simulator.get_state()
-
+        return state
 
     @classmethod
     def get_active_route_id(
@@ -606,27 +679,40 @@ class DroneService:
         initial_battery: float = 100.0,
     ) -> dict:
         """
-        Prepara una operación simulada completa:
-
-        1. configura DroneSimulator;
-        2. crea un Flight persistente;
-        3. asigna la Route al Flight;
-        4. conserva ambos IDs como contexto operacional.
-
-        El Flight queda creado, pero todavía no iniciado.
+        Prepara una operación utilizando
+        el proveedor de simulación.
         """
 
         cls._validate_new_operation_allowed()
-        
-        #
-        # Primero configuramos y validamos la ruta.
-        #
+
+
         state = cls.configure_simulator(
             route_id,
             step_fraction=step_fraction,
             initial_battery=initial_battery,
         )
 
+
+        return cls._register_prepared_flight(
+            route_id=route_id,
+            name=name,
+            state=state,
+        )
+    
+    @classmethod
+    def _register_prepared_flight(
+        cls,
+        *,
+        route_id: int,
+        name: str,
+        state: DroneState,
+    ) -> dict:
+        """
+        Crea el Flight persistente, le asigna la Route
+        configurada y registra el contexto operacional.
+
+        No conoce el proveedor técnico utilizado.
+        """
 
         try:
 
@@ -643,7 +729,7 @@ class DroneService:
             assignment = (
                 FlightRouteService.assign_route(
                     flight_id,
-                    route_id
+                    route_id,
                 )
             )
 
@@ -653,16 +739,14 @@ class DroneService:
             InvalidFlightRouteAssignmentError,
         ) as exc:
 
-            #
-            # No dejamos un Flight activo en memoria
-            # si la preparación falló.
-            #
             with cls._lock:
+
                 cls._active_flight_id = None
 
+
             raise DroneServiceError(
-                f"No fue posible preparar "
-                f"el vuelo simulado: {exc}"
+                "No fue posible registrar "
+                f"la operación preparada: {exc}"
             ) from exc
 
 
@@ -684,10 +768,42 @@ class DroneService:
 
             "route_id": route_id,
 
-            "provider": cls.get_provider_name(),
+            "provider":
+                cls.get_provider_name(),
 
-            "state": state.to_dict(),
+            "state":
+                state.to_dict(),
         }
+    
+    @classmethod
+    def prepare_operation(
+        cls,
+        *,
+        provider: DroneProvider,
+        mission_controller: MissionController,
+        route_id: int,
+        name: str = "Operación de vuelo",
+    ) -> dict:
+        """
+        Prepara una operación independientemente
+        del proveedor técnico utilizado.
+        """
+
+        cls._validate_new_operation_allowed()
+
+
+        state = cls.configure_operation(
+            provider=provider,
+            mission_controller=mission_controller,
+            route_id=route_id,
+        )
+
+
+        return cls._register_prepared_flight(
+            route_id=route_id,
+            name=name,
+            state=state,
+        )
             
     @classmethod
     def _require_simulator(
@@ -840,7 +956,6 @@ class DroneService:
                 cls._require_simulator()
             )
 
-
             try:
 
                 state = (
@@ -853,24 +968,18 @@ class DroneService:
                     str(exc)
                 ) from exc
 
-
-            simulator_still_running = (
+            mission_running = (
                 simulator.is_running
             )
 
 
-        cls._persist_active_flight_state(
-            state
+        cls._handle_mission_state(
+            state,
+            mission_running,
         )
 
 
-        if not simulator_still_running:
-
-            cls._complete_active_flight()
-
-
         return state
-
 
     @classmethod
     def simulator_reset(
@@ -1143,18 +1252,18 @@ class DroneService:
         return cls.simulator_auto_status()
     
     @classmethod
-    def _handle_simulation_state(
+    def _handle_mission_state(
         cls,
         state: DroneState,
-        simulator_still_running: bool,
+        mission_running: bool,
     ) -> None:
         """
-        Procesa un nuevo estado generado
-        por SimulationRunner.
+        Procesa un nuevo estado producido durante
+        la ejecución técnica de una misión.
 
-        Esta función pertenece a DroneService
-        porque contiene lógica de negocio y
-        persistencia.
+        Esta función concentra la lógica operacional
+        común de persistencia y finalización del Flight,
+        independientemente del origen de telemetría.
         """
 
         cls._persist_active_flight_state(
@@ -1162,7 +1271,7 @@ class DroneService:
         )
 
 
-        if not simulator_still_running:
+        if not mission_running:
 
             cls._complete_active_flight()
             
@@ -1367,7 +1476,7 @@ class DroneService:
 
         try:
 
-            runtime = (
+            status = (
                 controller.status()
             )
 
@@ -1379,40 +1488,27 @@ class DroneService:
             ) from exc
 
 
-        running = bool(
-            runtime.get(
-                "auto_running",
-                False
-            )
-        )
-
-
-        execution_active = bool(
-            runtime.get(
-                "simulator_running",
-                False
-            )
-        )
-
-
-        paused = (
-            execution_active
-            and
-            not running
-        )
-
-
         return {
             "configured": True,
 
             "running":
-                running,
+                bool(
+                    status.get(
+                        "running",
+                        False
+                    )
+                ),
 
             "paused":
-                paused,
+                bool(
+                    status.get(
+                        "paused",
+                        False
+                    )
+                ),
 
             "last_error":
-                runtime.get(
+                status.get(
                     "last_error"
                 ),
 

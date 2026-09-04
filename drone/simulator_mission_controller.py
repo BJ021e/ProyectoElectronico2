@@ -44,7 +44,28 @@ class SimulatorMissionController:
 
         return "SIMULATOR"
 
+    def configure(
+        self,
+        waypoints: list[dict],
+    ) -> None:
+        """
+        Configura técnicamente la ruta
+        que ejecutará el simulador.
+        """
 
+        try:
+
+            self._simulator.load_route(
+                waypoints
+            )
+
+        except DroneSimulatorError as exc:
+
+            raise MissionControllerError(
+                "No fue posible configurar "
+                f"la misión simulada: {exc}"
+            ) from exc
+    
     def initialize(
         self
     ) -> DroneState:
@@ -145,5 +166,50 @@ class SimulatorMissionController:
     def status(
         self
     ) -> dict:
+        """
+        Devuelve el estado de misión normalizado.
 
-        return self._runner.status()
+        Los detalles internos de SimulationRunner
+        no se exponen fuera del controlador.
+        """
+
+        runtime = (
+            self._runner.status()
+        )
+
+
+        running = bool(
+            runtime.get(
+                "auto_running",
+                False
+            )
+        )
+
+
+        execution_active = bool(
+            runtime.get(
+                "simulator_running",
+                False
+            )
+        )
+
+
+        paused = (
+            execution_active
+            and
+            not running
+        )
+
+
+        return {
+            "running":
+                running,
+
+            "paused":
+                paused,
+
+            "last_error":
+                runtime.get(
+                    "last_error"
+                ),
+        }

@@ -1,14 +1,16 @@
 from __future__ import annotations
 
-from threading import RLock
-
+from drone.dji_backend import (
+    DJIBackend,
+    DJIBackendError,
+)
 from drone.state import DroneState
 
 
 class DJIProviderError(RuntimeError):
     """
-    Error específico de la integración
-    con un proveedor DJI.
+    Error específico del proveedor DJI utilizado
+    por la aplicación.
     """
 
     pass
@@ -16,29 +18,29 @@ class DJIProviderError(RuntimeError):
 
 class DJIProvider:
     """
-    Proveedor para una futura integración
-    con hardware DJI real.
+    Adapter entre DroneProvider y un backend DJI.
 
-    En esta etapa todavía no existe un backend
-    de comunicación DJI configurado.
-
-    Por ello:
-
-    - get_state() puede informar que el proveedor
-      está desconectado;
-    - connect() rechaza explícitamente la conexión;
-    - no se generan datos de telemetría artificiales.
+    DJIProvider no conoce el mecanismo real de
+    comunicación utilizado debajo.
     """
 
     def __init__(
-        self
+        self,
+        backend: DJIBackend,
     ) -> None:
 
-        self._lock = RLock()
+        if not isinstance(
+            backend,
+            DJIBackend
+        ):
 
-        self._connected = False
+            raise DJIProviderError(
+                "El backend no cumple "
+                "el contrato DJIBackend."
+            )
 
-        self._aircraft_online = False
+
+        self._backend = backend
 
 
     @property
@@ -49,80 +51,59 @@ class DJIProvider:
         return "DJI"
 
 
+    @property
+    def backend_name(
+        self
+    ) -> str:
+
+        return self._backend.name
+
+
     def connect(
         self
     ) -> DroneState:
-        """
-        Intenta establecer conexión con DJI.
 
-        Actualmente no existe un backend DJI real,
-        por lo que la operación se rechaza
-        explícitamente.
-        """
+        try:
 
-        raise DJIProviderError(
-            "DJIProvider todavía no tiene "
-            "un backend DJI configurado."
-        )
+            return self._backend.connect()
+
+        except DJIBackendError as exc:
+
+            raise DJIProviderError(
+                "No fue posible conectar "
+                f"mediante el backend "
+                f"{self._backend.name}: {exc}"
+            ) from exc
 
 
     def disconnect(
         self
     ) -> DroneState:
-        """
-        Deja al proveedor en estado desconectado.
 
-        Esta operación es segura incluso si todavía
-        no existe hardware DJI conectado.
-        """
+        try:
 
-        with self._lock:
+            return self._backend.disconnect()
 
-            self._connected = False
+        except DJIBackendError as exc:
 
-            self._aircraft_online = False
-
-
-        return self.get_state()
+            raise DJIProviderError(
+                "No fue posible desconectar "
+                f"mediante el backend "
+                f"{self._backend.name}: {exc}"
+            ) from exc
 
 
     def get_state(
         self
     ) -> DroneState:
-        """
-        Devuelve el último estado conocido.
 
-        Mientras no exista integración DJI real,
-        los valores de telemetría permanecen None.
-        """
+        try:
 
-        with self._lock:
+            return self._backend.get_state()
 
-            connected = (
-                self._connected
-            )
+        except DJIBackendError as exc:
 
-            aircraft_online = (
-                self._aircraft_online
-            )
-
-
-        return DroneState(
-            provider=self.name,
-
-            connected=connected,
-
-            aircraft_online=aircraft_online,
-
-            latitude=None,
-            longitude=None,
-
-            altitude=None,
-            speed=None,
-            heading=None,
-
-            battery=None,
-            gps_sats=None,
-
-            flight_mode=None,
-        )
+            raise DJIProviderError(
+                "No fue posible obtener "
+                f"el estado DJI: {exc}"
+            ) from exc
