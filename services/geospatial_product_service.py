@@ -639,3 +639,119 @@ class GeospatialProductService:
 
         finally:
             session.close()
+            
+    @classmethod
+    def delete_products_for_job(
+        cls,
+        processing_job_id: int,
+    ) -> int:
+        """
+        Elimina todos los productos asociados a un
+        trabajo de procesamiento y sus archivos físicos
+        administrados.
+        """
+
+        session = SessionLocal()
+
+        managed_paths = []
+
+        try:
+            statement = (
+                select(GeospatialProduct)
+                .where(
+                    GeospatialProduct.processing_job_id
+                    == processing_job_id
+                )
+                .order_by(
+                    GeospatialProduct.id.desc()
+                )
+            )
+
+            products = session.scalars(
+                statement
+            ).all()
+
+            storage_root = (
+                cls._storage_root().resolve()
+            )
+
+            for product in products:
+
+                candidate = (
+                    storage_root
+                    / Path(
+                        product.storage_path
+                    )
+                ).resolve()
+
+                try:
+                    candidate.relative_to(
+                        storage_root
+                    )
+
+                except ValueError as exc:
+                    raise (
+                        InvalidGeospatialProductError(
+                            "La ruta del producto "
+                            "no pertenece al "
+                            "almacenamiento administrado."
+                        )
+                    ) from exc
+
+                managed_paths.append(
+                    candidate
+                )
+
+                session.delete(
+                    product
+                )
+
+            deleted_count = len(
+                products
+            )
+
+            session.commit()
+
+        except InvalidGeospatialProductError:
+            session.rollback()
+            raise
+
+        except SQLAlchemyError as exc:
+            session.rollback()
+
+            raise GeospatialProductPersistenceError(
+                "No fue posible revertir "
+                "los productos del trabajo "
+                f"{processing_job_id}: {exc}"
+            ) from exc
+
+        finally:
+            session.close()
+
+        cleanup_errors = []
+
+        for managed_path in managed_paths:
+
+            if not managed_path.exists():
+                continue
+
+            try:
+                managed_path.unlink()
+
+            except OSError as exc:
+                cleanup_errors.append(
+                    f"{managed_path}: {exc}"
+                )
+
+        if cleanup_errors:
+            raise GeospatialProductPersistenceError(
+                "Los productos fueron eliminados "
+                "de la base de datos, pero algunos "
+                "archivos físicos no pudieron "
+                "eliminarse: "
+                + " | ".join(
+                    cleanup_errors
+                )
+            )
+
+        return deleted_count

@@ -95,6 +95,46 @@ class ImageIngestionService:
             / configured
         ).resolve()
 
+    @classmethod
+    def resolve_managed_path(
+        cls,
+        storage_path: str,
+    ) -> Path:
+        """
+        Resuelve una ruta relativa administrada evitando
+        que pueda escapar del directorio de campañas.
+        """
+
+        if (
+            not isinstance(storage_path, str)
+            or not storage_path.strip()
+        ):
+            raise ImageIngestionError(
+                "storage_path no es válido."
+            )
+
+        storage_root = (
+            cls._storage_root().resolve()
+        )
+
+        candidate = (
+            storage_root
+            / Path(storage_path)
+        ).resolve()
+
+        try:
+            candidate.relative_to(
+                storage_root
+            )
+
+        except ValueError as exc:
+            raise ImageIngestionError(
+                "La ruta administrada intenta "
+                "salir del almacenamiento permitido."
+            ) from exc
+
+        return candidate
+    
     @staticmethod
     def _validate_file_exists(
         source_path: Path,
