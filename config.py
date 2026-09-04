@@ -78,3 +78,8 @@ class Config:
         "CAMPAIGN_STORAGE_ROOT",
         "data/campaigns",
     )
+    
+    PHOTOGRAMMETRY_BACKEND = os.getenv(
+        "PHOTOGRAMMETRY_BACKEND",
+        "MOCK",
+    ).strip().upper()

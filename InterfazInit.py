@@ -51,6 +51,41 @@ from services.drone_service import (
     DroneProviderNotConfiguredError,
 )
 
+from services.campaign_service import (
+    CampaignPersistenceError,
+    CampaignService,
+    InvalidCampaignError,
+)
+
+from services.capture_service import (
+    CapturePersistenceError,
+    CaptureService,
+    InvalidCaptureError,
+)
+
+from services.processing_job_service import (
+    InvalidProcessingJobError,
+    ProcessingJobPersistenceError,
+    ProcessingJobService,
+)
+
+from services.geospatial_product_service import (
+    GeospatialProductPersistenceError,
+    GeospatialProductService,
+    InvalidGeospatialProductError,
+)
+
+from services.processing_service import (
+    InvalidCampaignProcessingError,
+    ProcessingExecutionError,
+    ProcessingService,
+)
+
+from services.photogrammetry_backend_factory import (
+    PhotogrammetryBackendConfigurationError,
+    PhotogrammetryBackendFactory,
+)
+
 app = Flask(__name__)
 app.secret_key = Config.SECRET_KEY
 
@@ -1332,6 +1367,359 @@ def api_drone_operation_disconnect():
             "error": True,
             "msg": str(exc),
         }), 400
+        
+@app.route(
+    "/api/campaigns",
+    methods=["GET"],
+)
+def api_list_campaigns():
+    try:
+        limit = request.args.get(
+            "limit",
+            default=50,
+            type=int,
+        )
+
+        campaigns = (
+            CampaignService.list_campaigns(
+                limit=limit,
+            )
+        )
+
+        return jsonify({
+            "campaigns": campaigns,
+            "count": len(campaigns),
+        })
+
+    except CampaignPersistenceError as exc:
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 500
+
+
+@app.route(
+    "/api/campaigns",
+    methods=["POST"],
+)
+def api_create_campaign():
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    try:
+        campaign = (
+            CampaignService.create_campaign(
+                name=data.get("name"),
+                sensor_type=data.get(
+                    "sensor_type"
+                ),
+                sensor_model=data.get(
+                    "sensor_model"
+                ),
+                flight_id=data.get(
+                    "flight_id"
+                ),
+                description=data.get(
+                    "description"
+                ),
+                notes=data.get(
+                    "notes"
+                ),
+            )
+        )
+
+        return jsonify(
+            campaign
+        ), 201
+
+    except InvalidCampaignError as exc:
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 400
+
+    except CampaignPersistenceError as exc:
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 500
+
+
+@app.route(
+    "/api/campaigns/<int:campaign_id>",
+    methods=["GET"],
+)
+def api_get_campaign(campaign_id):
+    try:
+        campaign = (
+            CampaignService.get_campaign(
+                campaign_id
+            )
+        )
+
+        if campaign is None:
+            return jsonify({
+                "error": True,
+                "msg": (
+                    "La campaña con ID "
+                    f"{campaign_id} no existe."
+                ),
+            }), 404
+
+        return jsonify(
+            campaign
+        )
+
+    except CampaignPersistenceError as exc:
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 500
+        
+@app.route(
+    "/api/campaigns/<int:campaign_id>/captures",
+    methods=["GET"],
+)
+def api_list_campaign_captures(
+    campaign_id
+):
+    try:
+        campaign = (
+            CampaignService.get_campaign(
+                campaign_id
+            )
+        )
+
+        if campaign is None:
+            return jsonify({
+                "error": True,
+                "msg": (
+                    "La campaña con ID "
+                    f"{campaign_id} no existe."
+                ),
+            }), 404
+
+        captures = (
+            CaptureService.list_captures(
+                campaign_id
+            )
+        )
+
+        return jsonify({
+            "campaign_id": campaign_id,
+            "captures": captures,
+            "count": len(captures),
+        })
+
+    except (
+        InvalidCaptureError,
+        CapturePersistenceError,
+    ) as exc:
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 500
+        
+@app.route(
+    "/api/campaigns/<int:campaign_id>/processing-jobs",
+    methods=["GET"],
+)
+def api_list_campaign_processing_jobs(
+    campaign_id
+):
+    try:
+        campaign = (
+            CampaignService.get_campaign(
+                campaign_id
+            )
+        )
+
+        if campaign is None:
+            return jsonify({
+                "error": True,
+                "msg": (
+                    "La campaña con ID "
+                    f"{campaign_id} no existe."
+                ),
+            }), 404
+
+        jobs = (
+            ProcessingJobService.list_jobs(
+                campaign_id
+            )
+        )
+
+        return jsonify({
+            "campaign_id": campaign_id,
+            "jobs": jobs,
+            "count": len(jobs),
+        })
+
+    except (
+        InvalidProcessingJobError,
+        ProcessingJobPersistenceError,
+    ) as exc:
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 500
+        
+@app.route(
+    "/api/campaigns/<int:campaign_id>/products",
+    methods=["GET"],
+)
+def api_list_campaign_products(
+    campaign_id
+):
+    try:
+        campaign = (
+            CampaignService.get_campaign(
+                campaign_id
+            )
+        )
+
+        if campaign is None:
+            return jsonify({
+                "error": True,
+                "msg": (
+                    "La campaña con ID "
+                    f"{campaign_id} no existe."
+                ),
+            }), 404
+
+        product_type = request.args.get(
+            "type"
+        )
+
+        products = (
+            GeospatialProductService
+            .list_products(
+                campaign_id,
+                product_type=product_type,
+            )
+        )
+
+        return jsonify({
+            "campaign_id": campaign_id,
+            "products": products,
+            "count": len(products),
+        })
+
+    except InvalidGeospatialProductError as exc:
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 400
+
+    except GeospatialProductPersistenceError as exc:
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 500
+
+
+@app.route(
+    "/api/geospatial-products/<int:product_id>",
+    methods=["GET"],
+)
+def api_get_geospatial_product(
+    product_id
+):
+    try:
+        product = (
+            GeospatialProductService
+            .get_product(
+                product_id
+            )
+        )
+
+        if product is None:
+            return jsonify({
+                "error": True,
+                "msg": (
+                    "El producto geoespacial "
+                    f"con ID {product_id} "
+                    "no existe."
+                ),
+            }), 404
+
+        return jsonify(
+            product
+        )
+
+    except GeospatialProductPersistenceError as exc:
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 500
+        
+@app.route(
+    "/api/campaigns/<int:campaign_id>/process",
+    methods=["POST"],
+)
+def api_process_campaign(
+    campaign_id
+):
+    try:
+        campaign = (
+            CampaignService.get_campaign(
+                campaign_id
+            )
+        )
+
+        if campaign is None:
+            return jsonify({
+                "error": True,
+                "msg": (
+                    "La campaña con ID "
+                    f"{campaign_id} no existe."
+                ),
+            }), 404
+
+        backend = (
+            PhotogrammetryBackendFactory
+            .create()
+        )
+
+        result = (
+            ProcessingService.process_campaign(
+                campaign_id=campaign_id,
+                backend=backend,
+            )
+        )
+
+        return jsonify(
+            result
+        ), 201
+
+    except (
+        InvalidCampaignProcessingError,
+        InvalidCampaignError,
+    ) as exc:
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 400
+
+    except (
+        ProcessingExecutionError,
+        PhotogrammetryBackendConfigurationError,
+    ) as exc:
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 500
+
+    except (
+        CampaignPersistenceError,
+        ProcessingJobPersistenceError,
+        GeospatialProductPersistenceError,
+    ) as exc:
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 500
        
 if __name__ == "__main__":
     app.run(
