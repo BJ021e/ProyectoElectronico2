@@ -2,6 +2,7 @@
 <html lang="es">
 
 <head>
+
     <meta charset="UTF-8">
 
     <meta
@@ -25,76 +26,1794 @@
             color: #f8fafc;
         }
 
-        .page {
+        .campaign-detail-page {
             min-height: 100vh;
             padding: 32px;
         }
 
-        .container {
+        .campaign-detail-container {
             max-width: 1400px;
             margin: 0 auto;
         }
 
-        .back-button {
-            display: inline-block;
+        /* =========================================
+           HEADER
+           ========================================= */
 
-            margin-bottom: 24px;
-
-            text-decoration: none;
-            color: #e2e8f0;
-
-            border: 1px solid #334155;
-            border-radius: 8px;
-
-            padding: 10px 16px;
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 24px;
+            margin-bottom: 28px;
         }
 
-        .placeholder {
+        .detail-title h1 {
+            margin: 0;
+            font-size: 2rem;
+        }
+
+        .detail-title p {
+            margin: 8px 0 0 0;
+            color: #94a3b8;
+        }
+
+        .header-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .button {
+            border: 1px solid #3b82f6;
+            background: transparent;
+            color: #60a5fa;
+
+            padding: 10px 15px;
+            border-radius: 8px;
+
+            cursor: pointer;
+
+            text-decoration: none;
+            display: inline-block;
+
+            font-weight: 600;
+            font-size: 0.88rem;
+        }
+
+        .button:hover {
+            background:
+                rgba(59, 130, 246, 0.1);
+        }
+
+        .button-primary {
+            background: #2563eb;
+            color: #ffffff;
+        }
+
+        .button-primary:hover {
+            background: #1d4ed8;
+        }
+
+        .button-secondary {
+            color: #e2e8f0;
+            border-color: #334155;
+        }
+
+        .button:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        /* =========================================
+           SUMMARY
+           ========================================= */
+
+        .summary-grid {
+            display: grid;
+
+            grid-template-columns:
+                repeat(
+                    auto-fit,
+                    minmax(180px, 1fr)
+                );
+
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .summary-card {
+            background: #1e293b;
+
+            border: 1px solid #334155;
+            border-radius: 12px;
+
+            padding: 18px;
+        }
+
+        .summary-label {
+            color: #94a3b8;
+
+            font-size: 0.78rem;
+            text-transform: uppercase;
+
+            margin-bottom: 8px;
+        }
+
+        .summary-value {
+            font-size: 1.15rem;
+            font-weight: 700;
+        }
+
+        /* =========================================
+           STATUS
+           ========================================= */
+
+        .badge {
+            display: inline-block;
+
+            padding: 5px 10px;
+            border-radius: 999px;
+
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .status-created {
+            background:
+                rgba(245, 158, 11, 0.15);
+
+            color: #fbbf24;
+        }
+
+        .status-capturing {
+            background:
+                rgba(59, 130, 246, 0.15);
+
+            color: #60a5fa;
+        }
+
+        .status-ready {
+            background:
+                rgba(34, 211, 238, 0.15);
+
+            color: #22d3ee;
+        }
+
+        .status-processing,
+        .status-running {
+            background:
+                rgba(192, 132, 252, 0.15);
+
+            color: #c084fc;
+        }
+
+        .status-completed {
+            background:
+                rgba(16, 185, 129, 0.15);
+
+            color: #34d399;
+        }
+
+        .status-error,
+        .status-failed {
+            background:
+                rgba(239, 68, 68, 0.15);
+
+            color: #f87171;
+        }
+
+        .status-pending {
+            background:
+                rgba(245, 158, 11, 0.15);
+
+            color: #fbbf24;
+        }
+
+        .status-other {
+            background:
+                rgba(148, 163, 184, 0.15);
+
+            color: #cbd5e1;
+        }
+
+        /* =========================================
+           CAMPAIGN INFO
+           ========================================= */
+
+        .campaign-information {
+            display: grid;
+
+            grid-template-columns:
+                repeat(
+                    auto-fit,
+                    minmax(240px, 1fr)
+                );
+
+            gap: 14px;
+        }
+
+        .information-item {
+            background: #111827;
+
+            border: 1px solid #334155;
+            border-radius: 9px;
+
+            padding: 14px;
+        }
+
+        .information-label {
+            color: #94a3b8;
+            font-size: 0.78rem;
+            margin-bottom: 6px;
+        }
+
+        .information-value {
+            color: #e2e8f0;
+            font-weight: 600;
+        }
+
+        /* =========================================
+           SECTIONS
+           ========================================= */
+
+        .section-card {
             background: #1e293b;
 
             border: 1px solid #334155;
             border-radius: 14px;
 
-            padding: 40px;
+            padding: 22px;
+
+            margin-bottom: 24px;
+        }
+
+        .section-header {
+            display: flex;
+
+            align-items: center;
+            justify-content: space-between;
+
+            gap: 16px;
+
+            margin-bottom: 18px;
+        }
+
+        .section-title {
+            margin: 0;
+            font-size: 1.15rem;
+        }
+
+        .section-count {
+            color: #94a3b8;
+            font-size: 0.82rem;
+        }
+
+        /* =========================================
+           TABLES
+           ========================================= */
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .detail-table th,
+        .detail-table td {
+            padding: 13px 14px;
+
+            text-align: left;
+
+            border-bottom:
+                1px solid #334155;
+        }
+
+        .detail-table th {
+            color: #94a3b8;
+
+            text-transform: uppercase;
+            font-size: 0.75rem;
+        }
+
+        .detail-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .primary-value {
+            font-weight: 700;
+        }
+
+        .secondary-value {
+            margin-top: 5px;
 
             color: #94a3b8;
+            font-size: 0.78rem;
+        }
+
+        /* =========================================
+           CAPTURE ASSETS
+           ========================================= */
+
+        .asset-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .asset-badge {
+            display: inline-block;
+
+            padding: 4px 7px;
+            border-radius: 6px;
+
+            background: #0f172a;
+
+            border: 1px solid #334155;
+
+            color: #cbd5e1;
+            font-size: 0.72rem;
+        }
+
+        /* =========================================
+           PRODUCTS
+           ========================================= */
+
+        .product-type {
+            color: #60a5fa;
+            font-weight: 700;
+        }
+
+        /* =========================================
+           STATES
+           ========================================= */
+
+        .loading-state,
+        .empty-state,
+        .error-state {
+            padding: 38px 20px;
+
+            text-align: center;
+            color: #94a3b8;
+        }
+
+        .error-state {
+            color: #f87171;
+        }
+
+        .processing-message {
+            margin-top: 12px;
+
+            min-height: 20px;
+
+            color: #94a3b8;
+            font-size: 0.85rem;
+        }
+
+        .processing-message.success {
+            color: #34d399;
+        }
+
+        .processing-message.error {
+            color: #f87171;
+        }
+
+        /* =========================================
+           RESPONSIVE
+           ========================================= */
+
+        @media (max-width: 800px) {
+
+            .campaign-detail-page {
+                padding: 18px;
+            }
+
+            .detail-header {
+                flex-direction: column;
+            }
+
         }
 
     </style>
 
 </head>
 
+
 <body>
 
-<div class="page">
+<div class="campaign-detail-page">
 
-    <div class="container">
+    <div class="campaign-detail-container">
 
-        <a
-            href="/campaigns"
-            class="back-button"
+
+        <!-- =====================================
+             HEADER
+             ===================================== -->
+
+        <header class="detail-header">
+
+            <div class="detail-title">
+
+                <h1 id="campaignCode">
+                    Detalle de campaña
+                </h1>
+
+                <p id="campaignName">
+                    Cargando información...
+                </p>
+
+            </div>
+
+
+            <div class="header-actions">
+
+                <a
+                    href="/campaigns"
+                    class="
+                        button
+                        button-secondary
+                    "
+                >
+                    Volver a campañas
+                </a>
+
+                <button
+                    id="processCampaignButton"
+                    type="button"
+                    class="
+                        button
+                        button-primary
+                    "
+                    disabled
+                >
+                    Procesar campaña
+                </button>
+
+            </div>
+
+        </header>
+
+
+        <!-- =====================================
+             LOADING
+             ===================================== -->
+
+        <div
+            id="campaignLoading"
+            class="loading-state"
         >
-            Volver a campañas
-        </a>
-
-        <h1>
-            Detalle de campaña
-        </h1>
-
-        <div class="placeholder">
-
-            Preparando campaña
-            {{ campaign_id }}...
-
+            Cargando campaña...
         </div>
+
+
+        <!-- =====================================
+             CONTENT
+             ===================================== -->
+
+        <main
+            id="campaignContent"
+            style="display: none;"
+        >
+
+
+            <!-- SUMMARY -->
+
+            <section class="summary-grid">
+
+                <div class="summary-card">
+
+                    <div class="summary-label">
+                        Estado
+                    </div>
+
+                    <div
+                        id="summaryStatus"
+                        class="summary-value"
+                    >
+                        --
+                    </div>
+
+                </div>
+
+
+                <div class="summary-card">
+
+                    <div class="summary-label">
+                        Capturas
+                    </div>
+
+                    <div
+                        id="summaryCaptures"
+                        class="summary-value"
+                    >
+                        0
+                    </div>
+
+                </div>
+
+
+                <div class="summary-card">
+
+                    <div class="summary-label">
+                        Trabajos
+                    </div>
+
+                    <div
+                        id="summaryJobs"
+                        class="summary-value"
+                    >
+                        0
+                    </div>
+
+                </div>
+
+
+                <div class="summary-card">
+
+                    <div class="summary-label">
+                        Productos
+                    </div>
+
+                    <div
+                        id="summaryProducts"
+                        class="summary-value"
+                    >
+                        0
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- INFORMACIÓN GENERAL -->
+
+            <section class="section-card">
+
+                <div class="section-header">
+
+                    <h2 class="section-title">
+                        Información general
+                    </h2>
+
+                </div>
+
+
+                <div class="campaign-information">
+
+                    <div class="information-item">
+
+                        <div class="information-label">
+                            Tipo de sensor
+                        </div>
+
+                        <div
+                            id="sensorType"
+                            class="information-value"
+                        >
+                            --
+                        </div>
+
+                    </div>
+
+
+                    <div class="information-item">
+
+                        <div class="information-label">
+                            Modelo
+                        </div>
+
+                        <div
+                            id="sensorModel"
+                            class="information-value"
+                        >
+                            --
+                        </div>
+
+                    </div>
+
+
+                    <div class="information-item">
+
+                        <div class="information-label">
+                            Fecha de adquisición
+                        </div>
+
+                        <div
+                            id="acquiredAt"
+                            class="information-value"
+                        >
+                            --
+                        </div>
+
+                    </div>
+
+
+                    <div class="information-item">
+
+                        <div class="information-label">
+                            Creada
+                        </div>
+
+                        <div
+                            id="createdAt"
+                            class="information-value"
+                        >
+                            --
+                        </div>
+
+                    </div>
+
+
+                    <div class="information-item">
+
+                        <div class="information-label">
+                            Vuelo relacionado
+                        </div>
+
+                        <div
+                            id="flightId"
+                            class="information-value"
+                        >
+                            --
+                        </div>
+
+                    </div>
+
+
+                    <div class="information-item">
+
+                        <div class="information-label">
+                            Descripción
+                        </div>
+
+                        <div
+                            id="description"
+                            class="information-value"
+                        >
+                            --
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- CAPTURAS -->
+
+            <section class="section-card">
+
+                <div class="section-header">
+
+                    <h2 class="section-title">
+                        Capturas
+                    </h2>
+
+                    <span
+                        id="captureCount"
+                        class="section-count"
+                    >
+                        0 capturas
+                    </span>
+
+                </div>
+
+
+                <div id="capturesContainer">
+
+                    <div class="loading-state">
+                        Cargando capturas...
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- PROCESSING -->
+
+            <section class="section-card">
+
+                <div class="section-header">
+
+                    <h2 class="section-title">
+                        Procesamiento
+                    </h2>
+
+                    <span
+                        id="jobCount"
+                        class="section-count"
+                    >
+                        0 trabajos
+                    </span>
+
+                </div>
+
+
+                <div id="jobsContainer">
+
+                    <div class="loading-state">
+                        Cargando trabajos...
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="processingMessage"
+                    class="processing-message"
+                ></div>
+
+            </section>
+
+
+            <!-- PRODUCTS -->
+
+            <section class="section-card">
+
+                <div class="section-header">
+
+                    <h2 class="section-title">
+                        Productos geoespaciales
+                    </h2>
+
+                    <span
+                        id="productCount"
+                        class="section-count"
+                    >
+                        0 productos
+                    </span>
+
+                </div>
+
+
+                <div id="productsContainer">
+
+                    <div class="loading-state">
+                        Cargando productos...
+                    </div>
+
+                </div>
+
+            </section>
+
+
+        </main>
 
     </div>
 
 </div>
 
+
 <script>
-    const CAMPAIGN_ID =
-        {{ campaign_id | tojson }};
+
+const CAMPAIGN_ID =
+    {{ campaign_id | tojson }};
+
+let currentCampaign = null;
+let currentCaptures = [];
+let currentJobs = [];
+let currentProducts = [];
+
+let processingInProgress = false;
+
+
+/* ===============================================
+   UTILIDADES
+   =============================================== */
+
+function escapeHtml(value) {
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+        return "";
+    }
+
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+
+function formatDate(value) {
+
+    if (!value) {
+        return "--";
+    }
+
+    const date =
+        new Date(value);
+
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+        return value;
+    }
+
+    return date.toLocaleString();
+}
+
+
+function formatNumber(
+    value,
+    decimals = 2
+) {
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+        return "--";
+    }
+
+    const number =
+        Number(value);
+
+    if (!Number.isFinite(number)) {
+        return "--";
+    }
+
+    return number.toFixed(
+        decimals
+    );
+}
+
+
+function getStatusClass(status) {
+
+    switch (status) {
+
+        case "CREATED":
+            return "status-created";
+
+        case "CAPTURING":
+            return "status-capturing";
+
+        case "READY":
+            return "status-ready";
+
+        case "PROCESSING":
+            return "status-processing";
+
+        case "RUNNING":
+            return "status-running";
+
+        case "PENDING":
+            return "status-pending";
+
+        case "COMPLETED":
+            return "status-completed";
+
+        case "ERROR":
+            return "status-error";
+
+        case "FAILED":
+            return "status-failed";
+
+        default:
+            return "status-other";
+    }
+}
+
+
+function statusBadge(status) {
+
+    const safeStatus =
+        escapeHtml(
+            status ?? "--"
+        );
+
+    return `
+        <span
+            class="
+                badge
+                ${getStatusClass(status)}
+            "
+        >
+            ${safeStatus}
+        </span>
+    `;
+}
+
+
+/* ===============================================
+   CAMPAÑA
+   =============================================== */
+
+function renderCampaign(
+    campaign
+) {
+
+    document.getElementById(
+        "campaignCode"
+    ).textContent =
+        campaign.campaign_code;
+
+    document.getElementById(
+        "campaignName"
+    ).textContent =
+        campaign.name
+        ?? "Campaña sin nombre";
+
+
+    document.getElementById(
+        "summaryStatus"
+    ).innerHTML =
+        statusBadge(
+            campaign.status
+        );
+
+
+    document.getElementById(
+        "sensorType"
+    ).textContent =
+        campaign.sensor_type
+        ?? "--";
+
+
+    document.getElementById(
+        "sensorModel"
+    ).textContent =
+        campaign.sensor_model
+        ?? "--";
+
+
+    document.getElementById(
+        "acquiredAt"
+    ).textContent =
+        formatDate(
+            campaign.acquired_at
+        );
+
+
+    document.getElementById(
+        "createdAt"
+    ).textContent =
+        formatDate(
+            campaign.created_at
+        );
+
+
+    document.getElementById(
+        "flightId"
+    ).textContent =
+        campaign.flight_id
+        ? `#${campaign.flight_id}`
+        : "Sin vincular";
+
+
+    document.getElementById(
+        "description"
+    ).textContent =
+        campaign.description
+        ?? "Sin descripción";
+}
+
+
+/* ===============================================
+   CAPTURAS
+   =============================================== */
+
+function renderCaptures(
+    captures
+) {
+
+    const container =
+        document.getElementById(
+            "capturesContainer"
+        );
+
+    document.getElementById(
+        "summaryCaptures"
+    ).textContent =
+        captures.length;
+
+
+    document.getElementById(
+        "captureCount"
+    ).textContent =
+        `${captures.length} captura${
+            captures.length === 1
+                ? ""
+                : "s"
+        }`;
+
+
+    if (!captures.length) {
+
+        container.innerHTML = `
+            <div class="empty-state">
+                Esta campaña todavía no contiene capturas.
+            </div>
+        `;
+
+        return;
+    }
+
+
+    const rows =
+        captures.map(
+            (capture) => {
+
+                const assets =
+                    capture.assets ?? [];
+
+                const assetHtml =
+                    assets.length
+                    ? `
+                        <div class="asset-list">
+                            ${
+                                assets.map(
+                                    (asset) => `
+                                        <span
+                                            class="asset-badge"
+                                            title="${
+                                                escapeHtml(
+                                                    asset.original_filename
+                                                    ?? ""
+                                                )
+                                            }"
+                                        >
+                                            ${
+                                                escapeHtml(
+                                                    asset.band
+                                                )
+                                            }
+                                        </span>
+                                    `
+                                ).join("")
+                            }
+                        </div>
+                    `
+                    : "--";
+
+                return `
+                    <tr>
+
+                        <td>
+                            <div class="primary-value">
+                                ${
+                                    escapeHtml(
+                                        capture.capture_code
+                                    )
+                                }
+                            </div>
+
+                            <div class="secondary-value">
+                                Secuencia ${
+                                    escapeHtml(
+                                        capture.sequence
+                                    )
+                                }
+                            </div>
+                        </td>
+
+                        <td>
+                            ${
+                                statusBadge(
+                                    capture.status
+                                )
+                            }
+                        </td>
+
+                        <td>
+                            ${assetHtml}
+                        </td>
+
+                        <td>
+                            ${
+                                capture.latitude
+                                ?? "--"
+                            }
+                        </td>
+
+                        <td>
+                            ${
+                                capture.longitude
+                                ?? "--"
+                            }
+                        </td>
+
+                        <td>
+                            ${
+                                capture.altitude
+                                ?? "--"
+                            }
+                        </td>
+
+                        <td>
+                            ${
+                                formatDate(
+                                    capture.captured_at
+                                )
+                            }
+                        </td>
+
+                    </tr>
+                `;
+            }
+        ).join("");
+
+
+    container.innerHTML = `
+        <div class="table-wrapper">
+
+            <table class="detail-table">
+
+                <thead>
+                    <tr>
+                        <th>Captura</th>
+                        <th>Estado</th>
+                        <th>Bandas</th>
+                        <th>Latitud</th>
+                        <th>Longitud</th>
+                        <th>Altitud</th>
+                        <th>Fecha</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    ${rows}
+                </tbody>
+
+            </table>
+
+        </div>
+    `;
+}
+
+
+/* ===============================================
+   JOBS
+   =============================================== */
+
+function renderJobs(
+    jobs
+) {
+
+    const container =
+        document.getElementById(
+            "jobsContainer"
+        );
+
+
+    document.getElementById(
+        "summaryJobs"
+    ).textContent =
+        jobs.length;
+
+
+    document.getElementById(
+        "jobCount"
+    ).textContent =
+        `${jobs.length} trabajo${
+            jobs.length === 1
+                ? ""
+                : "s"
+        }`;
+
+
+    if (!jobs.length) {
+
+        container.innerHTML = `
+            <div class="empty-state">
+                Esta campaña todavía no posee
+                trabajos de procesamiento.
+            </div>
+        `;
+
+        return;
+    }
+
+
+    const rows =
+        jobs.map(
+            (job) => `
+                <tr>
+
+                    <td>
+                        <div class="primary-value">
+                            ${
+                                escapeHtml(
+                                    job.job_code
+                                )
+                            }
+                        </div>
+                    </td>
+
+                    <td>
+                        ${
+                            escapeHtml(
+                                job.backend
+                            )
+                        }
+                    </td>
+
+                    <td>
+                        ${
+                            statusBadge(
+                                job.status
+                            )
+                        }
+                    </td>
+
+                    <td>
+                        ${
+                            formatDate(
+                                job.started_at
+                            )
+                        }
+                    </td>
+
+                    <td>
+                        ${
+                            formatDate(
+                                job.finished_at
+                            )
+                        }
+                    </td>
+
+                    <td>
+                        ${
+                            escapeHtml(
+                                job.error_message
+                                ?? "--"
+                            )
+                        }
+                    </td>
+
+                </tr>
+            `
+        ).join("");
+
+
+    container.innerHTML = `
+        <div class="table-wrapper">
+
+            <table class="detail-table">
+
+                <thead>
+                    <tr>
+                        <th>Trabajo</th>
+                        <th>Backend</th>
+                        <th>Estado</th>
+                        <th>Inicio</th>
+                        <th>Fin</th>
+                        <th>Error</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    ${rows}
+                </tbody>
+
+            </table>
+
+        </div>
+    `;
+}
+
+
+/* ===============================================
+   PRODUCTS
+   =============================================== */
+
+function renderProducts(
+    products
+) {
+
+    const container =
+        document.getElementById(
+            "productsContainer"
+        );
+
+
+    document.getElementById(
+        "summaryProducts"
+    ).textContent =
+        products.length;
+
+
+    document.getElementById(
+        "productCount"
+    ).textContent =
+        `${products.length} producto${
+            products.length === 1
+                ? ""
+                : "s"
+        }`;
+
+
+    if (!products.length) {
+
+        container.innerHTML = `
+            <div class="empty-state">
+                Esta campaña todavía no posee
+                productos geoespaciales.
+            </div>
+        `;
+
+        return;
+    }
+
+
+    const rows =
+        products.map(
+            (product) => {
+
+                const resolution =
+                    (
+                        product.resolution?.x
+                        !== null
+                        &&
+                        product.resolution?.x
+                        !== undefined
+                    )
+                    ? `${
+                        formatNumber(
+                            product.resolution.x,
+                            4
+                        )
+                    } × ${
+                        formatNumber(
+                            product.resolution.y,
+                            4
+                        )
+                    }`
+                    : "--";
+
+                const dimensions =
+                    (
+                        product.width
+                        &&
+                        product.height
+                    )
+                    ? `${
+                        product.width
+                    } × ${
+                        product.height
+                    }`
+                    : "--";
+
+
+                return `
+                    <tr>
+
+                        <td>
+                            <div class="primary-value">
+                                ${
+                                    escapeHtml(
+                                        product.product_code
+                                    )
+                                }
+                            </div>
+
+                            <div class="secondary-value">
+                                ${
+                                    escapeHtml(
+                                        product.name
+                                    )
+                                }
+                            </div>
+                        </td>
+
+                        <td>
+                            <span class="product-type">
+                                ${
+                                    escapeHtml(
+                                        product.product_type
+                                    )
+                                }
+                            </span>
+                        </td>
+
+                        <td>
+                            ${
+                                escapeHtml(
+                                    product.crs
+                                    ?? "--"
+                                )
+                            }
+                        </td>
+
+                        <td>
+                            ${
+                                product.epsg
+                                ?? "--"
+                            }
+                        </td>
+
+                        <td>
+                            ${dimensions}
+                        </td>
+
+                        <td>
+                            ${resolution}
+                        </td>
+
+                        <td>
+                            ${
+                                product.band_count
+                                ?? "--"
+                            }
+                        </td>
+
+                        <td>
+                            ${
+                                formatDate(
+                                    product.created_at
+                                )
+                            }
+                        </td>
+
+                    </tr>
+                `;
+            }
+        ).join("");
+
+
+    container.innerHTML = `
+        <div class="table-wrapper">
+
+            <table class="detail-table">
+
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Tipo</th>
+                        <th>CRS</th>
+                        <th>EPSG</th>
+                        <th>Dimensiones</th>
+                        <th>Resolución</th>
+                        <th>Bandas</th>
+                        <th>Creado</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    ${rows}
+                </tbody>
+
+            </table>
+
+        </div>
+    `;
+}
+
+
+/* ===============================================
+   ESTADO DE BOTÓN PROCESAR
+   =============================================== */
+
+function updateProcessButton() {
+
+    const button =
+        document.getElementById(
+            "processCampaignButton"
+        );
+
+
+    if (processingInProgress) {
+
+        button.disabled = true;
+
+        button.textContent =
+            "Procesando...";
+
+        return;
+    }
+
+
+    button.textContent =
+        "Procesar campaña";
+
+
+    const hasCaptures =
+        currentCaptures.length > 0;
+
+
+    const allReady =
+        hasCaptures
+        &&
+        currentCaptures.every(
+            (capture) =>
+                capture.status === "READY"
+        );
+
+
+    button.disabled =
+        !allReady;
+
+
+    if (!hasCaptures) {
+
+        button.title =
+            "La campaña todavía no contiene capturas.";
+
+    } else if (!allReady) {
+
+        button.title =
+            "Todas las capturas deben estar READY.";
+
+    } else {
+
+        button.title =
+            "Procesar campaña";
+    }
+}
+
+
+/* ===============================================
+   API
+   =============================================== */
+
+async function fetchJson(
+    url,
+    options = {}
+) {
+
+    const response =
+        await fetch(
+            url,
+            options
+        );
+
+
+    let data = null;
+
+    try {
+
+        data =
+            await response.json();
+
+    } catch {
+
+        data = {};
+    }
+
+
+    if (!response.ok) {
+
+        throw new Error(
+            data.msg
+            ?? `HTTP ${response.status}`
+        );
+    }
+
+
+    return data;
+}
+
+
+/* ===============================================
+   CARGA COMPLETA
+   =============================================== */
+
+async function loadCampaignDetail() {
+
+    const loading =
+        document.getElementById(
+            "campaignLoading"
+        );
+
+    const content =
+        document.getElementById(
+            "campaignContent"
+        );
+
+
+    try {
+
+        const [
+            campaign,
+            capturesPayload,
+            jobsPayload,
+            productsPayload,
+        ] = await Promise.all([
+
+            fetchJson(
+                `/api/campaigns/${CAMPAIGN_ID}`
+            ),
+
+            fetchJson(
+                `/api/campaigns/${CAMPAIGN_ID}/captures`
+            ),
+
+            fetchJson(
+                `/api/campaigns/${CAMPAIGN_ID}/processing-jobs`
+            ),
+
+            fetchJson(
+                `/api/campaigns/${CAMPAIGN_ID}/products`
+            ),
+
+        ]);
+
+
+        currentCampaign =
+            campaign;
+
+        currentCaptures =
+            capturesPayload.captures
+            ?? [];
+
+        currentJobs =
+            jobsPayload.jobs
+            ?? [];
+
+        currentProducts =
+            productsPayload.products
+            ?? [];
+
+
+        renderCampaign(
+            currentCampaign
+        );
+
+        renderCaptures(
+            currentCaptures
+        );
+
+        renderJobs(
+            currentJobs
+        );
+
+        renderProducts(
+            currentProducts
+        );
+
+
+        updateProcessButton();
+
+
+        loading.style.display =
+            "none";
+
+        content.style.display =
+            "block";
+
+
+    } catch (error) {
+
+        console.error(
+            "Error cargando campaña:",
+            error
+        );
+
+
+        content.style.display =
+            "none";
+
+
+        loading.style.display =
+            "block";
+
+
+        loading.className =
+            "error-state";
+
+
+        loading.textContent =
+            error.message
+            || (
+                "No fue posible cargar la campaña. "            
+            );
+    }
+}
+
+
+/* ===============================================
+   PROCESAR CAMPAÑA
+   =============================================== */
+
+async function processCampaign() {
+
+    if (processingInProgress) {
+        return;
+    }
+
+
+    const message =
+        document.getElementById(
+            "processingMessage"
+        );
+
+
+    processingInProgress = true;
+
+    updateProcessButton();
+
+
+    message.className =
+        "processing-message";
+
+    message.textContent =
+        "Ejecutando procesamiento...";
+
+
+    try {
+
+        const result =
+            await fetchJson(
+                `/api/campaigns/${CAMPAIGN_ID}/process`,
+                {
+                    method: "POST",
+                }
+            );
+
+
+        message.className =
+            "processing-message success";
+
+
+        message.textContent =
+            `Procesamiento completado: ${
+                result.products?.length
+                ?? 0
+            } producto(s) generado(s).`;
+
+
+        await loadCampaignDetail();
+
+
+    } catch (error) {
+
+        console.error(
+            "Error procesando campaña:",
+            error
+        );
+
+
+        message.className =
+            "processing-message error";
+
+
+        message.textContent =
+            error.message;
+
+
+    } finally {
+
+        processingInProgress =
+            false;
+
+        updateProcessButton();
+    }
+}
+
+
+/* ===============================================
+   INICIALIZACIÓN
+   =============================================== */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+
+        document.getElementById(
+            "processCampaignButton"
+        ).addEventListener(
+            "click",
+            processCampaign
+        );
+
+
+        loadCampaignDetail();
+    }
+);
+
 </script>
 
 </body>
