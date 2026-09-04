@@ -75,7 +75,73 @@
         .connection-area {
             display: flex;
             align-items: center;
+            justify-content: flex-end;
+            flex-wrap: wrap;
             gap: 12px;
+        }
+
+         .integration-status-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 5px;
+        }
+
+
+        .integration-badge {
+            padding: 8px 14px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+
+        .integration-online {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+        }
+
+
+        .integration-connected {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+        }
+
+
+        .integration-degraded {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+        }
+
+
+        .integration-offline,
+        .integration-error {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+        }
+
+
+        .integration-not-configured {
+            background: #1e293b;
+            border: 1px solid #334155;
+            color: #94a3b8;
+        }
+
+
+        .integration-details {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 10px;
+
+            font-size: 0.72rem;
+            color: #94a3b8;
+        }
+
+
+        .integration-details strong {
+            color: #e2e8f0;
+            font-weight: 600;
         }
 
 
@@ -471,6 +537,55 @@
                     "
                 >
                     DESCONECTADO
+                </div>
+
+                                <div
+                    class="integration-status-group"
+                >
+
+                    <div
+                        id="integrationBadge"
+                        class="
+                            integration-badge
+                            integration-not-configured
+                        "
+                    >
+                        INTEGRACIÓN: NO CONFIGURADO
+                    </div>
+
+
+                    <div
+                        class="integration-details"
+                    >
+
+                        <span>
+                            Aeronave:
+                            <strong
+                                id="integrationAircraftValue"
+                            >
+                                --
+                            </strong>
+                        </span>
+
+
+                        <span>
+                            Telemetría:
+                            <strong
+                                id="integrationTelemetryValue"
+                            >
+                                --
+                            </strong>
+                        </span>
+
+
+                        <span
+                            id="integrationLastSignalValue"
+                        >
+                            Sin telemetría
+                        </span>
+
+                    </div>
+
                 </div>
 
             </div>
@@ -1136,7 +1251,6 @@ function renderDroneState(
         return;
     }
 
-
     const state =
         payload.state;
 
@@ -1252,10 +1366,276 @@ function renderDroneState(
     updateControlState();
 }
 
+/* ===============================================
+   ESTADO DE INTEGRACIÓN
+   =============================================== */
+
+const INTEGRATION_HEALTH_PRESENTATION = {
+
+    NOT_CONFIGURED: {
+        label: "NO CONFIGURADO",
+        className:
+            "integration-not-configured"
+    },
+
+    OFFLINE: {
+        label: "SIN CONEXIÓN",
+        className:
+            "integration-offline"
+    },
+
+    CONNECTED: {
+        label: "CONECTADO",
+        className:
+            "integration-connected"
+    },
+
+    ONLINE: {
+        label: "EN LÍNEA",
+        className:
+            "integration-online"
+    },
+
+    DEGRADED: {
+        label: "DEGRADADO",
+        className:
+            "integration-degraded"
+    },
+
+    ERROR: {
+        label: "ERROR",
+        className:
+            "integration-error"
+    }
+
+};
+
+
+function formatTelemetryAge(
+    value
+) {
+
+    if (
+        value === null
+        ||
+        value === undefined
+    ) {
+
+        return "Sin telemetría";
+    }
+
+
+    const seconds =
+        Number(value);
+
+
+    if (!Number.isFinite(seconds)) {
+
+        return "Sin telemetría";
+    }
+
+
+    const safeSeconds =
+        Math.max(
+            0,
+            seconds
+        );
+
+
+    if (safeSeconds < 10) {
+
+        return (
+            `Hace ${safeSeconds.toFixed(1)} s`
+        );
+    }
+
+
+    if (safeSeconds < 60) {
+
+        return (
+            `Hace ${Math.round(safeSeconds)} s`
+        );
+    }
+
+
+    const minutes =
+        Math.floor(
+            safeSeconds / 60
+        );
+
+
+    if (minutes < 60) {
+
+        return (
+            `Hace ${minutes} min`
+        );
+    }
+
+
+    const hours =
+        Math.floor(
+            minutes / 60
+        );
+
+
+    return (
+        `Hace ${hours} h`
+    );
+}
+
+
+function renderIntegrationStatus(
+    status
+) {
+
+    const badge =
+        document.getElementById(
+            "integrationBadge"
+        );
+
+
+    const aircraftValue =
+        document.getElementById(
+            "integrationAircraftValue"
+        );
+
+
+    const telemetryValue =
+        document.getElementById(
+            "integrationTelemetryValue"
+        );
+
+
+    const lastSignalValue =
+        document.getElementById(
+            "integrationLastSignalValue"
+        );
+
+
+    const health =
+        status?.health
+        ?? "ERROR";
+
+
+    const presentation =
+        INTEGRATION_HEALTH_PRESENTATION[
+            health
+        ]
+        ??
+        INTEGRATION_HEALTH_PRESENTATION.ERROR;
+
+
+    badge.textContent =
+        `INTEGRACIÓN: ${presentation.label}`;
+
+
+    badge.className =
+        "integration-badge "
+        +
+        presentation.className;
+
+
+    if (!status?.configured) {
+
+        aircraftValue.textContent =
+            "--";
+
+    } else {
+
+        aircraftValue.textContent =
+            status.aircraft_online
+            ? "En línea"
+            : "Sin conexión";
+    }
+
+
+    if (!status?.telemetry_available) {
+
+        telemetryValue.textContent =
+            "Sin datos";
+
+    } else if (
+        status.telemetry_fresh
+    ) {
+
+        telemetryValue.textContent =
+            "Actualizada";
+
+    } else {
+
+        telemetryValue.textContent =
+            "Desactualizada";
+    }
+
+
+    lastSignalValue.textContent =
+        formatTelemetryAge(
+            status
+                ?.telemetry_age_seconds
+        );
+
+
+    if (status?.last_error) {
+
+        badge.title =
+            status.last_error;
+
+    } else {
+
+        badge.removeAttribute(
+            "title"
+        );
+    }
+}
 
 /* ===============================================
    API
    =============================================== */
+
+async function getIntegrationStatus() {
+
+    const response =
+        await fetch(
+            "/api/drone/operation/integration-status"
+        );
+
+
+    if (!response.ok) {
+
+        let data = null;
+
+
+        try {
+
+            data =
+                await response.json();
+
+        } catch (error) {
+
+            data = null;
+        }
+
+
+        throw new Error(
+            data?.message
+            ??
+            data?.msg
+            ??
+            `HTTP ${response.status}`
+        );
+    }
+
+
+    const data =
+        await response.json();
+
+
+    renderIntegrationStatus(
+        data
+    );
+
+    return data;
+}
 
 async function getDroneState() {
 
@@ -1284,7 +1664,6 @@ async function getDroneState() {
         data
     );
 
-
     return data;
 }
 
@@ -1304,10 +1683,11 @@ async function pollDroneState() {
         const context =
             await loadOperationContext();
 
+        await getIntegrationStatus();
 
         const flight =
             context?.flight;
-
+        
 
         if (
             flight?.status === "COMPLETED"
@@ -1328,7 +1708,7 @@ async function pollDroneState() {
     } catch (error) {
 
         console.error(
-            "Error consultando estado del dron:",
+            "Error actualizando estado operacional:",
             error
         );
 
@@ -1509,7 +1889,6 @@ async function loadOperationContext() {
 
 
     updateControlState();
-
 
     return context;
 }
@@ -1965,6 +2344,7 @@ async function sendDroneCommand(
         );
     }
 
+    await getIntegrationStatus();
 
     return data;
 }
@@ -2659,7 +3039,8 @@ document.addEventListener(
 
             const context =
                 await loadOperationContext();
-
+            
+            await getIntegrationStatus();
 
             if (context.route_id) {
 
