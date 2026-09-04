@@ -1158,6 +1158,36 @@ def api_drone_operation_context():
         }), 400
 
 @app.route(
+    "/api/drone/operation/integration-status",
+    methods=["GET"]
+)
+def api_drone_operation_integration_status():
+    """
+    Devuelve el estado técnico normalizado
+    de la integración activa con el dron.
+    """
+
+    try:
+
+        status = (
+            DroneService
+            .get_integration_status()
+        )
+
+        return jsonify(
+            status.to_dict()
+        )
+
+
+    except DroneServiceError as exc:
+
+        return jsonify({
+            "status": "error",
+            "message": str(exc),
+        }), 400
+        
+
+@app.route(
     "/api/drone/operation/cancel",
     methods=["POST"]
 )
