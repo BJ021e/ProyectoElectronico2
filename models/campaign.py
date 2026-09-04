@@ -23,7 +23,7 @@ from database import Base
 
 if TYPE_CHECKING:
     from models.flight import Flight
-
+    from models.image_capture import ImageCapture
 
 class CampaignStatus(str, PyEnum):
     CREATED = "CREATED"
@@ -125,6 +125,13 @@ class Campaign(Base):
     flight: Mapped["Flight | None"] = relationship(
         "Flight",
         back_populates="campaigns",
+    )
+    
+    captures: Mapped[list["ImageCapture"]] = relationship(
+        "ImageCapture",
+        back_populates="campaign",
+        cascade="all, delete-orphan",
+        order_by="ImageCapture.sequence",
     )
 
     def __repr__(self) -> str:

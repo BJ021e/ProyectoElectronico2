@@ -9,6 +9,16 @@ from models.campaign import (
     SensorType,
 )
 
+from models.image_capture import (
+    ImageCapture,
+    CaptureStatus,
+)
+
+from models.image_asset import (
+    ImageAsset,
+    ImageBand,
+)
+
 __all__ = [
     "Flight",
     "FlightStatus",
@@ -21,4 +31,8 @@ __all__ = [
     "Campaign",
     "CampaignStatus",
     "SensorType",
+    "ImageCapture",
+    "CaptureStatus",
+    "ImageAsset",
+    "ImageBand",
 ]
