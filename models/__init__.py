@@ -19,6 +19,16 @@ from models.image_asset import (
     ImageBand,
 )
 
+from models.processing_job import (
+    ProcessingJob,
+    ProcessingJobStatus,
+)
+
+from models.geospatial_product import (
+    GeospatialProduct,
+    GeospatialProductType,
+)
+
 __all__ = [
     "Flight",
     "FlightStatus",
@@ -35,4 +45,8 @@ __all__ = [
     "CaptureStatus",
     "ImageAsset",
     "ImageBand",
+    "ProcessingJob",
+    "ProcessingJobStatus",
+    "GeospatialProduct",
+    "GeospatialProductType",
 ]

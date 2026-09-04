@@ -24,6 +24,8 @@ from database import Base
 if TYPE_CHECKING:
     from models.flight import Flight
     from models.image_capture import ImageCapture
+    from models.processing_job import ProcessingJob
+    from models.geospatial_product import GeospatialProduct
 
 class CampaignStatus(str, PyEnum):
     CREATED = "CREATED"
@@ -132,6 +134,18 @@ class Campaign(Base):
         back_populates="campaign",
         cascade="all, delete-orphan",
         order_by="ImageCapture.sequence",
+    )
+    
+    processing_jobs: Mapped[list["ProcessingJob"]] = relationship(
+        "ProcessingJob",
+        back_populates="campaign",
+        cascade="all, delete-orphan",
+    )
+
+    geospatial_products: Mapped[list["GeospatialProduct"]] = relationship(
+        "GeospatialProduct",
+        back_populates="campaign",
+        cascade="all, delete-orphan",
     )
 
     def __repr__(self) -> str:
