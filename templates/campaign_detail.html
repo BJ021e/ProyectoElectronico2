@@ -715,7 +715,7 @@
 
             grid-template-columns:
                 repeat(
-                    2,
+                    3,
                     minmax(0, 1fr)
                 );
 
@@ -1105,6 +1105,18 @@
 
                     </div>
 
+                    <div class="gis-summary-item">
+
+                        <span>
+                            Ráster visible
+                        </span>
+
+                        <strong id="gisRasterCount">
+                            0
+                        </strong>
+
+                    </div>
+
                 </div>
 
 
@@ -1439,6 +1451,8 @@ let gisCaptureLayer = null;
 let gisProductLayer = null;
 
 let gisLayerControl = null;
+
+let gisRasterLayer = null;
 
 let processingInProgress = false;
 
@@ -3008,7 +3022,20 @@ function initializeCampaignMap() {
             }
         );
 
+    campaignMap.createPane(
+        "rasterPreviewPane"
+    );
 
+    campaignMap.getPane(
+        "rasterPreviewPane"
+    ).style.zIndex =
+        "350";
+
+    campaignMap.getPane(
+        "rasterPreviewPane"
+    ).style.pointerEvents =
+        "none";
+    
     L.tileLayer(
         "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
         {
@@ -3035,6 +3062,12 @@ function initializeCampaignMap() {
             campaignMap
         );
 
+    gisRasterLayer =
+        L.layerGroup()
+        .addTo(
+            campaignMap
+        );
+    
 
     gisLayerControl =
         L.control.layers(
@@ -3045,6 +3078,9 @@ function initializeCampaignMap() {
 
                 "Extensión de productos":
                     gisProductLayer,
+
+                "Vista previa ráster":
+                gisRasterLayer,
             },
             {
                 collapsed: false,
@@ -3060,6 +3096,172 @@ function initializeCampaignMap() {
     );
 
     return true;
+}
+
+function getGeospatialProductType(
+    product
+) {
+
+    return (
+        product.product_type
+        ?? product.type
+        ?? ""
+    ).toUpperCase();
+}
+
+
+function selectRasterPreviewProduct(
+    products
+) {
+
+    const candidates =
+        products.filter(
+            (product) =>
+                Boolean(
+                    getProductWgs84Bounds(
+                        product
+                    )
+                )
+        );
+
+
+    if (!candidates.length) {
+        return null;
+    }
+
+
+    const priorities = [
+        "ORTHOMOSAIC_RGB",
+        "ORTHOMOSAIC_MULTISPECTRAL",
+    ];
+
+
+    for (
+        const type
+        of priorities
+    ) {
+
+        const match =
+            candidates.find(
+                (product) =>
+                    (
+                        getGeospatialProductType(
+                            product
+                        )
+                        === type
+                    )
+            );
+
+
+        if (match) {
+            return match;
+        }
+    }
+
+
+    return candidates[0];
+}
+
+function renderRasterPreview() {
+
+    gisRasterLayer.clearLayers();
+
+
+    const counter =
+        document.getElementById(
+            "gisRasterCount"
+        );
+
+
+    const product =
+        selectRasterPreviewProduct(
+            currentProducts
+        );
+
+
+    if (!product) {
+
+        counter.textContent =
+            "0";
+
+        return null;
+    }
+
+
+    const bounds =
+        getProductWgs84Bounds(
+            product
+        );
+
+
+    if (!bounds) {
+
+        counter.textContent =
+            "0";
+
+        return null;
+    }
+
+
+    const previewUrl =
+        (
+            `/api/geospatial-products/`
+            + `${product.id}`
+            + `/preview.png`
+        );
+
+
+    const overlay =
+        L.imageOverlay(
+            previewUrl,
+            bounds,
+            {
+                opacity: 0.82,
+
+                pane:
+                    "rasterPreviewPane",
+            }
+        );
+
+
+    overlay.on(
+        "load",
+        () => {
+
+            counter.textContent =
+                "1";
+        }
+    );
+
+
+    overlay.on(
+        "error",
+        () => {
+
+            counter.textContent =
+                "0";
+
+            const status =
+                document.getElementById(
+                    "campaignMapStatus"
+                );
+
+            status.textContent =
+                (
+                    "El producto geoespacial "
+                    + "existe, pero no fue "
+                    + "posible cargar su preview."
+                );
+        }
+    );
+
+
+    overlay.addTo(
+        gisRasterLayer
+    );
+
+
+    return product;
 }
 
 /* ===============================================
@@ -3467,7 +3669,8 @@ function renderCampaignMap() {
         renderProductGeometries(
             mapBounds
         );
-
+    
+    const rasterProduct = renderRasterPreview();
 
     const status =
         document.getElementById(
@@ -3490,13 +3693,31 @@ function renderCampaignMap() {
         );
 
 
-        status.textContent =
+        let statusText =
             (
                 `${captureCount} captura(s) `
-                + "georreferenciada(s) y "
+                + "georreferenciada(s), "
                 + `${productCount} producto(s) `
-                + "con extensión geográfica."
+                + "con extensión geográfica"
             );
+
+
+        if (rasterProduct) {
+
+            statusText +=
+                (
+                    " y preview de "
+                    + (
+                        rasterProduct.name
+                        ?? rasterProduct.product_code
+                        ?? "producto ráster"
+                    )
+                );
+        }
+
+
+        status.textContent =
+            statusText + ".";
 
     } else {
 

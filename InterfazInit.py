@@ -2,7 +2,17 @@
 # Flask PC: Ground Control (Con Cálculo de Promedios)
 # Archivo: principal.py
 # ====================================================
-from flask import Flask, render_template, request, redirect, url_for, session, send_file, jsonify
+from flask import (
+    Flask, 
+    render_template, 
+    request, 
+    redirect, url_for, 
+    session, 
+    send_file, 
+    jsonify,
+    Response,
+)
+
 import os
 import threading
 import shutil
@@ -100,6 +110,16 @@ from services.rededge_staging_service import (
     InvalidRedEdgeStageError,
     RedEdgeStagingError,
     RedEdgeStagingService,
+)
+
+from services.raster_preview_service import (
+    InvalidRasterPreviewError,
+    RasterPreviewError,
+    RasterPreviewService,
+)
+
+from services.image_ingestion_service import (
+    ImageIngestionService,
 )
 
 app = Flask(__name__)
@@ -1685,7 +1705,86 @@ def api_get_geospatial_product(
             "error": True,
             "msg": str(exc),
         }), 500
+
+@app.route(
+    (
+        "/api/geospatial-products/"
+        "<int:product_id>/preview.png"
+    ),
+    methods=["GET"],
+)
+def api_geospatial_product_preview(
+    product_id
+):
+
+    try:
+        product = (
+            GeospatialProductService
+            .get_product(
+                product_id
+            )
+        )
+
+        if product is None:
+            return jsonify({
+                "error": True,
+                "msg": (
+                    "El producto geoespacial "
+                    f"con ID {product_id} "
+                    "no existe."
+                ),
+            }), 404
+
+        source_path = (
+            ImageIngestionService
+            .resolve_managed_path(
+                product["storage_path"]
+            )
+        )
+
+        product_type = (
+            product.get(
+                "product_type"
+            )
+            or product.get(
+                "type"
+            )
+        )
+
+        png_bytes = (
+            RasterPreviewService
+            .render_png(
+                source_path=source_path,
+                product_type=product_type,
+            )
+        )
+
+        response = Response(
+            png_bytes,
+            mimetype="image/png",
+        )
+
+        response.headers[
+            "Cache-Control"
+        ] = "no-store"
+
+        return response
+
+    except InvalidRasterPreviewError as exc:
+
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 422
+
+    except RasterPreviewError as exc:
+
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 500
         
+
 @app.route(
     "/api/campaigns/<int:campaign_id>/process",
     methods=["POST"],

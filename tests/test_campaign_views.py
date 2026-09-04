@@ -340,3 +340,87 @@ def test_campaign_detail_renders_geospatial_geometries():
         "renderProductGeometries"
         in html
     )
+
+def test_campaign_detail_contains_raster_preview_state():
+
+    app.config["TESTING"] = True
+
+    client = app.test_client()
+
+    response = client.get(
+        "/campaigns/25"
+    )
+
+    html = response.get_data(
+        as_text=True
+    )
+
+    assert (
+        'id="gisRasterCount"'
+        in html
+    )
+
+    assert (
+        "gisRasterLayer"
+        in html
+    )
+
+    assert (
+        "rasterPreviewPane"
+        in html
+    )
+
+
+def test_campaign_detail_uses_geospatial_preview_endpoint():
+
+    app.config["TESTING"] = True
+
+    client = app.test_client()
+
+    response = client.get(
+        "/campaigns/25"
+    )
+
+    html = response.get_data(
+        as_text=True
+    )
+
+    assert (
+        "/preview.png"
+        in html
+    )
+
+    assert (
+        "L.imageOverlay"
+        in html
+    )
+
+
+def test_campaign_detail_selects_primary_raster_product():
+
+    app.config["TESTING"] = True
+
+    client = app.test_client()
+
+    response = client.get(
+        "/campaigns/25"
+    )
+
+    html = response.get_data(
+        as_text=True
+    )
+
+    assert (
+        "selectRasterPreviewProduct"
+        in html
+    )
+
+    assert (
+        "ORTHOMOSAIC_RGB"
+        in html
+    )
+
+    assert (
+        "ORTHOMOSAIC_MULTISPECTRAL"
+        in html
+    )

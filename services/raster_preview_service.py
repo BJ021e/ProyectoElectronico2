@@ -319,7 +319,7 @@ class RasterPreviewService:
 
                 with WarpedVRT(
                     dataset,
-                    crs="EPSG:4326",
+                    crs="EPSG:3857",
                     resampling=(
                         Resampling.bilinear
                     ),
