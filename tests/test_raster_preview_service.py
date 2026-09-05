@@ -235,3 +235,104 @@ def test_preview_rejects_raster_without_crs(
                 source_path=source,
             )
         )
+        
+def test_multispectral_band_preview_generates_png(
+    tmp_path,
+):
+
+    source = (
+        tmp_path
+        / "multispectral.tif"
+    )
+
+    write_raster(
+        source,
+        band_count=5,
+    )
+
+    result = (
+        RasterPreviewService
+        .render_png(
+            source_path=source,
+            product_type=(
+                "ORTHOMOSAIC_MULTISPECTRAL"
+            ),
+            display_mode="NIR",
+        )
+    )
+
+    image = decode_png(
+        result
+    )
+
+    assert image is not None
+
+    assert image.shape[2] == 4
+
+
+def test_multispectral_band_mapping():
+
+    assert (
+        RasterPreviewService
+        ._select_band_indexes(
+            band_count=5,
+            product_type=(
+                "ORTHOMOSAIC_MULTISPECTRAL"
+            ),
+            display_mode="BLUE",
+        )
+        == (1,)
+    )
+
+    assert (
+        RasterPreviewService
+        ._select_band_indexes(
+            band_count=5,
+            product_type=(
+                "ORTHOMOSAIC_MULTISPECTRAL"
+            ),
+            display_mode="NIR",
+        )
+        == (4,)
+    )
+
+    assert (
+        RasterPreviewService
+        ._select_band_indexes(
+            band_count=5,
+            product_type=(
+                "ORTHOMOSAIC_MULTISPECTRAL"
+            ),
+            display_mode="RED_EDGE",
+        )
+        == (5,)
+    )
+
+
+def test_invalid_preview_mode_is_rejected(
+    tmp_path,
+):
+
+    source = (
+        tmp_path
+        / "multispectral.tif"
+    )
+
+    write_raster(
+        source,
+        band_count=5,
+    )
+
+    with pytest.raises(
+        InvalidRasterPreviewError
+    ):
+        (
+            RasterPreviewService
+            .render_png(
+                source_path=source,
+                product_type=(
+                    "ORTHOMOSAIC_MULTISPECTRAL"
+                ),
+                display_mode="THERMAL",
+            )
+        )

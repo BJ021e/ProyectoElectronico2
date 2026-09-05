@@ -92,12 +92,15 @@ class RasterPreviewService:
             preview_width,
             preview_height,
         )
+        
 
-    @staticmethod
+    @classmethod
     def _select_band_indexes(
+        cls,
         *,
         band_count: int,
         product_type: str | None,
+        display_mode: str = "NATURAL",
     ) -> tuple[int, ...]:
 
         normalized_type = (
@@ -106,20 +109,58 @@ class RasterPreviewService:
             .upper()
         )
 
+        normalized_mode = (
+            str(display_mode or "NATURAL")
+            .strip()
+            .upper()
+        )
+
+        if (
+            normalized_mode
+            not in cls.DISPLAY_MODES
+        ):
+            raise InvalidRasterPreviewError(
+                "Modo de visualización "
+                f"no soportado: {display_mode}."
+            )
+
+        if (
+            normalized_mode
+            != "NATURAL"
+        ):
+
+            if (
+                normalized_type
+                != "ORTHOMOSAIC_MULTISPECTRAL"
+            ):
+                raise InvalidRasterPreviewError(
+                    "Las bandas espectrales "
+                    "solo están disponibles "
+                    "para productos "
+                    "multiespectrales."
+                )
+
+            band_index = (
+                cls.MULTISPECTRAL_BANDS[
+                    normalized_mode
+                ]
+            )
+
+            if band_count < band_index:
+                raise InvalidRasterPreviewError(
+                    "El producto no contiene "
+                    f"la banda {normalized_mode}."
+                )
+
+            return (
+                band_index,
+            )
+
         if (
             normalized_type
             == "ORTHOMOSAIC_MULTISPECTRAL"
             and band_count >= 5
         ):
-            # Convención RedEdge del proyecto:
-            #
-            # 1 BLUE
-            # 2 GREEN
-            # 3 RED
-            # 4 NIR
-            # 5 RED_EDGE
-            #
-            # Para composición natural RGB:
             return (
                 3,
                 2,
@@ -134,7 +175,9 @@ class RasterPreviewService:
             )
 
         if band_count >= 1:
-            return (1,)
+            return (
+                1,
+            )
 
         raise InvalidRasterPreviewError(
             "El ráster no contiene bandas."
@@ -282,6 +325,7 @@ class RasterPreviewService:
         *,
         source_path: str | Path,
         product_type: str | None = None,
+        display_mode: str = "NATURAL",
         max_dimension: int | None = None,
     ) -> bytes:
 
@@ -346,6 +390,7 @@ class RasterPreviewService:
                             product_type=(
                                 product_type
                             ),
+                            display_mode=display_mode,
                         )
                     )
 
@@ -463,3 +508,20 @@ class RasterPreviewService:
             )
 
         return encoded.tobytes()
+
+    DISPLAY_MODES = {
+        "NATURAL",
+        "BLUE",
+        "GREEN",
+        "RED",
+        "NIR",
+        "RED_EDGE",
+    }
+
+    MULTISPECTRAL_BANDS = {
+        "BLUE": 1,
+        "GREEN": 2,
+        "RED": 3,
+        "NIR": 4,
+        "RED_EDGE": 5,
+    }

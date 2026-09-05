@@ -1751,11 +1751,21 @@ def api_geospatial_product_preview(
             )
         )
 
+        display_mode = (
+            request.args.get(
+                "mode",
+                "natural",
+            )
+            .strip()
+            .upper()
+        )
+        
         png_bytes = (
             RasterPreviewService
             .render_png(
                 source_path=source_path,
                 product_type=product_type,
+                display_mode=display_mode,
             )
         )
 

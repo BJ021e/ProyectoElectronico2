@@ -153,3 +153,65 @@ def test_product_preview_rejects_invalid_raster(
     payload = response.get_json()
 
     assert payload["error"] is True
+    
+def test_product_preview_passes_display_mode(
+    monkeypatch,
+):
+
+    monkeypatch.setattr(
+        GeospatialProductService,
+        "get_product",
+        lambda product_id: {
+            "id": product_id,
+            "storage_path": (
+                "campaigns/1/"
+                "products/mock.tif"
+            ),
+            "product_type": (
+                "ORTHOMOSAIC_MULTISPECTRAL"
+            ),
+        },
+    )
+
+    monkeypatch.setattr(
+        ImageIngestionService,
+        "resolve_managed_path",
+        lambda storage_path: Path(
+            "mock.tif"
+        ),
+    )
+
+    received = {}
+
+    def render_png(
+        **kwargs,
+    ):
+
+        received.update(
+            kwargs
+        )
+
+        return (
+            b"\x89PNG\r\n\x1a\n"
+            b"preview"
+        )
+
+    monkeypatch.setattr(
+        RasterPreviewService,
+        "render_png",
+        render_png,
+    )
+
+    response = client().get(
+        (
+            "/api/geospatial-products/"
+            "10/preview.png?mode=nir"
+        )
+    )
+
+    assert response.status_code == 200
+
+    assert (
+        received["display_mode"]
+        == "NIR"
+    )

@@ -460,3 +460,73 @@ def test_campaign_detail_does_not_convert_missing_coordinates_to_zero():
         "rawLongitude === undefined"
         in html
     )
+
+def test_campaign_detail_contains_multispectral_layer_selector():
+
+    app.config["TESTING"] = True
+
+    client = app.test_client()
+
+    response = client.get(
+        "/campaigns/40"
+    )
+
+    html = response.get_data(
+        as_text=True
+    )
+
+    assert (
+        'id="gisRasterMode"'
+        in html
+    )
+
+    assert (
+        'value="natural"'
+        in html
+    )
+
+    assert (
+        'value="blue"'
+        in html
+    )
+
+    assert (
+        'value="nir"'
+        in html
+    )
+
+    assert (
+        'value="red_edge"'
+        in html
+    )
+
+
+def test_campaign_detail_preview_uses_raster_mode():
+
+    app.config["TESTING"] = True
+
+    client = app.test_client()
+
+    response = client.get(
+        "/campaigns/40"
+    )
+
+    html = response.get_data(
+        as_text=True
+    )
+
+    assert (
+        "currentRasterMode"
+        in html
+    )
+
+    assert (
+        "encodeURIComponent"
+        in html
+    )
+
+    assert (
+        "?mode="
+        in html
+    )
+

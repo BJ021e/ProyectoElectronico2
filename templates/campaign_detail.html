@@ -791,6 +791,39 @@
         .campaign-gis-map .leaflet-control-layers {
             color: #111827;
         }
+        
+        .gis-raster-controls {
+            display: flex;
+
+            align-items: center;
+
+            gap: 12px;
+
+            margin-bottom: 12px;
+        }
+
+        .gis-raster-controls label {
+            color: #94a3b8;
+
+            font-size: 0.82rem;
+
+            font-weight: 600;
+        }
+
+        .gis-raster-controls select {
+            min-width: 180px;
+
+            padding: 8px 10px;
+
+            border:
+                1px solid #334155;
+
+            border-radius: 7px;
+
+            background: #0f172a;
+
+            color: #f8fafc;
+        }
 
     </style>
 
@@ -1119,6 +1152,47 @@
 
                 </div>
 
+                <div
+                    id="gisRasterControls"
+                    class="gis-raster-controls"
+                    style="display: none;"
+                >
+
+                    <label
+                        for="gisRasterMode"
+                    >
+                        Capa ráster
+                    </label>
+
+                    <select id="gisRasterMode">
+
+                        <option value="natural">
+                            RGB natural
+                        </option>
+
+                        <option value="blue">
+                            Blue
+                        </option>
+
+                        <option value="green">
+                            Green
+                        </option>
+
+                        <option value="red">
+                            Red
+                        </option>
+
+                        <option value="nir">
+                            NIR
+                        </option>
+
+                        <option value="red_edge">
+                            Red Edge
+                        </option>
+
+                    </select>
+
+                </div>
 
                 <div
                     id="campaignMapStatus"
@@ -1463,6 +1537,8 @@ let redEdgeInspection = null;
 let redEdgeUploadInProgress = false;
 
 let redEdgeImportInProgress = false;
+
+let currentRasterMode = "natural";
 
 const RED_EDGE_BATCH_MAX_FILES =
     25;
@@ -3179,14 +3255,34 @@ function renderRasterPreview() {
         );
 
 
+    const controls =
+    document.getElementById(
+        "gisRasterControls"
+    );
+
     if (!product) {
 
         counter.textContent =
             "0";
 
+        controls.style.display = "none";
+
         return null;
     }
 
+    const productType =
+        getGeospatialProductType(
+            product
+        );
+
+
+    controls.style.display =
+        (
+            productType
+            === "ORTHOMOSAIC_MULTISPECTRAL"
+        )
+        ? "flex"
+        : "none";
 
     const bounds =
         getProductWgs84Bounds(
@@ -3208,6 +3304,9 @@ function renderRasterPreview() {
             `/api/geospatial-products/`
             + `${product.id}`
             + `/preview.png`
+            + `?mode=${encodeURIComponent(
+                currentRasterMode
+            )}`
         );
 
 
@@ -4066,6 +4165,19 @@ document.addEventListener(
 
                     cancelRedEdgeImport();
                 }
+            }
+        );
+
+        document.getElementById(
+            "gisRasterMode"
+        ).addEventListener(
+            "change",
+            (event) => {
+
+                currentRasterMode =
+                    event.target.value;
+
+                renderCampaignMap();
             }
         );
 
