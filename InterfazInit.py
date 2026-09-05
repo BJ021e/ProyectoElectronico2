@@ -129,6 +129,12 @@ from services.spectral_index_product_service import (
     SpectralIndexProductService,
 )
 
+from services.spectral_index_visualization_service import (
+    InvalidSpectralIndexVisualizationError,
+    SpectralIndexVisualizationError,
+    SpectralIndexVisualizationService,
+)
+
 app = Flask(__name__)
 app.secret_key = Config.SECRET_KEY
 
@@ -1757,6 +1763,14 @@ def api_geospatial_product_preview(
                 "type"
             )
         )
+        
+        normalized_product_type = (
+            str(
+                product_type or ""
+            )
+            .strip()
+            .upper()
+        )
 
         display_mode = (
             request.args.get(
@@ -1767,14 +1781,34 @@ def api_geospatial_product_preview(
             .upper()
         )
         
-        png_bytes = (
-            RasterPreviewService
-            .render_png(
-                source_path=source_path,
-                product_type=product_type,
-                display_mode=display_mode,
+        if (
+            normalized_product_type
+            in (
+                SpectralIndexVisualizationService
+                .SUPPORTED_INDEXES
             )
-        )
+        ):
+
+            png_bytes = (
+                SpectralIndexVisualizationService
+                .render_png(
+                    source_path=source_path,
+                    index_name=(
+                        normalized_product_type
+                    ),
+                )
+            )
+
+        else:
+
+            png_bytes = (
+                RasterPreviewService
+                .render_png(
+                    source_path=source_path,
+                    product_type=product_type,
+                    display_mode=display_mode,
+                )
+            )
 
         response = Response(
             png_bytes,
@@ -1795,6 +1829,22 @@ def api_geospatial_product_preview(
         }), 422
 
     except RasterPreviewError as exc:
+
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 500
+    
+    except (
+        InvalidSpectralIndexVisualizationError
+    ) as exc:
+
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 422
+
+    except SpectralIndexVisualizationError as exc:
 
         return jsonify({
             "error": True,
@@ -1922,6 +1972,112 @@ def api_generate_spectral_index(
             "ok": False,
             "msg": str(exc),
         }), 422
+
+@app.route(
+    (
+        "/api/geospatial-products/"
+        "<int:product_id>/statistics"
+    ),
+    methods=["GET"],
+)
+def api_geospatial_product_statistics(
+    product_id
+):
+
+    try:
+
+        product = (
+            GeospatialProductService
+            .get_product(
+                product_id
+            )
+        )
+
+        if product is None:
+
+            return jsonify({
+                "error": True,
+                "msg": (
+                    "El producto "
+                    "geoespacial no existe."
+                ),
+            }), 404
+
+        product_type = (
+            str(
+                product.get(
+                    "product_type"
+                )
+                or product.get(
+                    "type"
+                )
+                or ""
+            )
+            .strip()
+            .upper()
+        )
+
+        if (
+            product_type
+            not in (
+                SpectralIndexVisualizationService
+                .SUPPORTED_INDEXES
+            )
+        ):
+
+            return jsonify({
+                "error": True,
+                "msg": (
+                    "Las estadísticas "
+                    "espectrales están "
+                    "disponibles únicamente "
+                    "para NDVI, NDRE y GNDVI."
+                ),
+            }), 400
+
+        source_path = (
+            ImageIngestionService
+            .resolve_managed_path(
+                product[
+                    "storage_path"
+                ]
+            )
+        )
+
+        statistics = (
+            SpectralIndexVisualizationService
+            .calculate_statistics(
+                source_path=source_path,
+                index_name=product_type,
+            )
+        )
+
+        return jsonify({
+            "ok": True,
+            "product_id": product_id,
+            "statistics": statistics,
+            "legend": (
+                SpectralIndexVisualizationService
+                .get_legend()
+            ),
+        })
+
+    except (
+        InvalidSpectralIndexVisualizationError
+    ) as exc:
+
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 422
+
+    except SpectralIndexVisualizationError as exc:
+
+        return jsonify({
+            "error": True,
+            "msg": str(exc),
+        }), 500
+
 
 @app.route(
     "/api/campaigns/<int:campaign_id>/rededge/inspect",
