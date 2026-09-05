@@ -825,6 +825,106 @@
             color: #f8fafc;
         }
 
+        /* =========================================
+        SPECTRAL ANALYSIS
+        ========================================= */
+
+        .spectral-description {
+            margin: 6px 0 0 0;
+            color: #94a3b8;
+            font-size: 0.86rem;
+        }
+
+        .spectral-controls {
+            display: grid;
+
+            grid-template-columns:
+                repeat(
+                    3,
+                    minmax(0, 1fr)
+                );
+
+            gap: 12px;
+        }
+
+        .spectral-index-card {
+            display: flex;
+
+            align-items: center;
+            justify-content: space-between;
+
+            gap: 14px;
+
+            padding: 14px;
+
+            border:
+                1px solid #334155;
+
+            border-radius: 9px;
+
+            background: #0f172a;
+        }
+
+        .spectral-index-card > div {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .spectral-index-card span {
+            color: #94a3b8;
+            font-size: 0.78rem;
+        }
+
+        .spectral-button {
+            padding: 8px 11px;
+
+            border:
+                1px solid #3b82f6;
+
+            border-radius: 7px;
+
+            background: #1d4ed8;
+
+            color: #ffffff;
+
+            cursor: pointer;
+        }
+
+        .spectral-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .spectral-empty {
+            padding: 14px;
+
+            border:
+                1px dashed #334155;
+
+            border-radius: 8px;
+
+            color: #94a3b8;
+
+            text-align: center;
+        }
+
+        .spectral-message {
+            margin-top: 12px;
+
+            padding: 10px 12px;
+
+            border-radius: 7px;
+
+            background: #0f172a;
+
+            color: #cbd5e1;
+        }
+
+        .spectral-controls {
+            grid-template-columns: 1fr;
+        }
+
     </style>
 
 </head>
@@ -1201,10 +1301,120 @@
                     Preparando visor...
                 </div>
 
-
                 <div
                     id="campaignMap"
                     class="campaign-gis-map"
+                ></div>
+
+            </section>
+
+            <section
+                id="spectralAnalysisSection"
+                class="section-card"
+            >
+
+                <div class="section-header">
+
+                    <div>
+
+                        <h2 class="section-title">
+                            Análisis espectral
+                        </h2>
+
+                        <p class="spectral-description">
+                            Generación de índices derivados
+                            del ortomosaico multiespectral.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="spectralUnavailable"
+                    class="spectral-empty"
+                >
+                    La campaña todavía no posee un
+                    ortomosaico multiespectral disponible.
+                </div>
+
+
+                <div
+                    id="spectralControls"
+                    class="spectral-controls"
+                    style="display: none;"
+                >
+
+                    <div class="spectral-index-card">
+
+                        <div>
+                            <strong>NDVI</strong>
+
+                            <span>
+                                NIR y Red
+                            </span>
+                        </div>
+
+                        <button
+                            type="button"
+                            class="spectral-button"
+                            data-index="NDVI"
+                        >
+                            Generar NDVI
+                        </button>
+
+                    </div>
+
+
+                    <div class="spectral-index-card">
+
+                        <div>
+                            <strong>NDRE</strong>
+
+                            <span>
+                                NIR y Red Edge
+                            </span>
+                        </div>
+
+                        <button
+                            type="button"
+                            class="spectral-button"
+                            data-index="NDRE"
+                        >
+                            Generar NDRE
+                        </button>
+
+                    </div>
+
+
+                    <div class="spectral-index-card">
+
+                        <div>
+                            <strong>GNDVI</strong>
+
+                            <span>
+                                NIR y Green
+                            </span>
+                        </div>
+
+                        <button
+                            type="button"
+                            class="spectral-button"
+                            data-index="GNDVI"
+                        >
+                            Generar GNDVI
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="spectralMessage"
+                    class="spectral-message"
+                    style="display: none;"
                 ></div>
 
             </section>
@@ -3959,6 +4169,8 @@ async function loadCampaignDetail() {
             currentProducts
         );
 
+        renderSpectralAnalysis();
+
         renderCampaignMap();
 
         updateProcessButton();
@@ -4087,6 +4299,23 @@ async function processCampaign() {
 document.addEventListener(
     "DOMContentLoaded",
     () => {
+
+        document.querySelectorAll(
+            ".spectral-button"
+        ).forEach(
+            (button) => {
+
+                button.addEventListener(
+                    "click",
+                    () => {
+
+                        generateSpectralIndex(
+                            button.dataset.index
+                        );
+                    }
+                );
+            }
+        );
 
         document.getElementById(
             "processCampaignButton"
@@ -4437,7 +4666,188 @@ async function uploadRedEdgeBatch(
     );
 }
 
+function getSpectralSourceProduct() {
 
+    return (
+        currentProducts.find(
+            (product) =>
+                (
+                    getGeospatialProductType(
+                        product
+                    )
+                    ===
+                    "ORTHOMOSAIC_MULTISPECTRAL"
+                )
+        )
+        ?? null
+    );
+}
+
+function hasSpectralIndex(
+    indexName
+) {
+
+    return currentProducts.some(
+        (product) =>
+            (
+                getGeospatialProductType(
+                    product
+                )
+                === indexName
+            )
+    );
+}
+
+function renderSpectralAnalysis() {
+
+    const sourceProduct =
+        getSpectralSourceProduct();
+
+
+    const unavailable =
+        document.getElementById(
+            "spectralUnavailable"
+        );
+
+    const controls =
+        document.getElementById(
+            "spectralControls"
+        );
+
+
+    if (!sourceProduct) {
+
+        unavailable.style.display =
+            "block";
+
+        controls.style.display =
+            "none";
+
+        return;
+    }
+
+
+    unavailable.style.display =
+        "none";
+
+    controls.style.display =
+        "grid";
+
+
+    document.querySelectorAll(
+        ".spectral-button"
+    ).forEach(
+        (button) => {
+
+            const indexName =
+                button.dataset.index;
+
+
+            if (
+                hasSpectralIndex(
+                    indexName
+                )
+            ) {
+
+                button.disabled =
+                    true;
+
+                button.textContent =
+                    `${indexName} generado`;
+
+            } else {
+
+                button.disabled =
+                    false;
+
+                button.textContent =
+                    `Generar ${indexName}`;
+            }
+        }
+    );
+}
+
+async function generateSpectralIndex(
+    indexName
+) {
+
+    const sourceProduct =
+        getSpectralSourceProduct();
+
+
+    if (!sourceProduct) {
+        return;
+    }
+
+
+    const message =
+        document.getElementById(
+            "spectralMessage"
+        );
+
+
+    const button =
+        document.querySelector(
+            (
+                ".spectral-button"
+                + `[data-index="${indexName}"]`
+            )
+        );
+
+
+    if (button) {
+        button.disabled = true;
+    }
+
+
+    message.style.display =
+        "block";
+
+    message.textContent =
+        `Generando ${indexName}...`;
+
+
+    try {
+
+        const result =
+            await fetchJson(
+                (
+                    `/api/geospatial-products/`
+                    + `${sourceProduct.id}`
+                    + `/spectral-indices/`
+                    + `${indexName}`
+                ),
+                {
+                    method: "POST",
+                }
+            );
+
+
+        message.textContent =
+            (
+                result.msg
+                ?? `${indexName} generado.`
+            );
+
+
+        await loadCampaignDetail();
+
+    } catch (error) {
+
+        message.textContent =
+            (
+                error.message
+                ?? (
+                    "No fue posible generar "
+                    + indexName
+                    + "."
+                )
+            );
+
+
+        renderSpectralAnalysis();
+    }
+}
 
 </script>
 

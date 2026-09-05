@@ -122,6 +122,13 @@ from services.image_ingestion_service import (
     ImageIngestionService,
 )
 
+from services.spectral_index_product_service import (
+    InvalidSpectralIndexSourceError,
+    SpectralIndexProductAlreadyExistsError,
+    SpectralIndexProductError,
+    SpectralIndexProductService,
+)
+
 app = Flask(__name__)
 app.secret_key = Config.SECRET_KEY
 
@@ -1861,6 +1868,60 @@ def api_process_campaign(
             "error": True,
             "msg": str(exc),
         }), 500
+
+@app.route(
+    (
+        "/api/geospatial-products/"
+        "<int:product_id>/spectral-indices/"
+        "<string:index_name>"
+    ),
+    methods=["POST"],
+)
+def api_generate_spectral_index(
+    product_id,
+    index_name,
+):
+
+    try:
+        product = (
+            SpectralIndexProductService
+            .generate_index(
+                source_product_id=product_id,
+                index_name=index_name,
+            )
+        )
+
+        return jsonify({
+            "ok": True,
+            "product": product,
+            "msg": (
+                f"{index_name.upper()} "
+                "generado correctamente."
+            ),
+        }), 201
+
+    except (
+        SpectralIndexProductAlreadyExistsError
+    ) as exc:
+
+        return jsonify({
+            "ok": False,
+            "msg": str(exc),
+        }), 409
+
+    except InvalidSpectralIndexSourceError as exc:
+
+        return jsonify({
+            "ok": False,
+            "msg": str(exc),
+        }), 400
+
+    except SpectralIndexProductError as exc:
+
+        return jsonify({
+            "ok": False,
+            "msg": str(exc),
+        }), 422
 
 @app.route(
     "/api/campaigns/<int:campaign_id>/rededge/inspect",

@@ -529,4 +529,73 @@ def test_campaign_detail_preview_uses_raster_mode():
         "?mode="
         in html
     )
+    
+def test_campaign_detail_contains_spectral_analysis_controls():
+
+    app.config["TESTING"] = True
+
+    client = app.test_client()
+
+    response = client.get(
+        "/campaigns/50"
+    )
+
+    html = response.get_data(
+        as_text=True
+    )
+
+    assert (
+        "Análisis espectral"
+        in html
+    )
+
+    assert (
+        'data-index="NDVI"'
+        in html
+    )
+
+    assert (
+        'data-index="NDRE"'
+        in html
+    )
+
+    assert (
+        'data-index="GNDVI"'
+        in html
+    )
+
+
+def test_campaign_detail_uses_spectral_index_api():
+
+    app.config["TESTING"] = True
+
+    client = app.test_client()
+
+    response = client.get(
+        "/campaigns/50"
+    )
+
+    html = response.get_data(
+        as_text=True
+    )
+
+    assert (
+        "/spectral-indices/"
+        in html
+    )
+
+    assert (
+        "generateSpectralIndex"
+        in html
+    )
+
+    assert (
+        "getSpectralSourceProduct"
+        in html
+    )
+
+    assert (
+        "hasSpectralIndex"
+        in html
+    )
 
