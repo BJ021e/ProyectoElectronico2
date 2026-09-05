@@ -598,4 +598,103 @@ def test_campaign_detail_uses_spectral_index_api():
         "hasSpectralIndex"
         in html
     )
+    
+def test_campaign_detail_contains_raster_product_selector():
+
+    app.config["TESTING"] = True
+
+    client = app.test_client()
+
+    response = client.get(
+        "/campaigns/60"
+    )
+
+    html = response.get_data(
+        as_text=True
+    )
+
+    assert (
+        'id="gisRasterProduct"'
+        in html
+    )
+
+    assert (
+        "renderRasterProductSelector"
+        in html
+    )
+
+    assert (
+        "currentRasterProductId"
+        in html
+    )
+
+
+def test_campaign_detail_contains_spectral_statistics_panel():
+
+    app.config["TESTING"] = True
+
+    client = app.test_client()
+
+    response = client.get(
+        "/campaigns/60"
+    )
+
+    html = response.get_data(
+        as_text=True
+    )
+
+    assert (
+        'id="spectralMapPanel"'
+        in html
+    )
+
+    assert (
+        'id="spectralStatMin"'
+        in html
+    )
+
+    assert (
+        'id="spectralStatMean"'
+        in html
+    )
+
+    assert (
+        'id="spectralStatMax"'
+        in html
+    )
+
+    assert (
+        'id="spectralLegendGradient"'
+        in html
+    )
+
+
+def test_campaign_detail_loads_selected_spectral_statistics():
+
+    app.config["TESTING"] = True
+
+    client = app.test_client()
+
+    response = client.get(
+        "/campaigns/60"
+    )
+
+    html = response.get_data(
+        as_text=True
+    )
+
+    assert (
+        "/statistics"
+        in html
+    )
+
+    assert (
+        "loadSelectedSpectralStatistics"
+        in html
+    )
+
+    assert (
+        "renderSpectralMapPanel"
+        in html
+    )
 

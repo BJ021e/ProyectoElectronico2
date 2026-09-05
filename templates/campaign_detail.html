@@ -925,6 +925,109 @@
             grid-template-columns: 1fr;
         }
 
+        /* =========================================
+        SPECTRAL MAP
+        ========================================= */
+
+        .spectral-map-panel {
+            margin-bottom: 14px;
+
+            padding: 14px;
+
+            border:
+                1px solid #334155;
+
+            border-radius: 9px;
+
+            background: #0f172a;
+        }
+
+        .spectral-stat-grid {
+            display: grid;
+
+            grid-template-columns:
+                repeat(
+                    4,
+                    minmax(0, 1fr)
+                );
+
+            gap: 10px;
+
+            margin-bottom: 16px;
+        }
+
+        .spectral-stat-card {
+            display: flex;
+
+            flex-direction: column;
+
+            gap: 6px;
+
+            padding: 11px 12px;
+
+            border:
+                1px solid #334155;
+
+            border-radius: 8px;
+
+            background: #111827;
+        }
+
+        .spectral-stat-card span {
+            color: #94a3b8;
+
+            font-size: 0.76rem;
+        }
+
+        .spectral-stat-card strong {
+            color: #f8fafc;
+
+            font-size: 1rem;
+        }
+
+        .spectral-legend-container {
+            margin-top: 4px;
+        }
+
+        .spectral-legend-gradient {
+            width: 100%;
+
+            height: 18px;
+
+            border-radius: 5px;
+
+            border:
+                1px solid #475569;
+        }
+
+        .spectral-legend-labels {
+            display: flex;
+
+            justify-content: space-between;
+
+            margin-top: 5px;
+
+            color: #94a3b8;
+
+            font-size: 0.72rem;
+        }
+
+        .spectral-map-note {
+            margin: 10px 0 0 0;
+
+            color: #94a3b8;
+
+            font-size: 0.76rem;
+        }
+        
+        .spectral-stat-grid {
+            grid-template-columns:
+                repeat(
+                    2,
+                    minmax(0, 1fr)
+                );
+        }
+
     </style>
 
 </head>
@@ -1253,6 +1356,23 @@
                 </div>
 
                 <div
+                    id="gisProductControls"
+                    class="gis-raster-controls"
+                    style="display: none;"
+                >
+
+                    <label
+                        for="gisRasterProduct"
+                    >
+                        Producto GIS
+                    </label>
+
+                    <select id="gisRasterProduct">
+                    </select>
+
+                </div>
+
+                <div
                     id="gisRasterControls"
                     class="gis-raster-controls"
                     style="display: none;"
@@ -1291,6 +1411,92 @@
                         </option>
 
                     </select>
+
+                </div>
+                
+                <div
+                    id="spectralMapPanel"
+                    class="spectral-map-panel"
+                    style="display: none;"
+                >
+
+                    <div class="spectral-stat-grid">
+
+                        <div class="spectral-stat-card">
+
+                            <span>
+                                Mínimo
+                            </span>
+
+                            <strong id="spectralStatMin">
+                                --
+                            </strong>
+
+                        </div>
+
+
+                        <div class="spectral-stat-card">
+
+                            <span>
+                                Media
+                            </span>
+
+                            <strong id="spectralStatMean">
+                                --
+                            </strong>
+
+                        </div>
+
+
+                        <div class="spectral-stat-card">
+
+                            <span>
+                                Máximo
+                            </span>
+
+                            <strong id="spectralStatMax">
+                                --
+                            </strong>
+
+                        </div>
+
+
+                        <div class="spectral-stat-card">
+
+                            <span>
+                                Píxeles válidos
+                            </span>
+
+                            <strong id="spectralStatPixels">
+                                --
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="spectral-legend-container">
+
+                        <div
+                            id="spectralLegendGradient"
+                            class="spectral-legend-gradient"
+                        ></div>
+
+
+                        <div
+                            id="spectralLegendLabels"
+                            class="spectral-legend-labels"
+                        ></div>
+
+                    </div>
+
+
+                    <p class="spectral-map-note">
+                        Escala numérica fija de -1 a +1.
+                        Los colores representan únicamente
+                        el valor del índice.
+                    </p>
 
                 </div>
 
@@ -1750,14 +1956,17 @@ let redEdgeImportInProgress = false;
 
 let currentRasterMode = "natural";
 
-const RED_EDGE_BATCH_MAX_FILES =
-    25;
+let currentRasterProductId = null;
 
-const RED_EDGE_BATCH_TARGET_BYTES =
-    32 * 1024 * 1024;
+let currentSpectralStatistics = null;
 
-const RED_EDGE_BATCH_MAX_ATTEMPTS =
-    3;
+let currentSpectralLegend = null;
+
+const RED_EDGE_BATCH_MAX_FILES = 25;
+
+const RED_EDGE_BATCH_TARGET_BYTES = 32 * 1024 * 1024;
+
+const RED_EDGE_BATCH_MAX_ATTEMPTS = 3;
 
 /* ===============================================
    UTILIDADES
@@ -3403,9 +3612,15 @@ function selectRasterPreviewProduct(
     const candidates =
         products.filter(
             (product) =>
-                Boolean(
-                    getProductWgs84Bounds(
+                (
+                    isRasterDisplayProduct(
                         product
+                    )
+                    &&
+                    Boolean(
+                        getProductWgs84Bounds(
+                            product
+                        )
                     )
                 )
         );
@@ -3416,33 +3631,60 @@ function selectRasterPreviewProduct(
     }
 
 
-    const priorities = [
-        "ORTHOMOSAIC_RGB",
-        "ORTHOMOSAIC_MULTISPECTRAL",
-    ];
-
-
-    for (
-        const type
-        of priorities
+    if (
+        currentRasterProductId
+        !== null
     ) {
 
-        const match =
+        const selected =
             candidates.find(
                 (product) =>
                     (
-                        getGeospatialProductType(
-                            product
+                        Number(
+                            product.id
                         )
-                        === type
+                        ===
+                        Number(
+                            currentRasterProductId
+                        )
                     )
             );
 
 
-        if (match) {
-            return match;
+        if (selected) {
+            return selected;
         }
     }
+
+
+    const multispectral =
+        candidates.find(
+            (product) =>
+                (
+                    getGeospatialProductType(
+                        product
+                    )
+                    ===
+                    "ORTHOMOSAIC_MULTISPECTRAL"
+                )
+        );
+
+
+    if (multispectral) {
+
+        currentRasterProductId =
+            Number(
+                multispectral.id
+            );
+
+        return multispectral;
+    }
+
+
+    currentRasterProductId =
+        Number(
+            candidates[0].id
+        );
 
 
     return candidates[0];
@@ -3486,11 +3728,16 @@ function renderRasterPreview() {
         );
 
 
+    const isMultispectral =
+    (
+        productType
+        ===
+        "ORTHOMOSAIC_MULTISPECTRAL"
+    );
+
+
     controls.style.display =
-        (
-            productType
-            === "ORTHOMOSAIC_MULTISPECTRAL"
-        )
+        isMultispectral
         ? "flex"
         : "none";
 
@@ -3509,15 +3756,23 @@ function renderRasterPreview() {
     }
 
 
-    const previewUrl =
+    let previewUrl =
         (
             `/api/geospatial-products/`
             + `${product.id}`
             + `/preview.png`
-            + `?mode=${encodeURIComponent(
-                currentRasterMode
-            )}`
         );
+
+
+    if (isMultispectral) {
+
+        previewUrl +=
+            (
+                `?mode=${encodeURIComponent(
+                    currentRasterMode
+                )}`
+            );
+    }
 
 
     const overlay =
@@ -3571,6 +3826,65 @@ function renderRasterPreview() {
 
 
     return product;
+}
+
+function initializeRasterProductSelector() {
+
+    const select =
+        document.getElementById(
+            "gisRasterProduct"
+        );
+
+
+    if (!select) {
+
+        console.error(
+            "No se encontró "
+            + "#gisRasterProduct."
+        );
+
+        return;
+    }
+
+
+    if (
+        select.dataset.listenerBound
+        === "true"
+    ) {
+        return;
+    }
+
+
+    select.addEventListener(
+        "change",
+        async (
+            event
+        ) => {
+
+            currentRasterProductId =
+                Number(
+                    event.target.value
+                );
+
+
+            console.log(
+                "Producto GIS seleccionado:",
+                currentRasterProductId
+            );
+
+
+            renderCampaignMap();
+
+
+            await (
+                loadSelectedSpectralStatistics()
+            );
+        }
+    );
+
+
+    select.dataset.listenerBound =
+        "true";
 }
 
 /* ===============================================
@@ -4175,6 +4489,11 @@ async function loadCampaignDetail() {
 
         updateProcessButton();
 
+        renderRasterProductSelector();
+        
+        renderCampaignMap();
+
+        await loadSelectedSpectralStatistics();
 
         loading.style.display =
             "none";
@@ -4409,7 +4728,9 @@ document.addEventListener(
                 renderCampaignMap();
             }
         );
-
+        
+        initializeRasterProductSelector();
+        
         loadCampaignDetail();
     }
 );
@@ -4847,6 +5168,464 @@ async function generateSpectralIndex(
 
         renderSpectralAnalysis();
     }
+}
+
+function isRasterDisplayProduct(
+    product
+) {
+
+    const type =
+        getGeospatialProductType(
+            product
+        );
+
+
+    return [
+        "ORTHOMOSAIC_RGB",
+        "ORTHOMOSAIC_MULTISPECTRAL",
+        "NDVI",
+        "NDRE",
+        "GNDVI",
+    ].includes(
+        type
+    );
+}
+
+function getRasterProductLabel(
+    product
+) {
+
+    const type =
+        getGeospatialProductType(
+            product
+        );
+
+
+    const labels = {
+        ORTHOMOSAIC_RGB:
+            "Ortomosaico RGB",
+
+        ORTHOMOSAIC_MULTISPECTRAL:
+            "Ortomosaico multiespectral",
+
+        NDVI:
+            "NDVI",
+
+        NDRE:
+            "NDRE",
+
+        GNDVI:
+            "GNDVI",
+    };
+
+
+    return (
+        labels[type]
+        ?? product.name
+        ?? product.product_code
+        ?? type
+    );
+}
+
+function renderRasterProductSelector() {
+
+    const container =
+        document.getElementById(
+            "gisProductControls"
+        );
+
+    const select =
+        document.getElementById(
+            "gisRasterProduct"
+        );
+
+
+    const products =
+        currentProducts.filter(
+            isRasterDisplayProduct
+        );
+
+
+    if (!products.length) {
+
+        container.style.display =
+            "none";
+
+        currentRasterProductId =
+            null;
+
+        select.innerHTML =
+            "";
+
+        return;
+    }
+
+
+    container.style.display =
+        "flex";
+
+
+    const previousId =
+        currentRasterProductId;
+
+
+    select.innerHTML =
+        products
+        .map(
+            (product) => {
+
+                return (
+                    `<option value="${
+                        Number(
+                            product.id
+                        )
+                    }">`
+                    + escapeHtml(
+                        getRasterProductLabel(
+                            product
+                        )
+                    )
+                    + "</option>"
+                );
+            }
+        )
+        .join(
+            ""
+        );
+
+
+    const previousProduct =
+        products.find(
+            (product) =>
+                (
+                    Number(
+                        product.id
+                    )
+                    ===
+                    Number(
+                        previousId
+                    )
+                )
+        );
+
+
+    if (previousProduct) {
+
+        currentRasterProductId =
+            Number(
+                previousProduct.id
+            );
+
+    } else {
+
+        const preferred =
+            (
+                products.find(
+                    (product) =>
+                        (
+                            getGeospatialProductType(
+                                product
+                            )
+                            ===
+                            "ORTHOMOSAIC_MULTISPECTRAL"
+                        )
+                )
+                ??
+                products.find(
+                    (product) =>
+                        (
+                            getGeospatialProductType(
+                                product
+                            )
+                            ===
+                            "ORTHOMOSAIC_RGB"
+                        )
+                )
+                ??
+                products[0]
+            );
+
+
+        currentRasterProductId =
+            Number(
+                preferred.id
+            );
+    }
+
+
+    select.value =
+        String(
+            currentRasterProductId
+        );
+}
+
+async function loadSelectedSpectralStatistics() {
+
+    const panel =
+        document.getElementById(
+            "spectralMapPanel"
+        );
+
+
+    const selected =
+        currentProducts.find(
+            (product) =>
+                (
+                    Number(
+                        product.id
+                    )
+                    ===
+                    Number(
+                        currentRasterProductId
+                    )
+                )
+        );
+
+
+    if (!selected) {
+
+        panel.style.display =
+            "none";
+
+        currentSpectralStatistics =
+            null;
+
+        currentSpectralLegend =
+            null;
+
+        return;
+    }
+
+
+    const productType =
+        getGeospatialProductType(
+            selected
+        );
+
+
+    if (
+        ![
+            "NDVI",
+            "NDRE",
+            "GNDVI",
+        ].includes(
+            productType
+        )
+    ) {
+
+        panel.style.display =
+            "none";
+
+        currentSpectralStatistics =
+            null;
+
+        currentSpectralLegend =
+            null;
+
+        return;
+    }
+
+
+    try {
+
+        const result =
+            await fetchJson(
+                (
+                    `/api/geospatial-products/`
+                    + `${selected.id}`
+                    + `/statistics`
+                )
+            );
+
+
+        currentSpectralStatistics =
+            result.statistics;
+
+        currentSpectralLegend =
+            result.legend;
+
+
+        renderSpectralMapPanel();
+
+    } catch (error) {
+
+        panel.style.display =
+            "none";
+
+        console.error(
+            "Error cargando estadísticas "
+            + "espectrales:",
+            error
+        );
+    }
+}
+
+function renderSpectralMapPanel() {
+
+    const panel =
+        document.getElementById(
+            "spectralMapPanel"
+        );
+
+
+    if (
+        !currentSpectralStatistics
+        ||
+        !Array.isArray(
+            currentSpectralLegend
+        )
+    ) {
+
+        panel.style.display =
+            "none";
+
+        return;
+    }
+
+
+    panel.style.display =
+        "block";
+
+
+    const statistics =
+        currentSpectralStatistics;
+
+
+    document.getElementById(
+        "spectralStatMin"
+    ).textContent =
+        Number(
+            statistics.minimum
+        ).toFixed(
+            4
+        );
+
+
+    document.getElementById(
+        "spectralStatMean"
+    ).textContent =
+        Number(
+            statistics.mean
+        ).toFixed(
+            4
+        );
+
+
+    document.getElementById(
+        "spectralStatMax"
+    ).textContent =
+        Number(
+            statistics.maximum
+        ).toFixed(
+            4
+        );
+
+
+    document.getElementById(
+        "spectralStatPixels"
+    ).textContent =
+        Number(
+            statistics.valid_pixel_count
+        ).toLocaleString();
+
+    document.getElementById(
+        "gisRasterProduct"
+    ).addEventListener(
+        "change",
+        async (
+            event
+        ) => {
+
+            currentRasterProductId =
+                Number(
+                    event.target.value
+                );
+
+
+            renderCampaignMap();
+
+
+            await (
+                loadSelectedSpectralStatistics()
+            );
+        }
+    );
+
+    const gradient =
+        document.getElementById(
+            "spectralLegendGradient"
+        );
+
+
+    const stops =
+        currentSpectralLegend.map(
+            (item) => {
+
+                const percentage =
+                    (
+                        (
+                            Number(
+                                item.value
+                            )
+                            + 1
+                        )
+                        / 2
+                        * 100
+                    );
+
+
+                const rgb =
+                    item.rgb;
+
+
+                return (
+                    `rgb(`
+                    + `${rgb[0]}, `
+                    + `${rgb[1]}, `
+                    + `${rgb[2]}`
+                    + `) `
+                    + `${percentage}%`
+                );
+            }
+        );
+
+
+    gradient.style.background =
+        (
+            "linear-gradient("
+            + "to right, "
+            + stops.join(", ")
+            + ")"
+        );
+
+
+    const labels =
+        document.getElementById(
+            "spectralLegendLabels"
+        );
+
+
+    labels.innerHTML =
+        currentSpectralLegend
+        .map(
+            (item) => {
+
+                const value =
+                    Number(
+                        item.value
+                    );
+
+
+                return (
+                    `<span>${
+                        value.toFixed(1)
+                    }</span>`
+                );
+            }
+        )
+        .join(
+            ""
+        );
 }
 
 </script>
