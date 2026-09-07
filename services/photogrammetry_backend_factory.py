@@ -48,7 +48,13 @@ class PhotogrammetryBackendFactory:
         )
 
         if normalized == "MOCK":
-            return MockPhotogrammetryBackend()
+
+            return MockPhotogrammetryBackend(
+                delay_seconds=(
+                    Config
+                    .MOCK_PHOTOGRAMMETRY_DELAY_SECONDS
+                )
+            )
 
         raise PhotogrammetryBackendConfigurationError(
             "Backend de fotogrametría "

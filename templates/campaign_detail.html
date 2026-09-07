@@ -1946,6 +1946,12 @@ let gisRasterLayer = null;
 
 let processingInProgress = false;
 
+let processingPollingId = null;
+
+let processingPollingPromise = null;
+
+const PROCESSING_POLL_INTERVAL_MS = 2000;
+
 let redEdgeStagingToken = null;
 
 let redEdgeInspection = null;
@@ -2681,6 +2687,25 @@ function renderProducts(
    ESTADO DE BOTÓN PROCESAR
    =============================================== */
 
+function getActiveProcessingJob() {
+
+    if (!Array.isArray(currentJobs)) {
+        return null;
+    }
+
+    return (
+        currentJobs.find(
+            (job) =>
+                (
+                    job.status === "PENDING"
+                    ||
+                    job.status === "RUNNING"
+                )
+        )
+        ?? null
+    );
+}
+   
 function updateProcessButton() {
 
     const button =
@@ -2688,13 +2713,33 @@ function updateProcessButton() {
             "processCampaignButton"
         );
 
+    const activeJob =
+        getActiveProcessingJob();
 
-    if (processingInProgress) {
+    if (
+        processingInProgress
+        ||
+        activeJob !== null
+    ) {
 
         button.disabled = true;
 
         button.textContent =
             "Procesando...";
+
+        if (activeJob !== null) {
+
+            button.title =
+                (
+                    `${activeJob.job_code} - `
+                    + `${activeJob.status}`
+                );
+
+        } else {
+
+            button.title =
+                "Enviando trabajo de procesamiento.";
+        }
 
         return;
     }
@@ -2737,6 +2782,7 @@ function updateProcessButton() {
             "Procesar campaña";
     }
 }
+
 
 /* ===============================================
    REDEDGE IMPORT
@@ -4535,9 +4581,199 @@ async function loadCampaignDetail() {
    PROCESAR CAMPAÑA
    =============================================== */
 
+function waitMilliseconds(
+    milliseconds
+) {
+
+    return new Promise(
+        (resolve) => {
+
+            window.setTimeout(
+                resolve,
+                milliseconds
+            );
+        }
+    );
+}
+
+
+async function refreshProcessingState() {
+
+    const [
+        campaign,
+        jobsPayload,
+    ] = await Promise.all([
+
+        fetchJson(
+            `/api/campaigns/${CAMPAIGN_ID}`
+        ),
+
+        fetchJson(
+            `/api/campaigns/${CAMPAIGN_ID}/processing-jobs`
+        ),
+
+    ]);
+
+
+    currentCampaign =
+        campaign;
+
+    currentJobs =
+        jobsPayload.jobs
+        ?? [];
+
+
+    renderCampaign(
+        currentCampaign
+    );
+
+    renderJobs(
+        currentJobs
+    );
+
+    updateProcessButton();
+
+
+    return currentJobs;
+}
+
+async function waitForProcessingJob(
+    jobId
+) {
+
+    const normalizedJobId =
+        Number(
+            jobId
+        );
+
+
+    if (
+        !Number.isInteger(
+            normalizedJobId
+        )
+        ||
+        normalizedJobId <= 0
+    ) {
+
+        throw new Error(
+            "El identificador del trabajo "
+            + "de procesamiento no es válido."
+        );
+    }
+
+
+    if (
+        processingPollingPromise
+        !== null
+    ) {
+
+        if (
+            processingPollingJobId
+            === normalizedJobId
+        ) {
+
+            return (
+                processingPollingPromise
+            );
+        }
+
+        throw new Error(
+            "Ya se está supervisando otro "
+            + "trabajo de procesamiento."
+        );
+    }
+
+
+    processingPollingJobId =
+        normalizedJobId;
+
+
+    processingPollingPromise =
+        (
+            async () => {
+
+                while (true) {
+
+                    const jobs =
+                        await (
+                            refreshProcessingState()
+                        );
+
+
+                    const currentJob =
+                        jobs.find(
+                            (job) =>
+                                (
+                                    Number(
+                                        job.id
+                                    )
+                                    ===
+                                    normalizedJobId
+                                )
+                        );
+
+
+                    if (!currentJob) {
+
+                        throw new Error(
+                            "El trabajo de procesamiento "
+                            + "ya no aparece en el "
+                            + "historial de la campaña."
+                        );
+                    }
+
+
+                    if (
+                        currentJob.status
+                        === "COMPLETED"
+                    ) {
+
+                        return currentJob;
+                    }
+
+
+                    if (
+                        currentJob.status
+                        === "FAILED"
+                    ) {
+
+                        return currentJob;
+                    }
+
+
+                    await waitMilliseconds(
+                        PROCESSING_POLL_INTERVAL_MS
+                    );
+                }
+            }
+        )();
+
+
+    try {
+
+        return await (
+            processingPollingPromise
+        );
+
+    } finally {
+
+        processingPollingJobId =
+            null;
+
+        processingPollingPromise =
+            null;
+    }
+}
+
 async function processCampaign() {
 
-    if (processingInProgress) {
+    if (
+        processingInProgress
+        ||
+        getActiveProcessingJob()
+        !== null
+    ) {
+
         return;
     }
 
@@ -4548,7 +4784,8 @@ async function processCampaign() {
         );
 
 
-    processingInProgress = true;
+    processingInProgress =
+        true;
 
     updateProcessButton();
 
@@ -4557,7 +4794,7 @@ async function processCampaign() {
         "processing-message";
 
     message.textContent =
-        "Ejecutando procesamiento...";
+        "Enviando trabajo de procesamiento...";
 
 
     try {
@@ -4571,18 +4808,93 @@ async function processCampaign() {
             );
 
 
+        if (
+            result.accepted
+            !== true
+            ||
+            !result.job
+            ||
+            !result.job.id
+        ) {
+
+            throw new Error(
+                "El servidor no devolvió "
+                + "un trabajo de procesamiento válido."
+            );
+        }
+
+
+        message.className =
+            "processing-message";
+
+        message.textContent =
+            (
+                "Procesamiento aceptado. "
+                + "Esperando ejecución..."
+            );
+
+
+        currentJobs = [
+            result.job,
+            ...currentJobs.filter(
+                (job) =>
+                    (
+                        Number(job.id)
+                        !==
+                        Number(result.job.id)
+                    )
+            ),
+        ];
+
+        renderJobs(
+            currentJobs
+        );
+
+        updateProcessButton();
+
+
+        const completedJob =
+            await waitForProcessingJob(
+                result.job.id
+            );
+
+
+        /*
+         * Ahora sí hacemos una carga completa:
+         * campaña, capturas, jobs, productos,
+         * GIS y estadísticas.
+         */
+        await loadCampaignDetail();
+
+
+        if (
+            completedJob.status
+            === "FAILED"
+        ) {
+
+            message.className =
+                "processing-message error";
+
+            message.textContent =
+                (
+                    completedJob.error_message
+                    ??
+                    "El procesamiento finalizó con error."
+                );
+
+            return;
+        }
+
+
         message.className =
             "processing-message success";
 
-
         message.textContent =
-            `Procesamiento completado: ${
-                result.products?.length
-                ?? 0
-            } producto(s) generado(s).`;
-
-
-        await loadCampaignDetail();
+            (
+                `Procesamiento completado: ${
+                    currentProducts.length
+                } producto(s) generado(s).`
+            );
 
 
     } catch (error) {
@@ -4598,7 +4910,114 @@ async function processCampaign() {
 
 
         message.textContent =
-            error.message;
+            (
+                error.message
+                ??
+                "No fue posible supervisar "
+                + "el procesamiento."
+            );
+
+
+    } finally {
+
+        processingInProgress =
+            false;
+
+        updateProcessButton();
+    }
+}
+
+async function resumeActiveProcessingPolling() {
+
+    const activeJob =
+        getActiveProcessingJob();
+
+
+    if (activeJob === null) {
+        return;
+    }
+
+
+    const message =
+        document.getElementById(
+            "processingMessage"
+        );
+
+
+    processingInProgress =
+        true;
+
+    updateProcessButton();
+
+
+    message.className =
+        "processing-message";
+
+    message.textContent =
+        (
+            "Procesamiento en curso: "
+            + `${activeJob.job_code}.`
+        );
+
+
+    try {
+
+        const completedJob =
+            await waitForProcessingJob(
+                activeJob.id
+            );
+
+
+        await loadCampaignDetail();
+
+
+        if (
+            completedJob.status
+            === "FAILED"
+        ) {
+
+            message.className =
+                "processing-message error";
+
+            message.textContent =
+                (
+                    completedJob.error_message
+                    ??
+                    "El procesamiento finalizó con error."
+                );
+
+        } else {
+
+            message.className =
+                "processing-message success";
+
+            message.textContent =
+                (
+                    `Procesamiento completado: ${
+                        currentProducts.length
+                    } producto(s) generado(s).`
+                );
+        }
+
+
+    } catch (error) {
+
+        console.error(
+            "Error reanudando supervisión "
+            + "del procesamiento:",
+            error
+        );
+
+        message.className =
+            "processing-message error";
+
+        message.textContent =
+            (
+                error.message
+                ??
+                "No fue posible consultar "
+                + "el estado del procesamiento."
+            );
 
 
     } finally {
@@ -4731,7 +5150,22 @@ document.addEventListener(
         
         initializeRasterProductSelector();
         
-        loadCampaignDetail();
+        loadCampaignDetail()
+            .then(
+                () => (
+                    resumeActiveProcessingPolling()
+                )
+            )
+            .catch(
+                (error) => {
+
+                    console.error(
+                        "Error durante la "
+                        + "inicialización:",
+                        error
+                    );
+                }
+            );
     }
 );
 

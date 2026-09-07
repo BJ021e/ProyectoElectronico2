@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import rasterio
+import time
 
 from rasterio.transform import (
     from_origin,
@@ -25,7 +26,17 @@ from models import (
 
 
 class MockPhotogrammetryBackend:
-
+    
+    def __init__(
+        self,
+        *,
+        delay_seconds: float = 0.0,
+    ):
+        self._delay_seconds = max(
+            0.0,
+            float(delay_seconds),
+        )
+    
     @property
     def name(self) -> str:
         return "MOCK"
@@ -293,6 +304,12 @@ class MockPhotogrammetryBackend:
             exist_ok=True,
         )
 
+        if self._delay_seconds > 0:
+
+            time.sleep(
+                self._delay_seconds
+            )
+        
         if (
             request.sensor_type
             == SensorType.RGB

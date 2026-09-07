@@ -84,6 +84,13 @@ class Config:
         "MOCK",
     ).strip().upper()
     
+    MOCK_PHOTOGRAMMETRY_DELAY_SECONDS = float(
+        os.getenv(
+            "MOCK_PHOTOGRAMMETRY_DELAY_SECONDS",
+            "0",
+        )
+    )
+    
     RED_EDGE_STAGING_ROOT = os.getenv(
         "RED_EDGE_STAGING_ROOT",
         "data/rededge_staging",
