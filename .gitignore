@@ -61,9 +61,22 @@ data/*.db
 data/*.sqlite
 data/*.sqlite3
 
-data/red-edge_staging/
+data/rededge_staging/
 
 data/campaigns/
 
 static/uploads_parcelas/FOTASOS/
 static/uploads_parcelas/FOTASOS.zip
+
+
+# =========================
+# Runtime legacy / previews
+# =========================
+static/live_cache/
+static/live_cache_cam/
+static/uploads/
+static/uploads_remoto_mosaico/
+static/uploads_remoto_parcelas_cam/
+static/resultados_parcelas/
+static/resultados_remoto_mosaico/
+static/resultados_remoto_parcelas_cam/
