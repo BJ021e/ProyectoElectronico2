@@ -5,7 +5,7 @@ import sys
 import traceback
 from pathlib import Path
 
-import Metashape
+import Metashape 
 
 CANONICAL_MULTISPECTRAL_BANDS = (
     "BLUE",
@@ -226,6 +226,12 @@ def main() -> int:
                 manifest
             )
 
+        elif mode == "inspect_reflectance":
+
+            payload = inspect_reflectance(
+                manifest
+            )
+            
         else:
 
             raise ValueError(
@@ -563,7 +569,7 @@ def align_inputs(
     )
 
     chunk.matchPhotos(
-        downscale=1,
+        downscale=2,
         generic_preselection=True,
         reference_preselection=True,
         filter_stationary_points=True,
@@ -689,6 +695,399 @@ def align_inputs(
         ),
     }
 
+def inspect_reflectance(
+    manifest: dict,
+) -> dict:
+
+    capture_groups = (
+        manifest.get("capture_groups")
+        or []
+    )
+
+    if not capture_groups:
+        raise ValueError(
+            "No se recibieron grupos de captura."
+        )
+
+    filenames = []
+    filegroups = []
+
+    expected = set(
+        CANONICAL_MULTISPECTRAL_BANDS
+    )
+
+    for group in capture_groups:
+
+        capture_code = group.get(
+            "capture_code"
+        )
+
+        assets = (
+            group.get("assets")
+            or []
+        )
+
+        by_band = {}
+
+        for asset in assets:
+
+            band = str(
+                asset.get("band", "")
+            ).strip().upper()
+
+            path = str(
+                asset.get("path", "")
+            ).strip()
+
+            if not band or not path:
+                raise ValueError(
+                    f"Asset inválido en "
+                    f"{capture_code}."
+                )
+
+            if band in by_band:
+                raise ValueError(
+                    f"Banda duplicada {band} "
+                    f"en {capture_code}."
+                )
+
+            by_band[band] = path
+
+        received = set(
+            by_band
+        )
+
+        if received != expected:
+
+            missing = sorted(
+                expected - received
+            )
+
+            extra = sorted(
+                received - expected
+            )
+
+            raise ValueError(
+                "Captura multiespectral "
+                f"incompleta: {capture_code}. "
+                f"Faltantes={missing}; "
+                f"extras={extra}."
+            )
+
+        ordered_files = [
+            by_band[band]
+            for band
+            in CANONICAL_MULTISPECTRAL_BANDS
+        ]
+
+        for path in ordered_files:
+
+            if not Path(path).is_file():
+                raise ValueError(
+                    f"Archivo inexistente: "
+                    f"{path}"
+                )
+
+        filenames.extend(
+            ordered_files
+        )
+
+        filegroups.append(
+            len(ordered_files)
+        )
+
+    doc = Metashape.Document()
+
+    chunk = doc.addChunk()
+
+    chunk.addPhotos(
+        filenames=filenames,
+        filegroups=filegroups,
+        layout=Metashape.MultiplaneLayout,
+    )
+
+    print(
+        "METASHAPE_REFLECTANCE_PANEL_SEARCH_START"
+    )
+
+    chunk.locateReflectancePanels()
+
+    print(
+        "METASHAPE_REFLECTANCE_PANEL_SEARCH_DONE"
+    )
+
+    camera_groups = []
+
+    for group in chunk.camera_groups:
+
+        camera_groups.append({
+            "key": group.key,
+            "label": group.label,
+            "type": str(group.type),
+        })
+
+    calibration_cameras = [
+        camera
+        for camera in chunk.cameras
+        if (
+            camera.group is not None
+            and str(
+                camera.group.label
+            ).strip().lower()
+            == "calibration images"
+        )
+    ]
+
+    calibration_master_keys = sorted({
+        camera.master.key
+        if camera.master is not None
+        else camera.key
+        for camera in calibration_cameras
+    })
+
+    perform_calibration = bool(
+        manifest.get(
+            "perform_calibration",
+            False,
+        )
+    )
+
+    sensitivity_before = None
+    sensitivity_after = None
+
+    sensor_status = []
+
+    for sensor in chunk.sensors:
+
+        sensor_status.append({
+            "key": sensor.key,
+            "label": sensor.label,
+            "layer_index": sensor.layer_index,
+            "bands": list(
+                sensor.bands
+            ),
+            "normalize_sensitivity": bool(
+                sensor.normalize_sensitivity
+            ),
+            "sensitivity": list(
+                sensor.sensitivity
+            ),
+        })
+
+    
+    if perform_calibration:
+
+        if not calibration_cameras:
+            raise ValueError(
+                "No se detectaron imágenes "
+                "de panel de reflectancia."
+            )
+
+        missing_panel_calibration = []
+
+        for camera in calibration_cameras:
+
+            metadata = dict(
+                camera.meta or {}
+            )
+
+            if (
+                "ReflectancePanel/Calibration"
+                not in metadata
+            ):
+                missing_panel_calibration.append(
+                    camera.key
+                )
+
+        if missing_panel_calibration:
+            raise ValueError(
+                "Existen imágenes de panel "
+                "sin coeficiente de calibración: "
+                f"{missing_panel_calibration}"
+            )
+
+        sensitivity_before = {
+            str(sensor.key): list(
+                sensor.sensitivity
+            )
+            for sensor in chunk.sensors
+        }
+
+        for sensor in chunk.sensors:
+            sensor.normalize_sensitivity = True
+
+        print(
+            "METASHAPE_REFLECTANCE_CALIBRATION_START"
+        )
+
+        chunk.calibrateReflectance(
+            use_reflectance_panels=True,
+            use_sun_sensor=False,
+        )
+
+        print(
+            "METASHAPE_REFLECTANCE_CALIBRATION_DONE"
+        )
+
+        sensitivity_after = {
+            str(sensor.key): list(
+                sensor.sensitivity
+            )
+            for sensor in chunk.sensors
+        }
+    
+    calibration_camera_details = []
+
+    for camera in calibration_cameras:
+
+        calibration_camera_details.append({
+            "key": camera.key,
+            "label": camera.label,
+            "layer_index": (
+                camera.layer_index
+            ),
+            "master_key": (
+                camera.master.key
+                if camera.master is not None
+                else None
+            ),
+            "enabled": bool(
+                camera.enabled
+            ),
+            "group": (
+                camera.group.label
+                if camera.group is not None
+                else None
+            ),
+        })
+
+    calibration_enabled_count = sum(
+        1
+        for camera in calibration_cameras
+        if camera.enabled
+    )
+
+    calibration_disabled_count = (
+        len(calibration_cameras)
+        - calibration_enabled_count
+    )
+
+    panel_calibration_metadata = []
+
+    for camera in calibration_cameras:
+
+        meta = dict(
+            camera.meta or {}
+        )
+
+        relevant_meta = {
+            str(key): str(value)
+            for key, value in meta.items()
+            if (
+                "reflectance" in str(key).lower()
+                or "panel" in str(key).lower()
+                or "irradiance" in str(key).lower()
+                or "sun" in str(key).lower()
+            )
+        }
+
+        panel_calibration_metadata.append({
+            "key": camera.key,
+            "label": camera.label,
+            "layer_index": camera.layer_index,
+            "master_key": (
+                camera.master.key
+                if camera.master is not None
+                else None
+            ),
+            "enabled": bool(
+                camera.enabled
+            ),
+            "meta": relevant_meta,
+        })
+
+    sensor_status = []
+
+    for sensor in chunk.sensors:
+
+        sensor_status.append({
+            "key": sensor.key,
+            "label": sensor.label,
+            "layer_index": sensor.layer_index,
+            "bands": list(
+                sensor.bands
+            ),
+            "normalize_sensitivity": bool(
+                sensor.normalize_sensitivity
+            ),
+        })
+    
+    return {
+        "success": True,
+        "mode": (
+            "calibrate_reflectance"
+            if perform_calibration
+            else "inspect_reflectance"
+        ),
+        "capture_group_count": len(
+            capture_groups
+        ),
+        "input_file_count": len(
+            filenames
+        ),
+        "camera_count": len(
+            chunk.cameras
+        ),
+        "sensor_count": len(
+            chunk.sensors
+        ),
+        "camera_groups": (
+            camera_groups
+        ),
+        "calibration_camera_count": len(
+            calibration_cameras
+        ),
+        "calibration_master_count": len(
+            calibration_master_keys
+        ),
+        "calibration_master_keys": (
+            calibration_master_keys
+        ),
+        "calibration_cameras": (
+            calibration_camera_details
+        ),
+        "calibration_enabled_count": (
+            calibration_enabled_count
+        ),
+        "calibration_disabled_count": (
+            calibration_disabled_count
+        ),
+        "panel_calibration_metadata": (
+            panel_calibration_metadata
+        ),
+        "sensor_status": (
+            sensor_status
+        ),
+        "reflectance_calibrated": (
+            perform_calibration
+        ),
+        "use_reflectance_panels": (
+            True
+            if perform_calibration
+            else None
+        ),
+        "use_sun_sensor": (
+            False
+            if perform_calibration
+            else None
+        ),
+        "sensitivity_before": (
+            sensitivity_before
+        ),
+        "sensitivity_after": (
+            sensitivity_after
+        ),
+    }
 
 if __name__ == "__main__":
     raise SystemExit(

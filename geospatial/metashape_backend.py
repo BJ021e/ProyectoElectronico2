@@ -506,7 +506,7 @@ class MetashapeBackend:
         completed = self._run_worker(
             manifest_path=manifest_path,
             result_path=result_path,
-            timeout_seconds=600,
+            timeout_seconds=3600,
         )
 
         if completed.returncode != 0:
@@ -545,3 +545,138 @@ class MetashapeBackend:
             )
 
         return result
+    
+    def inspect_reflectance(
+        self,
+        request: PhotogrammetryRequest,
+        *,
+        perform_calibration: bool = False,
+    ) -> dict:
+
+        if not self.is_available():
+
+            raise MetashapeBackendError(
+                "Metashape no está disponible."
+            )
+
+        if not request.capture_groups:
+
+            raise MetashapeBackendError(
+                "La solicitud no contiene "
+                "grupos de captura explícitos."
+            )
+
+        output_dir = (
+            Path(request.output_dir)
+            .expanduser()
+            .resolve()
+        )
+
+        output_dir.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        manifest_path = (
+            output_dir
+            / "metashape_reflectance_manifest.json"
+        )
+
+        result_path = (
+            output_dir
+            / "metashape_reflectance_result.json"
+        )
+
+        manifest = {
+            "mode": "inspect_reflectance",
+            "campaign_id": (
+                request.campaign_id
+            ),
+            "sensor_type": (
+                request.sensor_type.value
+            ),
+            "input_files": list(
+                request.input_files
+            ),
+            "capture_groups": [
+                {
+                    "capture_code": (
+                        group.capture_code
+                    ),
+                    "assets": [
+                        {
+                            "band": asset.band,
+                            "path": asset.path,
+                        }
+                        for asset
+                        in group.assets
+                    ],
+                }
+                for group
+                in request.capture_groups
+            ],
+            
+            "perform_calibration": (
+                perform_calibration
+            ),
+        }
+
+        manifest_path.write_text(
+            json.dumps(
+                manifest,
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+
+        completed = self._run_worker(
+            manifest_path=manifest_path,
+            result_path=result_path,
+            timeout_seconds=600,
+        )
+
+        if completed.returncode != 0:
+
+            raise MetashapeBackendError(
+                "Metashape falló durante "
+                "la detección de paneles. "
+                f"Código={completed.returncode}. "
+                f"stdout={completed.stdout.strip()} "
+                f"stderr={completed.stderr.strip()}"
+            )
+
+        if not result_path.is_file():
+
+            raise MetashapeBackendError(
+                "Metashape terminó sin generar "
+                "el resultado de reflectancia."
+            )
+
+        result = json.loads(
+            result_path.read_text(
+                encoding="utf-8"
+            )
+        )
+
+        if result.get("success") is not True:
+
+            raise MetashapeBackendError(
+                result.get("error_message")
+                or (
+                    "Metashape reportó un error "
+                    "detectando paneles."
+                )
+            )
+
+        return result
+    
+    def calibrate_reflectance(
+        self,
+        request: PhotogrammetryRequest,
+    ) -> dict:
+
+        return self.inspect_reflectance(
+            request,
+            perform_calibration=True,
+        )
