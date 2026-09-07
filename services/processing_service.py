@@ -7,7 +7,10 @@ from geospatial import (
     PhotogrammetryBackendError,
     PhotogrammetryBackendUnavailableError,
     PhotogrammetryRequest,
+    PhotogrammetryCaptureGroup,
+    PhotogrammetryInputAsset,
 )
+
 from models import SensorType
 from services.campaign_service import (
     CampaignService,
@@ -89,12 +92,16 @@ class ProcessingService:
 
         return exc.__class__.__name__
 
+    
     @classmethod
-    def _collect_inputs(
+    def _collect_capture_groups(
         cls,
         *,
         campaign_id: int,
-    ) -> tuple[str, ...]:
+    ) -> tuple[
+        PhotogrammetryCaptureGroup,
+        ...,
+    ]:
 
         captures = (
             CaptureService.list_captures(
@@ -120,7 +127,7 @@ class ProcessingService:
                 + ", ".join(incomplete)
             )
 
-        input_files = []
+        capture_groups = []
 
         for capture in captures:
 
@@ -130,6 +137,8 @@ class ProcessingService:
                     f"{capture['capture_code']} "
                     "no contiene archivos."
                 )
+
+            group_assets = []
 
             for asset in capture["assets"]:
 
@@ -143,7 +152,7 @@ class ProcessingService:
                 if not path.exists():
                     raise InvalidCampaignProcessingError(
                         "No existe el archivo físico "
-                        f"registrado para "
+                        "registrado para "
                         f"{capture['capture_code']} / "
                         f"{asset['band']}: {path}"
                     )
@@ -151,15 +160,70 @@ class ProcessingService:
                 if not path.is_file():
                     raise InvalidCampaignProcessingError(
                         "La entrada registrada no "
-                        f"corresponde a un archivo: "
+                        "corresponde a un archivo: "
                         f"{path}"
                     )
 
-                input_files.append(
-                    str(path)
+                band = asset.get(
+                    "band"
                 )
 
-        return tuple(input_files)
+                if (
+                    not isinstance(
+                        band,
+                        str,
+                    )
+                    or not band.strip()
+                ):
+                    raise InvalidCampaignProcessingError(
+                        "La captura "
+                        f"{capture['capture_code']} "
+                        "contiene un asset sin banda "
+                        "válida."
+                    )
+
+                group_assets.append(
+                    PhotogrammetryInputAsset(
+                        band=band.strip().upper(),
+                        path=str(path),
+                    )
+                )
+
+            capture_groups.append(
+                PhotogrammetryCaptureGroup(
+                    capture_code=(
+                        capture["capture_code"]
+                    ),
+                    assets=tuple(
+                        group_assets
+                    ),
+                )
+            )
+
+        return tuple(
+            capture_groups
+        )
+
+
+    @classmethod
+    def _collect_inputs(
+        cls,
+        *,
+        campaign_id: int,
+    ) -> tuple[str, ...]:
+
+        capture_groups = (
+            cls._collect_capture_groups(
+                campaign_id=campaign_id
+            )
+        )
+
+        return tuple(
+            asset.path
+            for group in capture_groups
+            for asset in group.assets
+        )
+    
     
     @classmethod
     def prepare_campaign(
@@ -321,10 +385,16 @@ class ProcessingService:
                     "de sensor no soportado."
                 ) from exc
 
-            input_files = (
-                cls._collect_inputs(
+            capture_groups = (
+                cls._collect_capture_groups(
                     campaign_id=campaign_id
                 )
+            )
+
+            input_files = tuple(
+                asset.path
+                for group in capture_groups
+                for asset in group.assets
             )
 
             job = (
@@ -361,6 +431,9 @@ class ProcessingService:
                         ),
                         output_dir=(
                             output_dir
+                        ),
+                        capture_groups=(
+                            capture_groups
                         ),
                     )
                 )

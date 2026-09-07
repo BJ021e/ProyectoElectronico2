@@ -84,6 +84,11 @@ class Config:
         "MOCK",
     ).strip().upper()
     
+    METASHAPE_EXECUTABLE = os.getenv(
+        "METASHAPE_EXECUTABLE",
+        "",
+    ).strip()
+    
     MOCK_PHOTOGRAMMETRY_DELAY_SECONDS = float(
         os.getenv(
             "MOCK_PHOTOGRAMMETRY_DELAY_SECONDS",

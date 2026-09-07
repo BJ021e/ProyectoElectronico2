@@ -15,6 +15,13 @@ from geospatial.mock_photogrammetry_backend import (
     MockPhotogrammetryBackend,
 )
 
+from .processing_types import (
+    GeneratedRasterProduct,
+    PhotogrammetryCaptureGroup,
+    PhotogrammetryInputAsset,
+    PhotogrammetryRequest,
+    ProcessingResult,
+)
 
 __all__ = [
     "PhotogrammetryBackend",
@@ -25,4 +32,6 @@ __all__ = [
     "GeneratedRasterProduct",
     "ProcessingResult",
     "MockPhotogrammetryBackend",
+    "PhotogrammetryCaptureGroup",
+    "PhotogrammetryInputAsset",
 ]

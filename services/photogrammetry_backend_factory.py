@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 from config import Config
+
+from geospatial.metashape_backend import (
+    MetashapeBackend,
+)
+
 from geospatial import (
     MockPhotogrammetryBackend,
     PhotogrammetryBackend,
 )
-
 
 class PhotogrammetryBackendConfigurationError(
     Exception
@@ -53,6 +57,14 @@ class PhotogrammetryBackendFactory:
                 delay_seconds=(
                     Config
                     .MOCK_PHOTOGRAMMETRY_DELAY_SECONDS
+                )
+            )
+        
+        if normalized == "METASHAPE":
+
+            return MetashapeBackend(
+                executable_path=(
+                    Config.METASHAPE_EXECUTABLE
                 )
             )
 
