@@ -135,8 +135,20 @@ from services.spectral_index_visualization_service import (
     SpectralIndexVisualizationService,
 )
 
+from services.processing_executor import (
+    ProcessingExecutor,
+    ProcessingExecutorError,
+)
+
 app = Flask(__name__)
 app.secret_key = Config.SECRET_KEY
+
+
+processing_executor = (
+    ProcessingExecutor(
+        max_workers=1
+    )
+)
 
 # ---------------- CONFIGURACIÓN ----------------
 BASE_DIR = "static/ground_mission"
@@ -491,6 +503,27 @@ def ground_download_pdf():
 
 @app.route("/logout")
 def logout(): session.clear(); return redirect(url_for('ground_login'))
+
+def _execute_processing_job_background(
+    *,
+    job_id: int,
+    backend,
+) -> None:
+
+    try:
+
+        ProcessingService.execute_job(
+            job_id=job_id,
+            backend=backend,
+        )
+
+    except Exception:
+
+        app.logger.exception(
+            "Falló el trabajo geoespacial "
+            "en segundo plano. job_id=%s",
+            job_id,
+        )
 
 # ---------------- WORKER ----------------
 
@@ -1859,7 +1892,9 @@ def api_geospatial_product_preview(
 def api_process_campaign(
     campaign_id
 ):
+
     try:
+
         campaign = (
             CampaignService.get_campaign(
                 campaign_id
@@ -1867,6 +1902,7 @@ def api_process_campaign(
         )
 
         if campaign is None:
+
             return jsonify({
                 "error": True,
                 "msg": (
@@ -1880,21 +1916,75 @@ def api_process_campaign(
             .create()
         )
 
-        result = (
-            ProcessingService.process_campaign(
+        job = (
+            ProcessingService.prepare_campaign(
                 campaign_id=campaign_id,
                 backend=backend,
             )
         )
 
-        return jsonify(
-            result
-        ), 201
+        try:
+
+            processing_executor.submit(
+                job_id=job["id"],
+                task=lambda: (
+                    _execute_processing_job_background(
+                        job_id=job["id"],
+                        backend=backend,
+                    )
+                ),
+            )
+
+        except (
+            ProcessingExecutorError,
+            RuntimeError,
+        ) as exc:
+
+            failure_message = (
+                "No fue posible encolar "
+                "el trabajo de procesamiento: "
+                f"{exc}"
+            )
+
+            try:
+
+                ProcessingJobService.fail_job(
+                    job["id"],
+                    error_message=(
+                        failure_message
+                    ),
+                )
+
+            except Exception:
+
+                app.logger.exception(
+                    "No fue posible marcar "
+                    "FAILED el job que no pudo "
+                    "encolarse. job_id=%s",
+                    job["id"],
+                )
+
+            return jsonify({
+                "error": True,
+                "msg": failure_message,
+                "job": job,
+            }), 500
+
+        return jsonify({
+            "accepted": True,
+            "job": job,
+            "msg": (
+                "El procesamiento fue "
+                "aceptado y continuará "
+                "en segundo plano."
+            ),
+        }), 202
 
     except (
         InvalidCampaignProcessingError,
         InvalidCampaignError,
     ) as exc:
+
         return jsonify({
             "error": True,
             "msg": str(exc),
@@ -1904,6 +1994,7 @@ def api_process_campaign(
         ProcessingExecutionError,
         PhotogrammetryBackendConfigurationError,
     ) as exc:
+
         return jsonify({
             "error": True,
             "msg": str(exc),
@@ -1914,10 +2005,12 @@ def api_process_campaign(
         ProcessingJobPersistenceError,
         GeospatialProductPersistenceError,
     ) as exc:
+
         return jsonify({
             "error": True,
             "msg": str(exc),
         }), 500
+
 
 @app.route(
     (

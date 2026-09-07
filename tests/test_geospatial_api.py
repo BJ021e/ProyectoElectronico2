@@ -2,6 +2,7 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+import time
 
 from config import Config
 from InterfazInit import app
@@ -214,7 +215,6 @@ def test_incomplete_campaign_cannot_process():
 
     assert jobs["count"] == 0
 
-
 def test_ready_campaign_processes_through_api(
     tmp_path,
     monkeypatch,
@@ -248,26 +248,96 @@ def test_ready_campaign_processes_through_api(
         f"{campaign['id']}/process"
     )
 
-    assert response.status_code == 201
+    assert response.status_code == 202
 
     result = response.get_json()
 
     assert (
-        result["job"]["status"]
-        == "COMPLETED"
-    )
-
-    assert len(
-        result["products"]
-    ) == 1
-
-    product = (
-        result["products"][0]
+        result["accepted"]
+        is True
     )
 
     assert (
-        product["product_type"]
-        == "ORTHOMOSAIC_RGB"
+        result["job"]["status"]
+        == "PENDING"
+    )
+
+    job_id = (
+        result["job"]["id"]
+    )
+
+    deadline = (
+        time.monotonic()
+        + 5.0
+    )
+
+    completed_job = None
+
+    while (
+        time.monotonic()
+        < deadline
+    ):
+
+        jobs_response = client().get(
+            f"/api/campaigns/"
+            f"{campaign['id']}"
+            f"/processing-jobs"
+        )
+
+        assert (
+            jobs_response.status_code
+            == 200
+        )
+
+        jobs_payload = (
+            jobs_response.get_json()
+        )
+
+        jobs = (
+            jobs_payload["jobs"]
+        )
+
+        current_job = next(
+            (
+                job
+                for job in jobs
+                if job["id"] == job_id
+            ),
+            None,
+        )
+
+        if (
+            current_job is not None
+            and current_job["status"]
+            in {
+                "COMPLETED",
+                "FAILED",
+            }
+        ):
+
+            completed_job = (
+                current_job
+            )
+
+            break
+
+        time.sleep(
+            0.05
+        )
+
+    assert (
+        completed_job
+        is not None
+    ), (
+        "El trabajo no alcanzó "
+        "un estado terminal."
+    )
+
+    assert (
+        completed_job["status"]
+        == "COMPLETED"
+    ), completed_job.get(
+        "error_message"
     )
 
     products_response = client().get(
@@ -275,11 +345,28 @@ def test_ready_campaign_processes_through_api(
         f"{campaign['id']}/products"
     )
 
-    products = (
+    assert (
+        products_response.status_code
+        == 200
+    )
+
+    products_payload = (
         products_response.get_json()
     )
 
-    assert products["count"] == 1
+    assert (
+        products_payload["count"]
+        == 1
+    )
+
+    product = (
+        products_payload["products"][0]
+    )
+
+    assert (
+        product["product_type"]
+        == "ORTHOMOSAIC_RGB"
+    )
 
     product_response = client().get(
         "/api/geospatial-products/"
