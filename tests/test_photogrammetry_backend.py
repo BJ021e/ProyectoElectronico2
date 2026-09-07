@@ -1,6 +1,9 @@
 from pathlib import Path
 
+import numpy as np
+
 import pytest
+import rasterio
 
 from geospatial import (
     InvalidPhotogrammetryRequestError,
@@ -242,3 +245,136 @@ def test_mock_rejects_missing_input_file(
                 ),
             )
         )
+        
+def test_mock_multispectral_bands_have_distinct_patterns():
+
+    data = (
+        MockPhotogrammetryBackend
+        ._build_multispectral_mock(
+            width=32,
+            height=32,
+        )
+    )
+
+    assert data.shape == (
+        5,
+        32,
+        32,
+    )
+
+    assert data.dtype == np.uint16
+
+    for first in range(
+        5
+    ):
+        for second in range(
+            first + 1,
+            5,
+        ):
+            assert not np.array_equal(
+                data[first],
+                data[second],
+            )
+            
+def test_mock_multispectral_band_patterns_are_spatially_variable():
+
+    data = (
+        MockPhotogrammetryBackend
+        ._build_multispectral_mock(
+            width=32,
+            height=32,
+        )
+    )
+
+    for band in data:
+
+        assert (
+            np.min(
+                band
+            )
+            <
+            np.max(
+                band
+            )
+        )
+        
+def test_mock_multispectral_written_geotiff_uses_distinct_patterns(
+    tmp_path,
+):
+
+    input_file = create_input_file(
+        tmp_path
+    )
+
+    output_dir = (
+        tmp_path
+        / "output"
+    )
+
+    backend = (
+        MockPhotogrammetryBackend()
+    )
+
+    backend.process(
+        PhotogrammetryRequest(
+            campaign_id=1,
+            sensor_type=(
+                SensorType.MULTISPECTRAL
+            ),
+            input_files=(
+                str(input_file),
+            ),
+            output_dir=str(
+                output_dir
+            ),
+        )
+    )
+
+    output_path = (
+        output_dir
+        / "mock_orthomosaic_multispectral.tif"
+    )
+
+    with rasterio.open(
+        output_path
+    ) as dataset:
+
+        data = dataset.read()
+
+        assert dataset.count == 5
+
+        assert data.shape == (
+            5,
+            32,
+            32,
+        )
+
+        assert all(
+            dtype == "uint16"
+            for dtype in dataset.dtypes
+        )
+
+    expected = (
+        MockPhotogrammetryBackend
+        ._build_multispectral_mock(
+            width=32,
+            height=32,
+        )
+    )
+
+    assert np.array_equal(
+        data,
+        expected,
+    )
+
+    for first in range(5):
+
+        for second in range(
+            first + 1,
+            5,
+        ):
+
+            assert not np.array_equal(
+                data[first],
+                data[second],
+            )

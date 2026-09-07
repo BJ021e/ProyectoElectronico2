@@ -34,6 +34,109 @@ class MockPhotogrammetryBackend:
         return True
 
     @staticmethod
+    def _build_multispectral_mock(
+        *,
+        width: int,
+        height: int,
+    ) -> np.ndarray:
+
+        x = np.linspace(
+            0.0,
+            1.0,
+            width,
+            dtype=np.float32,
+        )
+
+        y = np.linspace(
+            0.0,
+            1.0,
+            height,
+            dtype=np.float32,
+        )
+
+        xx, yy = np.meshgrid(
+            x,
+            y,
+        )
+
+        blue = (
+            1000.0
+            + 3500.0 * xx
+        )
+
+        green = (
+            1000.0
+            + 3500.0 * yy
+        )
+
+        red = (
+            1000.0
+            + 3500.0
+            * (
+                xx + yy
+            )
+            / 2.0
+        )
+
+        distance = np.sqrt(
+            (
+                xx - 0.5
+            ) ** 2
+            +
+            (
+                yy - 0.5
+            ) ** 2
+        )
+
+        nir = (
+            1000.0
+            + 4000.0
+            * np.clip(
+                1.0
+                - distance * 1.7,
+                0.0,
+                1.0,
+            )
+        )
+
+        red_edge = (
+            2500.0
+            + 1500.0
+            * (
+                np.sin(
+                    xx
+                    * np.pi
+                    * 4.0
+                )
+                *
+                np.cos(
+                    yy
+                    * np.pi
+                    * 4.0
+                )
+            )
+        )
+
+        data = np.stack(
+            [
+                blue,
+                green,
+                red,
+                nir,
+                red_edge,
+            ],
+            axis=0,
+        )
+
+        return np.clip(
+            data,
+            1,
+            65535,
+        ).astype(
+            np.uint16
+        )
+        
+    @staticmethod
     def _validate_request(
         request: PhotogrammetryRequest,
     ) -> None:
@@ -140,22 +243,19 @@ class MockPhotogrammetryBackend:
         width = 32
         height = 32
 
-        data = np.stack(
-            [
-                np.full(
-                    (height, width),
-                    1000 + index * 100,
-                    dtype=np.uint16,
-                )
-                for index in range(5)
-            ]
-        )
-
         transform = from_origin(
             280000.0,
             8668000.0,
-            0.05,
-            0.05,
+            20.0,
+            20.0,
+        )
+
+        data = (
+            MockPhotogrammetryBackend
+            ._build_multispectral_mock(
+                width=width,
+                height=height,
+            )
         )
 
         with rasterio.open(
@@ -174,7 +274,7 @@ class MockPhotogrammetryBackend:
             dataset.write(
                 data
             )
-
+    
     def process(
         self,
         request: PhotogrammetryRequest,
@@ -282,3 +382,4 @@ class MockPhotogrammetryBackend:
             ),
             error_message=None,
         )
+        
