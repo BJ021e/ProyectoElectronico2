@@ -160,9 +160,9 @@ class ProcessingService:
                 )
 
         return tuple(input_files)
-
+    
     @classmethod
-    def process_campaign(
+    def prepare_campaign(
         cls,
         *,
         campaign_id: int,
@@ -186,7 +186,7 @@ class ProcessingService:
             )
 
         try:
-            sensor_type = SensorType(
+            SensorType(
                 campaign["sensor_type"]
             )
 
@@ -196,21 +196,140 @@ class ProcessingService:
                 "de sensor no soportado."
             ) from exc
 
-        input_files = cls._collect_inputs(
+        # Validamos las entradas antes de crear
+        # un ProcessingJob persistente.
+        cls._collect_inputs(
             campaign_id=campaign_id
         )
 
-        job = ProcessingJobService.create_job(
-            campaign_id=campaign_id,
-            backend=backend.name,
+        # Evita tener dos trabajos PENDING/RUNNING
+        # simultáneamente para la misma campaña.
+        jobs = (
+            ProcessingJobService.list_jobs(
+                campaign_id,
+                limit=50,
+            )
         )
+
+        active_job = next(
+            (
+                job
+                for job in jobs
+                if job["status"]
+                in {
+                    "PENDING",
+                    "RUNNING",
+                }
+            ),
+            None,
+        )
+
+        if active_job is not None:
+            raise InvalidCampaignProcessingError(
+                "La campaña ya posee un trabajo "
+                "de procesamiento activo: "
+                f"{active_job['job_code']} "
+                f"({active_job['status']})."
+            )
+
+        return (
+            ProcessingJobService.create_job(
+                campaign_id=campaign_id,
+                backend=backend.name,
+            )
+        )
+        
+    @classmethod
+    def execute_job(
+        cls,
+        *,
+        job_id: int,
+        backend,
+    ) -> dict:
+
+        cls._validate_backend(
+            backend
+        )
+
+        job = (
+            ProcessingJobService.get_job(
+                job_id
+            )
+        )
+
+        if job is None:
+            raise InvalidCampaignProcessingError(
+                f"El trabajo con ID "
+                f"{job_id} no existe."
+            )
 
         registered_products = []
 
         try:
+
+            if (
+                job["status"]
+                != "PENDING"
+            ):
+                raise InvalidCampaignProcessingError(
+                    "Solo puede ejecutarse un "
+                    "trabajo en estado PENDING."
+                )
+
+            normalized_backend = (
+                backend.name
+                .strip()
+                .upper()
+            )
+
+            if (
+                job["backend"]
+                .strip()
+                .upper()
+                != normalized_backend
+            ):
+                raise InvalidCampaignProcessingError(
+                    "El backend del trabajo "
+                    "no coincide con el backend "
+                    "suministrado para ejecutarlo."
+                )
+
+            campaign_id = (
+                job["campaign_id"]
+            )
+
+            campaign = (
+                CampaignService.get_campaign(
+                    campaign_id
+                )
+            )
+
+            if campaign is None:
+                raise InvalidCampaignProcessingError(
+                    "La campaña asociada al "
+                    "trabajo no existe."
+                )
+
+            try:
+                sensor_type = SensorType(
+                    campaign["sensor_type"]
+                )
+
+            except ValueError as exc:
+                raise InvalidCampaignProcessingError(
+                    "La campaña posee un tipo "
+                    "de sensor no soportado."
+                ) from exc
+
+            input_files = (
+                cls._collect_inputs(
+                    campaign_id=campaign_id
+                )
+            )
+
             job = (
                 ProcessingJobService.start_job(
-                    job["id"]
+                    job_id
                 )
             )
 
@@ -260,8 +379,10 @@ class ProcessingService:
                     )
 
                 if (
-                    result.backend.strip().upper()
-                    != backend.name.strip().upper()
+                    result.backend
+                    .strip()
+                    .upper()
+                    != normalized_backend
                 ):
                     raise ProcessingExecutionError(
                         "El backend devolvió un "
@@ -284,11 +405,10 @@ class ProcessingService:
                                 campaign_id
                             ),
                             processing_job_id=(
-                                job["id"]
+                                job_id
                             ),
                             product_type=(
-                                generated
-                                .product_type
+                                generated.product_type
                             ),
                             name=(
                                 generated.name
@@ -306,7 +426,7 @@ class ProcessingService:
             completed_job = (
                 ProcessingJobService
                 .complete_job(
-                    job["id"]
+                    job_id
                 )
             )
 
@@ -323,12 +443,13 @@ class ProcessingService:
         except Exception as exc:
 
             rollback_error = None
+            state_error = None
 
             try:
                 (
                     GeospatialProductService
                     .delete_products_for_job(
-                        job["id"]
+                        job_id
                     )
                 )
 
@@ -338,9 +459,11 @@ class ProcessingService:
                 )
 
             try:
+
                 current_job = (
-                    ProcessingJobService.get_job(
-                        job["id"]
+                    ProcessingJobService
+                    .get_job(
+                        job_id
                     )
                 )
 
@@ -352,26 +475,59 @@ class ProcessingService:
                         "RUNNING",
                     }
                 ):
-                    ProcessingJobService.fail_job(
-                        job["id"],
-                        error_message=(
-                            cls._error_message(
-                                exc
-                            )
-                        ),
+                    (
+                        ProcessingJobService
+                        .fail_job(
+                            job_id,
+                            error_message=(
+                                cls._error_message(
+                                    exc
+                                )
+                            ),
+                        )
                     )
 
-                if rollback_error is not None:
-                    raise ProcessingExecutionError(
-                        cls._error_message(exc)
-                        + " | Error durante rollback: "
-                        + cls._error_message(
-                            rollback_error
-                        )
-                    ) from exc
-                    
-            except Exception:
-                pass
+            except Exception as state_exc:
+                state_error = (
+                    state_exc
+                )
+
+            error_message = (
+                cls._error_message(
+                    exc
+                )
+            )
+
+            if rollback_error is not None:
+                error_message += (
+                    " | Error durante rollback: "
+                    + cls._error_message(
+                        rollback_error
+                    )
+                )
+
+            if state_error is not None:
+                error_message += (
+                    " | Error actualizando "
+                    "estado del trabajo: "
+                    + cls._error_message(
+                        state_error
+                    )
+                )
+
+            if (
+                rollback_error is not None
+                or state_error is not None
+            ):
+                raise ProcessingExecutionError(
+                    error_message
+                ) from exc
+
+            if isinstance(
+                exc,
+                InvalidCampaignProcessingError,
+            ):
+                raise
 
             if isinstance(
                 exc,
@@ -384,9 +540,31 @@ class ProcessingService:
                 PhotogrammetryBackendError,
             ):
                 raise ProcessingExecutionError(
-                    cls._error_message(exc)
+                    cls._error_message(
+                        exc
+                    )
                 ) from exc
 
             raise ProcessingExecutionError(
-                cls._error_message(exc)
+                cls._error_message(
+                    exc
+                )
             ) from exc
+    
+    @classmethod
+    def process_campaign(
+        cls,
+        *,
+        campaign_id: int,
+        backend,
+    ) -> dict:
+
+        job = cls.prepare_campaign(
+            campaign_id=campaign_id,
+            backend=backend,
+        )
+
+        return cls.execute_job(
+            job_id=job["id"],
+            backend=backend,
+        )
