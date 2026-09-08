@@ -698,3 +698,97 @@ def test_campaign_detail_loads_selected_spectral_statistics():
         in html
     )
 
+
+
+def test_campaign_detail_contains_processing_traceability():
+    html = app.test_client().get("/campaigns/123").get_data(as_text=True)
+    for marker in (
+        "getLatestCompletedRealJob", "getProductProcessingState",
+        "getProductTraceability", "getRasterProductOptionLabel",
+        "getPreferredRasterProduct", "ACTUAL", "HISTORICO", "MOCK",
+        'class="secondary-value product-traceability"',
+        "product.processing_job_id === sourceProduct.processing_job_id",
+    ):
+        assert marker in html
+
+
+def test_campaign_detail_contains_adaptive_resolution():
+    html = app.test_client().get("/campaigns/123").get_data(as_text=True)
+    for marker in (
+        "formatProductResolution(product)", "formatResolutionValue",
+        "toExponential(4)", "epsg === 4326", "32601", "32760", "m/px",
+    ):
+        assert marker in html
+
+
+def test_campaign_detail_contains_escaped_expandable_errors():
+    html = app.test_client().get("/campaigns/123").get_data(as_text=True)
+    for marker in (
+        "renderJobError(job.error_message)", 'details class="job-error-details"',
+        "<summary>Ver detalles</summary>", "escapeHtml(summary)",
+        "escapeHtml(fullError)", "compact.slice(0, 157)",
+        "white-space: pre-wrap", "max-height: 320px", "overflow: auto",
+    ):
+        assert marker in html
+
+
+def test_campaign_detail_helpers_behavior():
+    import shutil
+    import subprocess
+
+    import pytest
+
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node.js is required to execute frontend helpers")
+    html = app.test_client().get("/campaigns/123").get_data(as_text=True)
+    # Extract declarations without executing page initialization or network requests.
+    import re
+    functions = re.findall(r"^function [\s\S]*?^}", html, re.MULTILINE)
+    script = "\n".join(functions) + r'''
+const assert = require("node:assert/strict");
+let currentJobs = [
+    {id: 91, backend: "MOCK", status: "COMPLETED", finished_at: "2030-02-01"},
+    {id: 82, backend: "METASHAPE", status: "FAILED", finished_at: "2030-02-01"},
+    {id: 71, backend: "METASHAPE", status: "COMPLETED", finished_at: "2030-01-02"},
+    {id: 73, backend: "METASHAPE", status: "COMPLETED", finished_at: "2030-01-01"},
+];
+let currentProducts = [
+    {id: 101, processing_job_id: 91, product_type: "ORTHOMOSAIC_MULTISPECTRAL"},
+    {id: 102, processing_job_id: 73, product_type: "NDVI"},
+    {id: 103, processing_job_id: 71, product_type: "ORTHOMOSAIC_MULTISPECTRAL", product_code: "GP-test"},
+    {id: 104, processing_job_id: 71, product_type: "NDRE"},
+];
+assert.equal(getLatestCompletedRealJob().id, 71);
+assert.equal(getPreferredRasterProduct(currentProducts).id, 103);
+assert.equal(getSpectralSourceProduct().id, 103);
+assert.equal(hasSpectralIndex("NDVI"), false);
+assert.equal(hasSpectralIndex("NDRE"), true);
+assert.equal(getProductProcessingState(currentProducts[0]), "MOCK");
+assert.equal(getProductProcessingState(currentProducts[1]), "HISTORICO");
+assert.equal(getProductProcessingState(currentProducts[2]), "ACTUAL");
+assert.match(getRasterProductOptionLabel(currentProducts[2]), /^GP-test.*METASHAPE.*ACTUAL$/);
+assert.equal(getPreferredRasterProduct([currentProducts[0], currentProducts[3]]).id, 104);
+assert.equal(getPreferredRasterProduct(currentProducts.slice(0, 2)).id, 102);
+assert.equal(formatProductResolution({epsg:4326, resolution:{x:9.0471e-7,y:7.2969e-7}}), "9.0471e-7° × 7.2969e-7°/px");
+assert.equal(formatProductResolution({epsg:32718, resolution:{x:20,y:20}}), "20.0000 × 20.0000 m/px");
+assert.match(formatProductResolution({epsg:9999, resolution:{x:1e-8,y:2e-8}}), /1.0000e-8/);
+assert.equal(formatProductResolution({}), "--");
+assert.equal(renderJobError(null), "--");
+const error = "<script>alert(1)</script>\n" + "x".repeat(500);
+const rendered = renderJobError(error);
+assert.ok(!rendered.includes("<script>"));
+assert.ok(rendered.includes(escapeHtml(error)));
+assert.ok(rendered.includes("<summary>Ver detalles</summary>"));
+currentJobs = currentJobs.filter(job => job.status === "COMPLETED" && job.backend !== "MOCK");
+currentJobs.forEach(job => job.finished_at = null);
+assert.equal(getLatestCompletedRealJob().id, 73);
+currentJobs = [];
+assert.equal(getSpectralSourceProduct(), null);
+assert.equal(hasSpectralIndex("NDVI"), false);
+'''
+    result = subprocess.run(
+        [node, "-"], input=script, text=True, encoding="utf-8",
+        capture_output=True, check=False,
+    )
+    assert result.returncode == 0, result.stderr

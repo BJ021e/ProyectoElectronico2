@@ -330,6 +330,25 @@
             border-bottom: none;
         }
 
+        .job-error-summary {
+            max-width: 360px;
+            overflow-wrap: anywhere;
+        }
+
+        .job-error-details summary {
+            margin-top: 6px;
+            cursor: pointer;
+        }
+
+        .job-error-details pre {
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+            max-height: 320px;
+            max-width: 480px;
+            overflow: auto;
+        }
+
         .primary-value {
             font-weight: 700;
         }
@@ -2369,6 +2388,97 @@ function renderCaptures(
    JOBS
    =============================================== */
 
+function getLatestCompletedRealJob() {
+    return currentJobs
+        .filter((job) => job.status === "COMPLETED" && job.backend !== "MOCK")
+        .sort((a, b) => {
+            const aFinished = Date.parse(a.finished_at);
+            const bFinished = Date.parse(b.finished_at);
+            // Compare completion dates when both exist; otherwise use job IDs.
+            if (Number.isFinite(aFinished) && Number.isFinite(bFinished)
+                && aFinished !== bFinished) {
+                return bFinished - aFinished;
+            }
+            return Number(b.id) - Number(a.id);
+        })[0] ?? null;
+}
+
+function getProductJob(product) {
+    return currentJobs.find((job) => job.id === product.processing_job_id) ?? null;
+}
+
+function getProductProcessingState(product) {
+    const job = getProductJob(product);
+    if (!job) return "";
+    if (job.backend === "MOCK") return "MOCK";
+    if (job.status !== "COMPLETED") return job.status;
+    return job.id === getLatestCompletedRealJob()?.id ? "ACTUAL" : "HISTORICO";
+}
+
+function getProductTraceability(product) {
+    const job = getProductJob(product);
+    if (!job) return product.processing_job_id == null
+        ? "Sin trabajo asociado" : `Trabajo #${product.processing_job_id}`;
+    return [...new Set([
+        job.job_code ?? `Trabajo #${job.id}`,
+        job.backend,
+        getProductProcessingState(product),
+    ].filter(Boolean))].join(" · ");
+}
+
+function getRasterProductOptionLabel(product) {
+    const job = getProductJob(product);
+    return [
+        product.product_code || `Producto #${product.id}`,
+        getRasterProductLabel(product),
+        ...new Set([job?.backend, getProductProcessingState(product)].filter(Boolean)),
+    ].join(" · ");
+}
+
+function getPreferredRasterProduct(products) {
+    const latestCompletedRealJob = getLatestCompletedRealJob();
+    const current = latestCompletedRealJob
+        ? products.filter((product) => product.processing_job_id === latestCompletedRealJob.id)
+        : [];
+    const real = products.filter((product) => {
+        const job = getProductJob(product);
+        return job && job.status === "COMPLETED" && job.backend !== "MOCK";
+    });
+    const candidates = current.length ? current : real.length ? real : products;
+    return candidates.find((product) => getGeospatialProductType(product) === "ORTHOMOSAIC_MULTISPECTRAL")
+        ?? candidates.find((product) => getGeospatialProductType(product) === "ORTHOMOSAIC_RGB")
+        ?? candidates[0] ?? null;
+}
+
+function formatResolutionValue(value) {
+    if (value === null || value === undefined || value === "") return "--";
+    const number = Number(value);
+    if (!Number.isFinite(number)) return "--";
+    return number !== 0 && Math.abs(number) < 0.0001
+        ? number.toExponential(4) : number.toFixed(4);
+}
+
+function formatProductResolution(product) {
+    const x = formatResolutionValue(product.resolution?.x);
+    const y = formatResolutionValue(product.resolution?.y);
+    if (x === "--" && y === "--") return "--";
+    const epsg = Number(product.epsg);
+    if (epsg === 4326) return `${x}° × ${y}°/px`;
+    const isWgs84Utm = (epsg >= 32601 && epsg <= 32660)
+        || (epsg >= 32701 && epsg <= 32760);
+    return `${x} × ${y}${isWgs84Utm ? " m/px" : " /px"}`;
+}
+
+function renderJobError(errorMessage) {
+    if (!errorMessage) return "--";
+    const fullError = String(errorMessage);
+    const compact = fullError.replace(/\s+/g, " ").trim();
+    const summary = compact.length > 160 ? compact.slice(0, 157) + "..." : compact;
+    return `<div class="job-error-summary">${escapeHtml(summary)}</div>`
+        + `<details class="job-error-details"><summary>Ver detalles</summary>`
+        + `<pre>${escapeHtml(fullError)}</pre></details>`;
+}
+
 function renderJobs(
     jobs
 ) {
@@ -2457,10 +2567,7 @@ function renderJobs(
 
                     <td>
                         ${
-                            escapeHtml(
-                                job.error_message
-                                ?? "--"
-                            )
+                            renderJobError(job.error_message)
                         }
                     </td>
 
@@ -2543,26 +2650,7 @@ function renderProducts(
         products.map(
             (product) => {
 
-                const resolution =
-                    (
-                        product.resolution?.x
-                        !== null
-                        &&
-                        product.resolution?.x
-                        !== undefined
-                    )
-                    ? `${
-                        formatNumber(
-                            product.resolution.x,
-                            4
-                        )
-                    } × ${
-                        formatNumber(
-                            product.resolution.y,
-                            4
-                        )
-                    }`
-                    : "--";
+                const resolution = formatProductResolution(product);
 
                 const dimensions =
                     (
@@ -2596,6 +2684,9 @@ function renderProducts(
                                         product.name
                                     )
                                 }
+                            </div>
+                            <div class="secondary-value product-traceability">
+                                ${escapeHtml(getProductTraceability(product))}
                             </div>
                         </td>
 
@@ -3703,37 +3794,9 @@ function selectRasterPreviewProduct(
     }
 
 
-    const multispectral =
-        candidates.find(
-            (product) =>
-                (
-                    getGeospatialProductType(
-                        product
-                    )
-                    ===
-                    "ORTHOMOSAIC_MULTISPECTRAL"
-                )
-        );
-
-
-    if (multispectral) {
-
-        currentRasterProductId =
-            Number(
-                multispectral.id
-            );
-
-        return multispectral;
-    }
-
-
-    currentRasterProductId =
-        Number(
-            candidates[0].id
-        );
-
-
-    return candidates[0];
+    const preferred = getPreferredRasterProduct(candidates);
+    currentRasterProductId = Number(preferred.id);
+    return preferred;
 }
 
 function renderRasterPreview() {
@@ -4530,8 +4593,6 @@ async function loadCampaignDetail() {
         );
 
         renderSpectralAnalysis();
-
-        renderCampaignMap();
 
         updateProcessButton();
 
@@ -5422,34 +5483,20 @@ async function uploadRedEdgeBatch(
 }
 
 function getSpectralSourceProduct() {
-
-    return (
-        currentProducts.find(
-            (product) =>
-                (
-                    getGeospatialProductType(
-                        product
-                    )
-                    ===
-                    "ORTHOMOSAIC_MULTISPECTRAL"
-                )
-        )
-        ?? null
-    );
+    const latestCompletedRealJob = getLatestCompletedRealJob();
+    if (!latestCompletedRealJob) return null;
+    return currentProducts.find((product) =>
+        product.processing_job_id === latestCompletedRealJob.id
+        && getGeospatialProductType(product) === "ORTHOMOSAIC_MULTISPECTRAL"
+    ) ?? null;
 }
 
-function hasSpectralIndex(
-    indexName
-) {
-
-    return currentProducts.some(
-        (product) =>
-            (
-                getGeospatialProductType(
-                    product
-                )
-                === indexName
-            )
+function hasSpectralIndex(indexName) {
+    const sourceProduct = getSpectralSourceProduct();
+    if (!sourceProduct) return false;
+    return currentProducts.some((product) =>
+        product.processing_job_id === sourceProduct.processing_job_id
+        && getGeospatialProductType(product) === indexName
     );
 }
 
@@ -5715,7 +5762,7 @@ function renderRasterProductSelector() {
                         )
                     }">`
                     + escapeHtml(
-                        getRasterProductLabel(
+                        getRasterProductOptionLabel(
                             product
                         )
                     )
@@ -5752,33 +5799,7 @@ function renderRasterProductSelector() {
 
     } else {
 
-        const preferred =
-            (
-                products.find(
-                    (product) =>
-                        (
-                            getGeospatialProductType(
-                                product
-                            )
-                            ===
-                            "ORTHOMOSAIC_MULTISPECTRAL"
-                        )
-                )
-                ??
-                products.find(
-                    (product) =>
-                        (
-                            getGeospatialProductType(
-                                product
-                            )
-                            ===
-                            "ORTHOMOSAIC_RGB"
-                        )
-                )
-                ??
-                products[0]
-            );
-
+        const preferred = getPreferredRasterProduct(products);
 
         currentRasterProductId =
             Number(
