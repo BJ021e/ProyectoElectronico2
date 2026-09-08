@@ -5,7 +5,7 @@ import sys
 import traceback
 from pathlib import Path
 
-import Metashape 
+import Metashape
 
 CANONICAL_MULTISPECTRAL_BANDS = (
     "BLUE",
@@ -219,7 +219,7 @@ def main() -> int:
             payload = inspect_inputs(
                 manifest
             )
-            
+
         elif mode == "align_inputs":
 
             payload = align_inputs(
@@ -231,7 +231,13 @@ def main() -> int:
             payload = inspect_reflectance(
                 manifest
             )
-            
+
+        elif mode == "process":
+
+            payload = process_photogrammetry(
+                manifest
+            )
+
         else:
 
             raise ValueError(
@@ -409,7 +415,7 @@ def inspect_inputs(
             .MultiplaneLayout
         ),
     )
-    
+
     band_mapping = (
         build_canonical_band_mapping(
             chunk
@@ -483,13 +489,13 @@ def inspect_inputs(
         ),
         "sensors": sensors,
         "cameras": cameras,
-        
+
         "band_mapping": (
             band_mapping
         ),
-        
+
     }
-    
+
 def align_inputs(
     manifest: dict,
 ) -> dict:
@@ -874,7 +880,7 @@ def inspect_reflectance(
             ),
         })
 
-    
+
     if perform_calibration:
 
         if not calibration_cameras:
@@ -935,7 +941,7 @@ def inspect_reflectance(
             )
             for sensor in chunk.sensors
         }
-    
+
     calibration_camera_details = []
 
     for camera in calibration_cameras:
@@ -1021,7 +1027,7 @@ def inspect_reflectance(
                 sensor.normalize_sensitivity
             ),
         })
-    
+
     return {
         "success": True,
         "mode": (
@@ -1088,6 +1094,697 @@ def inspect_reflectance(
             sensitivity_after
         ),
     }
+
+def _load_process_chunk(
+    manifest: dict,
+):
+
+    capture_groups = (
+        manifest.get("capture_groups")
+        or []
+    )
+
+    if not capture_groups:
+        raise ValueError(
+            "No se recibieron grupos "
+            "de captura."
+        )
+
+    expected = set(
+        CANONICAL_MULTISPECTRAL_BANDS
+    )
+
+    filenames = []
+    filegroups = []
+
+    for group in capture_groups:
+
+        capture_code = str(
+            group.get(
+                "capture_code",
+                "",
+            )
+        ).strip()
+
+        assets = (
+            group.get("assets")
+            or []
+        )
+
+        by_band = {}
+
+        for asset in assets:
+
+            band = str(
+                asset.get(
+                    "band",
+                    "",
+                )
+            ).strip().upper()
+
+            path = str(
+                asset.get(
+                    "path",
+                    "",
+                )
+            ).strip()
+
+            if not band or not path:
+                raise ValueError(
+                    "Asset inválido en "
+                    f"{capture_code}."
+                )
+
+            if band in by_band:
+                raise ValueError(
+                    f"Banda duplicada "
+                    f"{band} en "
+                    f"{capture_code}."
+                )
+
+            by_band[band] = path
+
+        received = set(
+            by_band
+        )
+
+        if received != expected:
+
+            missing = sorted(
+                expected - received
+            )
+
+            extra = sorted(
+                received - expected
+            )
+
+            raise ValueError(
+                "Captura multiespectral "
+                f"incompleta: "
+                f"{capture_code}. "
+                f"Faltantes={missing}; "
+                f"extras={extra}."
+            )
+
+        ordered_files = [
+            by_band[band]
+            for band
+            in CANONICAL_MULTISPECTRAL_BANDS
+        ]
+
+        for path in ordered_files:
+
+            if not Path(path).is_file():
+                raise ValueError(
+                    "Archivo inexistente: "
+                    f"{path}"
+                )
+
+        filenames.extend(
+            ordered_files
+        )
+
+        filegroups.append(
+            len(ordered_files)
+        )
+
+    doc = Metashape.Document()
+
+    chunk = doc.addChunk()
+
+    chunk.addPhotos(
+        filenames=filenames,
+        filegroups=filegroups,
+        layout=Metashape.MultiplaneLayout,
+    )
+
+    return (
+        doc,
+        chunk,
+        filenames,
+        filegroups,
+    )
+
+
+def _get_processing_projection(
+    chunk,
+):
+
+    if chunk.crs is None:
+        raise ValueError(
+            "Metashape no pudo determinar "
+            "el CRS de la campaña."
+        )
+
+    projection = (
+        Metashape.OrthoProjection()
+    )
+
+    projection.crs = chunk.crs
+
+    return projection
+
+
+def process_photogrammetry(
+    manifest: dict,
+) -> dict:
+
+    output_dir = Path(
+        manifest.get(
+            "output_dir",
+            "",
+        )
+    ).expanduser().resolve()
+
+    if not str(
+        manifest.get(
+            "output_dir",
+            "",
+        )
+    ).strip():
+
+        raise ValueError(
+            "No se recibió output_dir."
+        )
+
+    output_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    project_path = (
+        output_dir
+        / "metashape_project.psx"
+    )
+
+    dsm_path = (
+        output_dir
+        / "metashape_dsm.tif"
+    )
+
+    orthomosaic_native_path = (
+        output_dir
+        / (
+            "metashape_orthomosaic_"
+            "native.tif"
+        )
+    )
+
+    (
+        doc,
+        chunk,
+        filenames,
+        filegroups,
+    ) = _load_process_chunk(
+        manifest
+    )
+
+    print(
+        "METASHAPE_PROCESS_IMPORT_DONE"
+    )
+
+    #
+    # 1. Detectar paneles de reflectancia.
+    #
+
+    chunk.locateReflectancePanels()
+
+    calibration_cameras = [
+        camera
+        for camera in chunk.cameras
+        if (
+            camera.group is not None
+            and str(
+                camera.group.label
+            ).strip().lower()
+            == "calibration images"
+        )
+    ]
+
+    if not calibration_cameras:
+        raise ValueError(
+            "No se detectaron imágenes "
+            "de calibración de "
+            "reflectancia."
+        )
+
+    calibration_master_keys = {
+        (
+            camera.master.key
+            if camera.master is not None
+            else camera.key
+        )
+        for camera
+        in calibration_cameras
+    }
+
+    missing_panel_calibration = []
+
+    for camera in calibration_cameras:
+
+        metadata = dict(
+            camera.meta or {}
+        )
+
+        if (
+            "ReflectancePanel/Calibration"
+            not in metadata
+        ):
+            missing_panel_calibration.append(
+                camera.key
+            )
+
+        #
+        # Nunca permitir que las imágenes
+        # del panel entren al SfM.
+        #
+        camera.enabled = False
+
+    if missing_panel_calibration:
+
+        raise ValueError(
+            "Existen imágenes de panel "
+            "sin coeficiente de "
+            "calibración: "
+            f"{missing_panel_calibration}"
+        )
+
+    print(
+        "METASHAPE_PROCESS_"
+        "PANELS_VALIDATED"
+    )
+
+    #
+    # 2. Calibración radiométrica.
+    #
+
+    for sensor in chunk.sensors:
+        sensor.normalize_sensitivity = True
+
+    chunk.calibrateReflectance(
+        use_reflectance_panels=True,
+        use_sun_sensor=False,
+    )
+
+    print(
+        "METASHAPE_PROCESS_"
+        "REFLECTANCE_CALIBRATED"
+    )
+
+    #
+    # 3. Mapeo de bandas que necesitamos
+    #    posteriormente en PE2.
+    #
+
+    band_mapping = (
+        build_canonical_band_mapping(
+            chunk
+        )
+    )
+
+    #
+    # 4. Guardamos proyecto antes de la
+    #    reconstrucción pesada.
+    #
+
+    doc.save(
+        str(project_path)
+    )
+
+    #
+    # doc.save(path) funciona como Save As
+    # en la API de Metashape. Después de
+    # guardar debemos volver a obtener el
+    # chunk asociado al documento.
+    #
+
+    chunk = doc.chunk
+
+    if chunk is None:
+        raise ValueError(
+            "Metashape perdió el chunk "
+            "después de guardar el proyecto."
+        )
+
+    #
+    # Revalidamos el mapeo sobre el chunk
+    # perteneciente al proyecto PSX.
+    #
+
+    band_mapping = (
+        build_canonical_band_mapping(
+            chunk
+        )
+    )
+
+    #
+    # 5. SfM / alineamiento.
+    #
+
+    print(
+        "METASHAPE_PROCESS_MATCH_START"
+    )
+
+    chunk.matchPhotos(
+        downscale=2,
+        generic_preselection=True,
+        reference_preselection=True,
+        filter_stationary_points=True,
+        keypoint_limit=40000,
+        tiepoint_limit=4000,
+    )
+
+    print(
+        "METASHAPE_PROCESS_MATCH_DONE"
+    )
+
+    chunk.alignCameras()
+
+    print(
+        "METASHAPE_PROCESS_ALIGNMENT_DONE"
+    )
+
+    enabled_master_keys = {
+        (
+            camera.master.key
+            if camera.master is not None
+            else camera.key
+        )
+        for camera in chunk.cameras
+        if camera.enabled
+    }
+
+    aligned_master_keys = {
+        (
+            camera.master.key
+            if camera.master is not None
+            else camera.key
+        )
+        for camera in chunk.cameras
+        if (
+            camera.enabled
+            and camera.transform
+            is not None
+        )
+    }
+
+    if not aligned_master_keys:
+
+        raise ValueError(
+            "Metashape no logró alinear "
+            "ninguna posición de vuelo."
+        )
+
+    master_camera_count = len(
+        enabled_master_keys
+    )
+
+    aligned_master_camera_count = len(
+        aligned_master_keys
+    )
+
+    alignment_percent = (
+        100.0
+        * aligned_master_camera_count
+        / master_camera_count
+        if master_camera_count
+        else 0.0
+    )
+
+    tie_point_count = 0
+
+    if chunk.tie_points is not None:
+
+        points = (
+            chunk.tie_points.points
+        )
+
+        if points is not None:
+            tie_point_count = len(
+                points
+            )
+
+    doc.save()
+
+    #
+    # 6. Depth maps.
+    #
+    # downscale=4 = Medium para
+    # buildDepthMaps.
+    #
+
+    print(
+        "METASHAPE_PROCESS_"
+        "DEPTH_MAPS_START"
+    )
+
+    chunk.buildDepthMaps(
+        downscale=4,
+        filter_mode=(
+            Metashape.MildFiltering
+        ),
+        reuse_depth=False,
+    )
+
+    print(
+        "METASHAPE_PROCESS_"
+        "DEPTH_MAPS_DONE"
+    )
+
+    doc.save()
+
+    #
+    # 7. Nube de puntos.
+    #
+    # No necesitamos colores para generar
+    # nuestro DSM/ortomosaico.
+    #
+
+    print(
+        "METASHAPE_PROCESS_"
+        "POINT_CLOUD_START"
+    )
+
+    chunk.buildPointCloud(
+        source_data=(
+            Metashape.DepthMapsData
+        ),
+        point_colors=False,
+        point_confidence=False,
+        keep_depth=True,
+    )
+
+    print(
+        "METASHAPE_PROCESS_"
+        "POINT_CLOUD_DONE"
+    )
+
+    doc.save()
+
+    #
+    # 8. DSM.
+    #
+    # No se clasificó terreno, por tanto
+    # conceptualmente esto es DSM,
+    # no DTM.
+    #
+
+    projection = (
+        _get_processing_projection(
+            chunk
+        )
+    )
+
+    print(
+        "METASHAPE_PROCESS_DSM_START"
+    )
+
+    chunk.buildDem(
+        source_data=(
+            Metashape.PointCloudData
+        ),
+        interpolation=(
+            Metashape.EnabledInterpolation
+        ),
+        projection=projection,
+    )
+
+    print(
+        "METASHAPE_PROCESS_DSM_DONE"
+    )
+
+    if chunk.elevation is None:
+        raise ValueError(
+            "Metashape terminó Build DEM "
+            "sin generar una superficie."
+        )
+
+    doc.save()
+
+    #
+    # 9. Ortomosaico multiespectral.
+    #
+
+    print(
+        "METASHAPE_PROCESS_"
+        "ORTHOMOSAIC_START"
+    )
+
+    chunk.buildOrthomosaic(
+        surface_data=(
+            Metashape.ElevationData
+        ),
+        blending_mode=(
+            Metashape.MosaicBlending
+        ),
+        fill_holes=True,
+        ghosting_filter=False,
+        color_enhancement=False,
+        refine_seamlines=False,
+        projection=projection,
+    )
+
+    print(
+        "METASHAPE_PROCESS_"
+        "ORTHOMOSAIC_DONE"
+    )
+
+    if chunk.orthomosaic is None:
+        raise ValueError(
+            "Metashape terminó "
+            "Build Orthomosaic sin "
+            "generar ortomosaico."
+        )
+
+    doc.save()
+
+    #
+    # 10. Export DSM.
+    #
+
+    print(
+        "METASHAPE_PROCESS_"
+        "EXPORT_DSM_START"
+    )
+
+    chunk.exportRaster(
+        path=str(
+            dsm_path
+        ),
+        source_data=(
+            Metashape.ElevationData
+        ),
+        projection=projection,
+        save_alpha=False,
+        clip_to_boundary=True,
+    )
+
+    if not dsm_path.is_file():
+        raise ValueError(
+            "Metashape no generó el "
+            "GeoTIFF DSM."
+        )
+
+    print(
+        "METASHAPE_PROCESS_"
+        "EXPORT_DSM_DONE"
+    )
+
+    #
+    # 11. Exportar ortomosaico NATIVO.
+    #
+    # RasterTransformNone conserva las
+    # cinco bandas originales y los
+    # valores radiométricos.
+    #
+
+    print(
+        "METASHAPE_PROCESS_"
+        "EXPORT_ORTHO_START"
+    )
+
+    chunk.exportRaster(
+        path=str(
+            orthomosaic_native_path
+        ),
+        source_data=(
+            Metashape.OrthomosaicData
+        ),
+        projection=projection,
+        raster_transform=(
+            Metashape.RasterTransformNone
+        ),
+        save_alpha=False,
+        clip_to_boundary=True,
+    )
+
+    if not orthomosaic_native_path.is_file():
+        raise ValueError(
+            "Metashape no generó el "
+            "GeoTIFF multiespectral."
+        )
+
+    print(
+        "METASHAPE_PROCESS_"
+        "EXPORT_ORTHO_DONE"
+    )
+
+    doc.save()
+
+    return {
+        "success": True,
+        "mode": "process",
+        "metashape_version": str(
+            Metashape.app.version
+        ),
+        "capture_group_count": len(
+            manifest.get(
+                "capture_groups"
+            )
+            or []
+        ),
+        "input_file_count": len(
+            filenames
+        ),
+        "filegroups": filegroups,
+        "camera_count": len(
+            chunk.cameras
+        ),
+        "sensor_count": len(
+            chunk.sensors
+        ),
+        "calibration_camera_count": len(
+            calibration_cameras
+        ),
+        "calibration_master_count": len(
+            calibration_master_keys
+        ),
+        "master_camera_count": (
+            master_camera_count
+        ),
+        "aligned_master_camera_count": (
+            aligned_master_camera_count
+        ),
+        "alignment_percent": (
+            alignment_percent
+        ),
+        "tie_point_count": (
+            tie_point_count
+        ),
+        "band_mapping": (
+            band_mapping
+        ),
+        "project_path": str(
+            project_path
+        ),
+        "dsm_path": str(
+            dsm_path
+        ),
+        "orthomosaic_native_path": str(
+            orthomosaic_native_path
+        ),
+    }
+
 
 if __name__ == "__main__":
     raise SystemExit(
