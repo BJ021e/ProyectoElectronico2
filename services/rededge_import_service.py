@@ -3,13 +3,14 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from models import ImageBand
+from models import CaptureRole, ImageBand
 
 from services.campaign_service import (
     CampaignService,
 )
 from services.capture_service import (
     CaptureService,
+    InvalidCaptureError,
 )
 from services.image_ingestion_service import (
     ImageIngestionService,
@@ -43,6 +44,10 @@ class InvalidRedEdgeCampaignError(
     a un sensor multiespectral.
     """
     pass
+
+
+class InvalidRedEdgeCaptureRoleError(RedEdgeImportError):
+    """El rol declarado para el lote no pertenece al dominio permitido."""
 
 
 class IncompleteRedEdgeFolderError(
@@ -263,6 +268,7 @@ class RedEdgeImportService:
         campaign_id: int,
         source_dir: str | Path,
         skip_incomplete: bool = False,
+        capture_role: CaptureRole | str = CaptureRole.UNKNOWN,
     ) -> dict:
         """
         Importa automáticamente los grupos RedEdge
@@ -275,6 +281,13 @@ class RedEdgeImportService:
         Con skip_incomplete=True se importan únicamente
         los grupos completos y se reportan los demás.
         """
+
+        try:
+            capture_role = CaptureService.normalize_role(capture_role)
+        except InvalidCaptureError as exc:
+            raise InvalidRedEdgeCaptureRoleError(
+                "capture_role debe ser UNKNOWN, FLIGHT o CALIBRATION."
+            ) from exc
 
         campaign = CampaignService.get_campaign(
             campaign_id
@@ -399,6 +412,7 @@ class RedEdgeImportService:
             capture = (
                 CaptureService.create_capture(
                     campaign_id=campaign_id,
+                    role=capture_role,
                     latitude=(
                         capture_metadata.latitude
                     ),

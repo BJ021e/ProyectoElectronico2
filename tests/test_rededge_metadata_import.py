@@ -271,6 +271,9 @@ def test_rededge_import_persists_micasense_gps(
 
     capture = captures[0]
 
+    # GPS, timestamps and file metadata never infer a capture role.
+    assert capture["role"] == "UNKNOWN"
+
     assert (
         capture["status"]
         == "READY"

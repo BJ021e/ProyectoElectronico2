@@ -291,6 +291,36 @@ class PartialProductBackend:
         )
 
 
+def test_photogrammetry_request_includes_every_capture_role(tmp_path, monkeypatch):
+    configure_storage(tmp_path, monkeypatch)
+    campaign = CampaignService.create_campaign(name="Mixed roles", sensor_type="MULTISPECTRAL")
+    expected_codes = []
+    for role in ["FLIGHT", "CALIBRATION", "UNKNOWN"]:
+        capture = CaptureService.create_capture(campaign_id=campaign["id"], role=role)
+        expected_codes.append(capture["capture_code"])
+        for band in ["BLUE", "GREEN", "RED", "NIR", "RED_EDGE"]:
+            source = tmp_path / f"{role}_{band}.tif"
+            create_test_tiff(source)
+            ImageIngestionService.ingest_file(
+                capture_id=capture["id"], band=band, source_path=source,
+            )
+
+    requests = []
+
+    class RecordingBackend(MockPhotogrammetryBackend):
+        def process(self, request):
+            requests.append(request)
+            return super().process(request)
+
+    result = ProcessingService.process_campaign(
+        campaign_id=campaign["id"], backend=RecordingBackend(),
+    )
+    assert result["job"]["status"] == "COMPLETED"
+    assert len(requests) == 1
+    assert [group.capture_code for group in requests[0].capture_groups] == expected_codes
+    assert len(requests[0].input_files) == 15
+
+
 def test_process_rgb_campaign_end_to_end(
     tmp_path,
     monkeypatch,

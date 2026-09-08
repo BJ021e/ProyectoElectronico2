@@ -1,6 +1,83 @@
 from InterfazInit import app
 
 
+def test_campaign_detail_contains_capture_roles_and_import_control():
+    html = app.test_client().get("/campaigns/123").get_data(as_text=True)
+    for marker in (
+        'id="captureRoleSummary"', 'id="captureFlightCount"',
+        'id="captureCalibrationCount"', 'id="captureUnknownCount"',
+        'id="redEdgeCaptureRole"', 'value="UNKNOWN"', 'value="FLIGHT"',
+        'value="CALIBRATION"', "capture_role:", "getCaptureRoleCounts",
+        "getCaptureRoleLabel(capture)", "Capturas de vuelo",
+        "Capturas de calibración", "Capturas sin clasificar",
+    ):
+        assert marker in html
+
+
+def test_capture_map_layers_and_counts_are_independent():
+    import re
+    import shutil
+    import subprocess
+
+    import pytest
+
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node.js is required to execute frontend helpers")
+    html = app.test_client().get("/campaigns/123").get_data(as_text=True)
+    functions = re.findall(r"^function [\s\S]*?^}", html, re.MULTILINE)
+    script = "\n".join(functions) + r'''
+const assert = require("node:assert/strict");
+const campaignMap = {};
+let gisCaptureLayers = {};
+const elements = {};
+const document = {getElementById(id) {return elements[id] ??= {};}};
+const L = {
+    layerGroup() {return {
+        visible: false, markers: [],
+        addTo() {this.visible = true; return this;},
+        clearLayers() {this.markers = [];},
+    };},
+    circleMarker(coordinate, style) {return {
+        coordinate, style,
+        bindPopup(html) {this.popup = html;},
+        addTo(layer) {layer.markers.push(this);},
+    };},
+};
+let currentCaptures = [
+    {role: "FLIGHT", latitude: 1, longitude: 2},
+    {role: "CALIBRATION", latitude: 3, longitude: 4},
+    {role: "UNKNOWN", latitude: 5, longitude: 6},
+    {latitude: null, longitude: null},
+];
+initializeCaptureLayers();
+assert.equal(gisCaptureLayers.FLIGHT.visible, true);
+assert.equal(gisCaptureLayers.CALIBRATION.visible, false);
+assert.equal(gisCaptureLayers.UNKNOWN.visible, true);
+assert.notEqual(gisCaptureLayers.FLIGHT, gisCaptureLayers.CALIBRATION);
+assert.deepEqual(getCaptureRoleCounts(currentCaptures), {FLIGHT:1, CALIBRATION:1, UNKNOWN:2});
+assert.equal(renderCaptureGeometries([]), 3);
+assert.equal(elements.gisCaptureCount.textContent, 3);
+for (const layer of Object.values(gisCaptureLayers)) assert.equal(layer.markers.length, 1);
+assert.deepEqual(gisCaptureLayers.CALIBRATION.markers[0].coordinate, [3, 4]);
+assert.notDeepEqual(getCaptureMarkerStyle(currentCaptures[0]), getCaptureMarkerStyle(currentCaptures[1]));
+gisCaptureLayers.FLIGHT.visible = false;
+gisCaptureLayers.CALIBRATION.visible = true;
+assert.equal(renderCaptureGeometries([]), 3);
+assert.equal(gisCaptureLayers.FLIGHT.visible, false);
+assert.equal(gisCaptureLayers.CALIBRATION.visible, true);
+assert.deepEqual(getCaptureRoleCounts(currentCaptures), {FLIGHT:1, CALIBRATION:1, UNKNOWN:2});
+renderCaptures(currentCaptures);
+assert.equal(elements.summaryCaptures.textContent, "4 total");
+assert.equal(elements.captureUnknownCount.textContent, 2);
+renderCaptures([]);
+assert.equal(elements.captureFlightCount.textContent, 0);
+assert.equal(elements.captureUnknownCount.textContent, 0);
+'''
+    result = subprocess.run([node, "-"], input=script, text=True, encoding="utf-8", capture_output=True)
+    assert result.returncode == 0, result.stderr
+
+
 def test_campaigns_view_is_available():
 
     app.config["TESTING"] = True

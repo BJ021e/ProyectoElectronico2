@@ -26,7 +26,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 from reportlab.lib.utils import ImageReader
 from config import Config
-from models import TelemetrySource
+from models import CaptureRole, TelemetrySource
 
 from services.raspberry_service import (
     RaspberryService,
@@ -98,6 +98,7 @@ from services.photogrammetry_backend_factory import (
 )
 
 from services.rededge_import_service import (
+    InvalidRedEdgeCaptureRoleError,
     IncompleteRedEdgeFolderError,
     InvalidRedEdgeCampaignError,
     InvalidRedEdgeFolderError,
@@ -1608,6 +1609,10 @@ def api_list_campaign_captures(
             "campaign_id": campaign_id,
             "captures": captures,
             "count": len(captures),
+            "role_counts": {
+                role.value: sum(capture["role"] == role.value for capture in captures)
+                for role in CaptureRole
+            },
         })
 
     except (
@@ -2415,6 +2420,7 @@ def api_import_rededge_upload(
             .import_folder(
                 campaign_id=campaign_id,
                 source_dir=stage_directory,
+                capture_role=data.get("capture_role", "UNKNOWN"),
                 skip_incomplete=(
                     skip_incomplete
                 ),
@@ -2438,6 +2444,7 @@ def api_import_rededge_upload(
         InvalidRedEdgeCampaignError,
         InvalidRedEdgeFolderError,
         IncompleteRedEdgeFolderError,
+        InvalidRedEdgeCaptureRoleError,
     ) as exc:
 
         return jsonify({

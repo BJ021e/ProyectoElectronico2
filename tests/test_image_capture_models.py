@@ -6,6 +6,7 @@ from database import SessionLocal
 from models import (
     Campaign,
     CampaignStatus,
+    CaptureRole,
     ImageAsset,
     ImageBand,
     ImageCapture,
@@ -70,6 +71,8 @@ def test_multispectral_capture_accepts_five_bands():
 
         session.refresh(capture)
 
+        assert capture.role == CaptureRole.UNKNOWN
+
         assert len(capture.assets) == 5
 
         assert {
@@ -79,6 +82,19 @@ def test_multispectral_capture_accepts_five_bands():
 
     finally:
         session.close()
+
+
+@pytest.mark.parametrize("role", [CaptureRole.FLIGHT, CaptureRole.CALIBRATION])
+def test_capture_role_is_persisted(role):
+    with SessionLocal() as session:
+        campaign = create_campaign_entity(session)
+        capture = ImageCapture(
+            capture_code="CAP-ROLE", campaign_id=campaign.id, sequence=1, role=role,
+        )
+        session.add(capture)
+        session.commit()
+        session.refresh(capture)
+        assert capture.role == role
 
 
 def test_rgb_capture_accepts_rgb_asset():

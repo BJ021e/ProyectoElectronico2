@@ -15,6 +15,7 @@ from services.rededge_import_service import (
     IncompleteRedEdgeFolderError,
     InvalidRedEdgeCampaignError,
     InvalidRedEdgeFolderError,
+    InvalidRedEdgeCaptureRoleError,
     RedEdgeImportExecutionError,
     RedEdgeImportService,
 )
@@ -142,6 +143,7 @@ def test_import_complete_rededge_group(
     )
 
     assert capture["status"] == "READY"
+    assert capture["role"] == "UNKNOWN"
 
     assert len(
         capture["assets"]
@@ -184,6 +186,31 @@ def test_import_complete_rededge_group(
         capture_directory
         / "RED_EDGE.tif"
     ).exists()
+
+
+@pytest.mark.parametrize("role", ["FLIGHT", "CALIBRATION"])
+def test_folder_import_applies_declared_role_to_every_group(tmp_path, monkeypatch, role):
+    monkeypatch.setattr(Config, "CAMPAIGN_STORAGE_ROOT", str(tmp_path / "managed"))
+    source = tmp_path / "source"
+    create_group(source, "sample_a")
+    create_group(source, "sample_b")
+    campaign = create_campaign()
+    result = RedEdgeImportService.import_folder(
+        campaign_id=campaign["id"], source_dir=source, capture_role=role,
+    )
+    assert result["imported_count"] == 2
+    captures = CaptureService.list_captures(campaign["id"])
+    assert [c["role"] for c in captures] == [role, role]
+    assert all(c["status"] == "READY" and len(c["assets"]) == 5 for c in captures)
+
+
+def test_folder_import_rejects_invalid_role_before_creating_captures(tmp_path):
+    campaign = create_campaign()
+    with pytest.raises(InvalidRedEdgeCaptureRoleError, match="capture_role"):
+        RedEdgeImportService.import_folder(
+            campaign_id=campaign["id"], source_dir=tmp_path, capture_role="PANEL",
+        )
+    assert CaptureService.list_captures(campaign["id"]) == []
 
 
 def test_import_multiple_groups_preserves_sequence(

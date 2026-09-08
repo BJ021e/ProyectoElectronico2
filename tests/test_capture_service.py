@@ -43,6 +43,7 @@ def test_create_capture():
     )
 
     assert capture["status"] == "CREATED"
+    assert capture["role"] == "UNKNOWN"
 
     assert capture["latitude"] == -12.0600
 
@@ -56,6 +57,41 @@ def test_create_capture():
         capture["readiness"]["is_complete"]
         is False
     )
+
+
+@pytest.mark.parametrize("role", ["UNKNOWN", "FLIGHT", "CALIBRATION"])
+def test_capture_service_serializes_explicit_role(role):
+    campaign = create_campaign()
+    capture = CaptureService.create_capture(campaign_id=campaign["id"], role=role)
+    assert capture["role"] == role
+    assert CaptureService.get_capture(capture["id"])["role"] == role
+    assert CaptureService.list_captures(campaign["id"])[0]["role"] == role
+    assert capture["status"] == "CREATED"
+    assert not capture["readiness"]["is_complete"]
+
+
+@pytest.mark.parametrize("role", ["PANEL", "", None, 1, {}, "flight"])
+def test_capture_service_rejects_invalid_role(role):
+    campaign = create_campaign()
+    with pytest.raises(InvalidCaptureError, match="UNKNOWN, FLIGHT o CALIBRATION"):
+        CaptureService.create_capture(campaign_id=campaign["id"], role=role)
+    assert CaptureService.list_captures(campaign["id"]) == []
+
+
+def test_capture_api_counts_all_roles():
+    from InterfazInit import app
+
+    campaign = create_campaign()
+    for role in ["FLIGHT", "CALIBRATION", "UNKNOWN", "UNKNOWN"]:
+        CaptureService.create_capture(campaign_id=campaign["id"], role=role)
+    response = app.test_client().get(f"/api/campaigns/{campaign['id']}/captures")
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["count"] == len(payload["captures"]) == 4
+    assert payload["role_counts"] == {"FLIGHT": 1, "CALIBRATION": 1, "UNKNOWN": 2}
+    assert [c["role"] for c in payload["captures"]] == [
+        "FLIGHT", "CALIBRATION", "UNKNOWN", "UNKNOWN",
+    ]
 
 
 def test_capture_sequence_increments_per_campaign():

@@ -1162,6 +1162,12 @@
                         0
                     </div>
 
+                    <div class="secondary-value" id="captureRoleSummary">
+                        Vuelo <span id="captureFlightCount">0</span> ·
+                        Calibración <span id="captureCalibrationCount">0</span> ·
+                        Sin clasificar <span id="captureUnknownCount">0</span>
+                    </div>
+
                 </div>
 
 
@@ -1895,6 +1901,15 @@
         ></div>
 
 
+        <div class="gis-raster-controls">
+            <label for="redEdgeCaptureRole">Rol de todas las capturas del lote</label>
+            <select id="redEdgeCaptureRole">
+                <option value="UNKNOWN">Sin clasificar</option>
+                <option value="FLIGHT">Vuelo</option>
+                <option value="CALIBRATION">Calibración</option>
+            </select>
+        </div>
+
         <div class="rededge-modal-actions">
 
             <button
@@ -1955,7 +1970,7 @@ let currentProducts = [];
 
 let campaignMap = null;
 
-let gisCaptureLayer = null;
+let gisCaptureLayers = {};
 
 let gisProductLayer = null;
 
@@ -2215,6 +2230,41 @@ function renderCampaign(
    CAPTURAS
    =============================================== */
 
+function getCaptureRole(capture) {
+    return ["FLIGHT", "CALIBRATION", "UNKNOWN"].includes(capture.role)
+        ? capture.role : "UNKNOWN";
+}
+
+function getCaptureRoleLabel(capture) {
+    return {
+        FLIGHT: "Vuelo",
+        CALIBRATION: "Calibración",
+        UNKNOWN: "Sin clasificar",
+    }[getCaptureRole(capture)];
+}
+
+function getCaptureRoleCounts(captures) {
+    const counts = {FLIGHT: 0, CALIBRATION: 0, UNKNOWN: 0};
+    captures.forEach((capture) => counts[getCaptureRole(capture)] += 1);
+    return counts;
+}
+
+function initializeCaptureLayers() {
+    gisCaptureLayers = {
+        FLIGHT: L.layerGroup().addTo(campaignMap),
+        CALIBRATION: L.layerGroup(),
+        UNKNOWN: L.layerGroup().addTo(campaignMap),
+    };
+}
+
+function getCaptureMarkerStyle(capture) {
+    return {
+        FLIGHT: {color: "#60a5fa", fillColor: "#3b82f6", radius: 6},
+        CALIBRATION: {color: "#fbbf24", fillColor: "#f59e0b", radius: 8},
+        UNKNOWN: {color: "#cbd5e1", fillColor: "#94a3b8", radius: 6, dashArray: "3 2"},
+    }[getCaptureRole(capture)];
+}
+
 function renderCaptures(
     captures
 ) {
@@ -2227,7 +2277,12 @@ function renderCaptures(
     document.getElementById(
         "summaryCaptures"
     ).textContent =
-        captures.length;
+        `${captures.length} total`;
+
+    const roleCounts = getCaptureRoleCounts(captures);
+    document.getElementById("captureFlightCount").textContent = roleCounts.FLIGHT;
+    document.getElementById("captureCalibrationCount").textContent = roleCounts.CALIBRATION;
+    document.getElementById("captureUnknownCount").textContent = roleCounts.UNKNOWN;
 
 
     document.getElementById(
@@ -2306,6 +2361,7 @@ function renderCaptures(
                                         capture.sequence
                                     )
                                 }
+                                · ${escapeHtml(getCaptureRoleLabel(capture))}
                             </div>
                         </td>
 
@@ -2909,6 +2965,8 @@ function closeRedEdgeModal() {
 
 function resetRedEdgeModal() {
 
+    document.getElementById("redEdgeCaptureRole").value = "UNKNOWN";
+
     redEdgeStagingToken = null;
 
     redEdgeInspection = null;
@@ -3503,6 +3561,7 @@ async function confirmRedEdgeImport(
 
                             skip_incomplete:
                                 skipIncomplete,
+                            capture_role: document.getElementById("redEdgeCaptureRole").value,
                         }),
                 }
             );
@@ -3681,11 +3740,7 @@ function initializeCampaignMap() {
     );
 
 
-    gisCaptureLayer =
-        L.layerGroup()
-        .addTo(
-            campaignMap
-        );
+    initializeCaptureLayers();
 
 
     gisProductLayer =
@@ -3705,8 +3760,9 @@ function initializeCampaignMap() {
         L.control.layers(
             null,
             {
-                "Capturas":
-                    gisCaptureLayer,
+                "Capturas de vuelo": gisCaptureLayers.FLIGHT,
+                "Capturas de calibración": gisCaptureLayers.CALIBRATION,
+                "Capturas sin clasificar": gisCaptureLayers.UNKNOWN,
 
                 "Extensión de productos":
                     gisProductLayer,
@@ -4220,7 +4276,7 @@ function renderCaptureGeometries(
     mapBounds
 ) {
 
-    gisCaptureLayer.clearLayers();
+    Object.values(gisCaptureLayers).forEach((layer) => layer.clearLayers());
 
 
     let validCount = 0;
@@ -4250,6 +4306,7 @@ function renderCaptureGeometries(
                         radius: 6,
                         weight: 2,
                         fillOpacity: 0.8,
+                        ...getCaptureMarkerStyle(capture),
                     }
                 );
 
@@ -4267,6 +4324,8 @@ function renderCaptureGeometries(
 
                     <br>
 
+                    Rol: ${escapeHtml(getCaptureRoleLabel(capture))}
+                    <br>
                     Estado:
                     ${
                         escapeHtml(
@@ -4289,7 +4348,7 @@ function renderCaptureGeometries(
 
 
             marker.addTo(
-                gisCaptureLayer
+                gisCaptureLayers[getCaptureRole(capture)]
             );
 
 

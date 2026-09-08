@@ -67,6 +67,31 @@ def test_database_connection() -> bool:
 
     return True
 
+def ensure_capture_role_schema(bind=None) -> None:
+    """Añade el rol a SQLite existente sin reconstruir tablas ni clasificar datos."""
+    bind = engine if bind is None else bind
+    if bind.dialect.name != "sqlite":
+        return
+
+    with bind.connect() as connection:
+        # Serializa comprobación y DDL entre inicializadores concurrentes.
+        connection.exec_driver_sql("BEGIN IMMEDIATE")
+        try:
+            columns = connection.exec_driver_sql(
+                "PRAGMA table_info(image_captures)"
+            ).mappings().all()
+            if columns and not any(column["name"] == "role" for column in columns):
+                connection.exec_driver_sql(
+                    "ALTER TABLE image_captures ADD COLUMN role VARCHAR(20) "
+                    "NOT NULL DEFAULT 'UNKNOWN' CONSTRAINT capture_role "
+                    "CHECK (role IN ('UNKNOWN', 'FLIGHT', 'CALIBRATION'))"
+                )
+            connection.commit()
+        except Exception:
+            connection.rollback()
+            raise
+
+
 def init_database() -> None:
     """
     Crea las tablas registradas en los modelos SQLAlchemy
@@ -75,3 +100,4 @@ def init_database() -> None:
     import models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
+    ensure_capture_role_schema()

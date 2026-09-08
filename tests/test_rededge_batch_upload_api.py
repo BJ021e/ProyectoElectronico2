@@ -3,6 +3,7 @@ import json
 
 import numpy as np
 import rasterio
+import pytest
 
 from rasterio.io import MemoryFile
 from werkzeug.datastructures import (
@@ -148,6 +149,45 @@ def upload_files(
             "multipart/form-data"
         ),
     )
+
+
+@pytest.mark.parametrize("role", [None, "FLIGHT", "CALIBRATION"])
+def test_batch_import_persists_declared_role(tmp_path, monkeypatch, role):
+    monkeypatch.setattr(Config, "RED_EDGE_STAGING_ROOT", str(tmp_path / "staging"))
+    monkeypatch.setattr(Config, "CAMPAIGN_STORAGE_ROOT", str(tmp_path / "managed"))
+    campaign = create_campaign()
+    token = create_stage(campaign["id"])
+    assert upload_files(campaign["id"], token, [1, 2]).status_code == 201
+    assert upload_files(campaign["id"], token, [3, 4, 5]).status_code == 201
+    payload = {"staging_token": token}
+    if role is not None:
+        payload["capture_role"] = role
+    response = client().post(
+        f"/api/campaigns/{campaign['id']}/rededge/import", json=payload,
+    )
+    assert response.status_code == 201, response.get_json()
+    expected = role or "UNKNOWN"
+    assert response.get_json()["imported_captures"][0]["capture"]["role"] == expected
+    captures = client().get(f"/api/campaigns/{campaign['id']}/captures").get_json()
+    assert captures["count"] == 1
+    assert captures["captures"][0]["role"] == expected
+    assert captures["role_counts"][expected] == 1
+    assert not (tmp_path / "staging" / token).exists()
+
+
+@pytest.mark.parametrize("role", ["PANEL", None, 1, {}])
+def test_batch_import_rejects_invalid_role(tmp_path, monkeypatch, role):
+    monkeypatch.setattr(Config, "RED_EDGE_STAGING_ROOT", str(tmp_path / "staging"))
+    campaign = create_campaign()
+    token = create_stage(campaign["id"])
+    response = client().post(
+        f"/api/campaigns/{campaign['id']}/rededge/import",
+        json={"staging_token": token, "capture_role": role},
+    )
+    assert response.status_code == 400
+    assert "capture_role" in response.get_json()["msg"]
+    assert (tmp_path / "staging" / token).exists()
+    assert client().get(f"/api/campaigns/{campaign['id']}/captures").get_json()["count"] == 0
 
 
 def test_create_stage_api(

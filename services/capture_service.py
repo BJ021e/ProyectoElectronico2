@@ -11,6 +11,7 @@ from database import SessionLocal
 from models import (
     Campaign,
     CaptureStatus,
+    CaptureRole,
     ImageAsset,
     ImageBand,
     ImageCapture,
@@ -40,6 +41,15 @@ class InvalidCaptureError(Exception):
 
 
 class CaptureService:
+
+    @staticmethod
+    def normalize_role(role: CaptureRole | str) -> CaptureRole:
+        try:
+            return CaptureRole(role)
+        except (ValueError, TypeError) as exc:
+            raise InvalidCaptureError(
+                "role debe ser UNKNOWN, FLIGHT o CALIBRATION."
+            ) from exc
 
     MULTISPECTRAL_BANDS = (
         ImageBand.BLUE,
@@ -243,6 +253,7 @@ class CaptureService:
             "campaign_id": capture.campaign_id,
             "sequence": capture.sequence,
             "status": capture.status.value,
+            "role": capture.role.value,
             "captured_at": (
                 capture.captured_at.isoformat()
                 if capture.captured_at
@@ -327,7 +338,10 @@ class CaptureService:
         latitude: float | int | None = None,
         longitude: float | int | None = None,
         altitude: float | int | None = None,
+        role: CaptureRole | str = CaptureRole.UNKNOWN,
     ) -> dict:
+
+        role = cls.normalize_role(role)
 
         latitude = cls._normalize_coordinate(
             latitude,
@@ -403,6 +417,7 @@ class CaptureService:
                 campaign_id=campaign_id,
                 sequence=sequence,
                 status=CaptureStatus.CREATED,
+                role=role,
                 captured_at=captured_at,
                 latitude=latitude,
                 longitude=longitude,

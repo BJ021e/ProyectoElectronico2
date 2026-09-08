@@ -33,6 +33,12 @@ class CaptureStatus(str, PyEnum):
     ERROR = "ERROR"
 
 
+class CaptureRole(str, PyEnum):
+    UNKNOWN = "UNKNOWN"
+    FLIGHT = "FLIGHT"
+    CALIBRATION = "CALIBRATION"
+
+
 class ImageCapture(Base):
     __tablename__ = "image_captures"
 
@@ -79,6 +85,20 @@ class ImageCapture(Base):
         ),
         nullable=False,
         default=CaptureStatus.CREATED,
+    )
+
+    role: Mapped[CaptureRole] = mapped_column(
+        SqlEnum(
+            CaptureRole,
+            native_enum=False,
+            length=20,
+            create_constraint=True,
+            validate_strings=True,
+            name="capture_role",
+        ),
+        nullable=False,
+        default=CaptureRole.UNKNOWN,
+        server_default=CaptureRole.UNKNOWN.value,
     )
 
     captured_at: Mapped[datetime | None] = mapped_column(

@@ -12,6 +12,7 @@ from models.campaign import (
 from models.image_capture import (
     ImageCapture,
     CaptureStatus,
+    CaptureRole,
 )
 
 from models.image_asset import (
@@ -43,6 +44,7 @@ __all__ = [
     "SensorType",
     "ImageCapture",
     "CaptureStatus",
+    "CaptureRole",
     "ImageAsset",
     "ImageBand",
     "ProcessingJob",
