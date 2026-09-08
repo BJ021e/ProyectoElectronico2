@@ -6,6 +6,33 @@ class DummyBackend:
     name = "MOCK"
 
 
+def test_process_campaign_api_rejects_when_processing_is_disabled(
+    monkeypatch,
+):
+
+    client = app_module.app.test_client()
+
+    monkeypatch.setattr(
+        app_module.Config,
+        "PROCESSING_ENABLED",
+        False,
+    )
+
+    def should_not_prepare(**kwargs):
+        raise AssertionError("No debe preparar un job cuando el guard está deshabilitado.")
+
+    monkeypatch.setattr(
+        app_module.ProcessingService,
+        "prepare_campaign",
+        should_not_prepare,
+    )
+
+    response = client.post("/api/campaigns/12/process")
+
+    assert response.status_code == 409
+    assert response.get_json()["error"] is True
+
+
 def test_process_campaign_api_returns_202_without_executing_synchronously(
     monkeypatch,
 ):

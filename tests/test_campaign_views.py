@@ -201,6 +201,21 @@ def test_campaign_detail_uses_geospatial_apis():
         in html
     )
 
+
+def test_campaign_detail_disables_processing_without_hiding_visualization(
+    monkeypatch,
+):
+
+    from InterfazInit import Config
+
+    monkeypatch.setattr(Config, "PROCESSING_ENABLED", False)
+
+    html = app.test_client().get("/campaigns/123").get_data(as_text=True)
+
+    assert "const PROCESSING_ENABLED =\n    false;" in html
+    assert "Procesamiento deshabilitado" in html
+    assert "/api/campaigns/${CAMPAIGN_ID}/products" in html
+
 def test_campaign_detail_contains_rededge_import_controls():
 
     app.config["TESTING"] = True

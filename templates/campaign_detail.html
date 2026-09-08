@@ -1963,6 +1963,9 @@
 const CAMPAIGN_ID =
     {{ campaign_id | tojson }};
 
+const PROCESSING_ENABLED =
+    {{ processing_enabled | tojson }};
+
 let currentCampaign = null;
 let currentCaptures = [];
 let currentJobs = [];
@@ -2862,6 +2865,19 @@ function updateProcessButton() {
 
     const activeJob =
         getActiveProcessingJob();
+
+    if (!PROCESSING_ENABLED) {
+
+        button.disabled = true;
+
+        button.textContent =
+            "Procesamiento deshabilitado";
+
+        button.title =
+            "El procesamiento está deshabilitado para esta demostración.";
+
+        return;
+    }
 
     if (
         processingInProgress
@@ -4888,6 +4904,8 @@ async function waitForProcessingJob(
 async function processCampaign() {
 
     if (
+        !PROCESSING_ENABLED
+        ||
         processingInProgress
         ||
         getActiveProcessingJob()

@@ -39,7 +39,7 @@ class Config:
 
     FLASK_DEBUG = env_bool(
         "FLASK_DEBUG",
-        True
+        False
     )
 
     # Raspberry Pi
@@ -83,6 +83,13 @@ class Config:
         "PHOTOGRAMMETRY_BACKEND",
         "MOCK",
     ).strip().upper()
+
+    # Guard operativo para impedir procesamientos accidentales.
+    # No sustituye controles de autorización.
+    PROCESSING_ENABLED = env_bool(
+        "PROCESSING_ENABLED",
+        True,
+    )
     
     METASHAPE_EXECUTABLE = os.getenv(
         "METASHAPE_EXECUTABLE",

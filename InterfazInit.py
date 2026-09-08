@@ -704,6 +704,9 @@ def campaign_detail_view(
     return render_template(
         "campaign_detail.html",
         campaign_id=campaign_id,
+        processing_enabled=(
+            Config.PROCESSING_ENABLED
+        ),
     )
 
 @app.route("/flight_history/<int:flight_id>")
@@ -1899,6 +1902,16 @@ def api_process_campaign(
 ):
 
     try:
+
+        if not Config.PROCESSING_ENABLED:
+
+            return jsonify({
+                "error": True,
+                "msg": (
+                    "El procesamiento está deshabilitado "
+                    "por configuración operativa."
+                ),
+            }), 409
 
         campaign = (
             CampaignService.get_campaign(
