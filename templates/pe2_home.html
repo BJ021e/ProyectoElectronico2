@@ -34,7 +34,7 @@
 
         .hero {
             display: grid;
-            grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+            grid-template-columns: minmax(0, 1.12fr) minmax(360px, 0.88fr);
             gap: 28px;
             align-items: stretch;
             margin-bottom: 26px;
@@ -87,6 +87,227 @@
             flex-wrap: wrap;
             gap: 12px;
             margin-top: 28px;
+        }
+
+        .hero-side {
+            display: grid;
+            gap: 18px;
+            align-content: start;
+        }
+
+        .visual-card {
+            background: rgba(30, 41, 59, 0.92);
+            border: 1px solid #334155;
+            border-radius: 18px;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+            padding: 18px;
+            overflow: hidden;
+        }
+
+        .visual-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+
+        .visual-badge {
+            display: inline-flex;
+            padding: 7px 12px;
+            border-radius: 999px;
+            background: rgba(37, 99, 235, 0.16);
+            color: #93c5fd;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .visual-chip {
+            display: inline-flex;
+            padding: 7px 12px;
+            border-radius: 999px;
+            background: rgba(148, 163, 184, 0.10);
+            color: #cbd5e1;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        .visual-scene {
+            display: grid;
+            gap: 14px;
+        }
+
+        .field-map {
+            position: relative;
+            height: 250px;
+            border-radius: 16px;
+            overflow: hidden;
+            background:
+                linear-gradient(180deg, rgba(15, 23, 42, 0.18), rgba(15, 23, 42, 0.28)),
+                linear-gradient(135deg, #1b4332 0%, #2d6a4f 35%, #40916c 100%);
+            border: 1px solid #334155;
+        }
+
+        .field-plot {
+            position: absolute;
+            border: 1px solid rgba(255,255,255,0.14);
+            background: rgba(255,255,255,0.04);
+            backdrop-filter: blur(2px);
+        }
+
+        .visual-photo {
+            position: relative;
+            height: 250px;
+            overflow: hidden;
+            border-radius: 12px;
+            background: #0f172a;
+        }
+
+        .visual-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            display: block;
+        }
+
+        .visual-photo::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                to top,
+                rgba(2, 6, 23, 0.45),
+                transparent 55%
+            );
+            pointer-events: none;
+        }
+
+        .photo-badge {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            z-index: 1;
+            padding: 6px 10px;
+            background: rgba(15, 23, 42, 0.85);
+            color: #fff;
+            border-radius: 6px;
+            font-size: 0.75rem;
+        }
+
+        .photo-credit {
+            color: #94a3b8;
+            font-size: 0.72rem;
+        }
+
+        .plot-a {
+            left: 8%;
+            top: 10%;
+            width: 36%;
+            height: 32%;
+            transform: rotate(-8deg);
+        }
+
+        .plot-b {
+            right: 9%;
+            top: 14%;
+            width: 34%;
+            height: 28%;
+            transform: rotate(6deg);
+        }
+
+        .plot-c {
+            left: 12%;
+            bottom: 14%;
+            width: 32%;
+            height: 26%;
+            transform: rotate(5deg);
+        }
+
+        .plot-d {
+            right: 14%;
+            bottom: 10%;
+            width: 30%;
+            height: 30%;
+            transform: rotate(-7deg);
+        }
+
+        .flight-path {
+            position: absolute;
+            inset: 0;
+        }
+
+        .flight-path::before {
+            content: "";
+            position: absolute;
+            left: 18%;
+            top: 68%;
+            width: 58%;
+            height: 18%;
+            border-top: 3px dashed #7dd3fc;
+            border-right: 3px dashed #7dd3fc;
+            border-bottom: 3px dashed #7dd3fc;
+            border-radius: 60px;
+            transform: rotate(-18deg);
+            opacity: 0.95;
+        }
+
+        .waypoint {
+            position: absolute;
+            width: 28px;
+            height: 28px;
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0ea5e9;
+            color: #ffffff;
+            font-size: 0.78rem;
+            font-weight: 800;
+            box-shadow: 0 8px 20px rgba(14, 165, 233, 0.28);
+        }
+
+        .wp1 { left: 18%; top: 66%; }
+        .wp2 { left: 29%; top: 58%; }
+        .wp3 { left: 44%; top: 50%; }
+        .wp4 { left: 58%; top: 42%; }
+        .wp5 { left: 70%; top: 35%; }
+
+        .drone-marker {
+            position: absolute;
+            right: 10%;
+            top: 16%;
+            width: 54px;
+            height: 54px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.70);
+            border: 1px solid rgba(255,255,255,0.14);
+            font-size: 1.6rem;
+            box-shadow: 0 12px 28px rgba(0,0,0,0.25);
+        }
+
+        .visual-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .legend-chip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 32px;
+            padding: 0 12px;
+            border-radius: 999px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: #e2e8f0;
+            font-size: 0.8rem;
+            font-weight: 700;
         }
 
         .button {
@@ -222,6 +443,10 @@
             .page {
                 padding: 20px;
             }
+
+            .field-map {
+                height: 220px;
+            }
         }
     </style>
 </head>
@@ -262,68 +487,104 @@
                 </div>
             </div>
 
-            <aside class="status-card">
-                <h2 class="status-title">
-                    Estado operativo
-                </h2>
+            <div class="hero-side">
 
-                <div class="status-list">
-
-                    <div class="status-item">
-                        <span class="status-label">
-                            Campaña de referencia
-                        </span>
-                        <span class="status-value">
-                            CP-20260907-0006
-                        </span>
+                <section class="visual-card">
+                    <div class="visual-card-header">
+                        <span class="visual-badge">Vista conceptual PE2</span>
+                        <span class="visual-chip">UAV · GIS · Multiespectral</span>
                     </div>
 
-                    <div class="status-item">
-                        <span class="status-label">
-                            Capturas
-                        </span>
-                        <span class="status-value ok">
-                            335 total · 328 vuelo · 7 calibración
-                        </span>
-                    </div>
+                    <div class="visual-scene">
+                        <div class="visual-photo">
+                            <img
+                                src="{{ url_for('static', filename='img/drone_agricultura_referencial.jpg') }}"
+                                alt="Fotografía referencial de monitoreo agrícola con dron"
+                            >
 
-                    <div class="status-item">
-                        <span class="status-label">
-                            Procesamiento
-                        </span>
-                        <span class="status-value">
-                            METASHAPE · COMPLETED
-                        </span>
-                    </div>
+                            <span class="photo-badge">
+                                Imagen referencial
+                            </span>
+                        </div>
 
-                    <div class="status-item">
-                        <span class="status-label">
-                            Modo demo
-                        </span>
-                        <span class="status-value {% if pe2_demo_mode %}ok{% else %}warn{% endif %}">
-                            {% if pe2_demo_mode %}
-                                Activo
-                            {% else %}
-                                Inactivo
-                            {% endif %}
-                        </span>
-                    </div>
+                        <div class="visual-legend">
+                            <span class="legend-chip">UAV</span>
+                            <span class="legend-chip">RGB</span>
+                            <span class="legend-chip">NDVI</span>
+                            <span class="legend-chip">NDRE</span>
+                            <span class="legend-chip">GNDVI</span>
+                        </div>
 
-                    <div class="status-item">
-                        <span class="status-label">
-                            Procesamiento en vivo
-                        </span>
-                        <span class="status-value {% if processing_enabled %}warn{% else %}ok{% endif %}">
-                            {% if processing_enabled %}
-                                Habilitado
-                            {% else %}
-                                Deshabilitado
-                            {% endif %}
-                        </span>
+                        <small class="photo-credit">
+                            Fotografía referencial: Magda Ehlers / Pexels
+                        </small>
                     </div>
+                </section>
 
-                </div>
-            </aside>
+                <aside class="status-card">
+                    <h2 class="status-title">
+                        Estado operativo
+                    </h2>
+
+                    <div class="status-list">
+
+                        <div class="status-item">
+                            <span class="status-label">
+                                Campaña de referencia
+                            </span>
+                            <span class="status-value">
+                                CP-20260907-0006
+                            </span>
+                        </div>
+
+                        <div class="status-item">
+                            <span class="status-label">
+                                Capturas
+                            </span>
+                            <span class="status-value ok">
+                                335 total · 328 vuelo · 7 calibración
+                            </span>
+                        </div>
+
+                        <div class="status-item">
+                            <span class="status-label">
+                                Procesamiento
+                            </span>
+                            <span class="status-value">
+                                METASHAPE · COMPLETED
+                            </span>
+                        </div>
+
+                        <div class="status-item">
+                            <span class="status-label">
+                                Modo demo
+                            </span>
+                            <span class="status-value {% if pe2_demo_mode %}ok{% else %}warn{% endif %}">
+                                {% if pe2_demo_mode %}
+                                    Activo
+                                {% else %}
+                                    Inactivo
+                                {% endif %}
+                            </span>
+                        </div>
+
+                        <div class="status-item">
+                            <span class="status-label">
+                                Procesamiento en vivo
+                            </span>
+                            <span class="status-value {% if processing_enabled %}warn{% else %}ok{% endif %}">
+                                {% if processing_enabled %}
+                                    Habilitado
+                                {% else %}
+                                    Deshabilitado
+                                {% endif %}
+                            </span>
+                        </div>
+
+                    </div>
+                </aside>
+
+            </div>
 
         </section>
 
@@ -397,19 +658,14 @@
         </h2>
 
         <section class="module-grid">
-
+            <!-- Rutas: siempre visibles -->
             <article class="module-card">
-                <div class="module-icon">
-                    📍
-                </div>
-
-                <h2>
-                    Rutas predefinidas
-                </h2>
+                <div class="module-icon">📍</div>
+                <h2>Rutas predefinidas</h2>
 
                 <p>
-                    Consulta rutas, waypoints, altitud objetivo, velocidad de vuelo
-                    y geometría planificada de misión.
+                    Consulta rutas, waypoints, altitud objetivo,
+                    velocidad de vuelo y geometría planificada de misión.
                 </p>
 
                 <a class="button button-secondary" href="/mission_routes">
@@ -417,18 +673,17 @@
                 </a>
             </article>
 
-            <article class="module-card">
-                <div class="module-icon">
-                    📘
-                </div>
+            {% if not pe2_demo_mode %}
 
-                <h2>
-                    Historial de vuelos
-                </h2>
+            <!-- Historial: oculto durante la demostración -->
+            <article class="module-card">
+                <div class="module-icon">📘</div>
+                <h2>Historial de vuelos</h2>
 
                 <p>
-                    Revisa vuelos registrados, duración, puntos de telemetría y
-                    comparación entre ruta planificada y recorrido ejecutado.
+                    Revisa vuelos registrados, duración, puntos de
+                    telemetría y comparación entre ruta planificada
+                    y recorrido ejecutado.
                 </p>
 
                 <a class="button button-secondary" href="/flight_history">
@@ -436,24 +691,23 @@
                 </a>
             </article>
 
+            <!-- Ground Control: oculto durante la demostración -->
             <article class="module-card">
-                <div class="module-icon">
-                    🧪
-                </div>
-
-                <h2>
-                    Módulo legacy RPi
-                </h2>
+                <div class="module-icon">🧪</div>
+                <h2>Módulo legacy RPi</h2>
 
                 <p>
-                    Acceso separado al flujo experimental Ground Control para captura
-                    terrestre y pruebas de telemetría con Raspberry Pi.
+                    Acceso separado al flujo experimental Ground Control
+                    para captura terrestre y pruebas de telemetría
+                    con Raspberry Pi.
                 </p>
 
                 <a class="button button-secondary" href="/ground_login">
                     Abrir legacy
                 </a>
             </article>
+
+            {% endif %}
 
         </section>
 
