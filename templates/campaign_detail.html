@@ -1312,10 +1312,86 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* UI-2B · Secciones técnicas colapsables */
+        .technical-section-intro {
+            margin: 28px 0 14px 0;
+        }
+
+        .technical-section-intro h2 {
+            margin: 0;
+            color: #f8fafc;
+            font-size: 1.35rem;
+        }
+
+        .technical-section-intro p {
+            margin: 7px 0 0 0;
+            color: #94a3b8;
+            font-size: 0.92rem;
+        }
+
+        .technical-collapsible {
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .technical-summary {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 18px;
+            padding: 18px 20px;
+            cursor: pointer;
+            list-style: none;
+            color: #f8fafc;
+            font-weight: 800;
+        }
+
+        .technical-summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .technical-summary::before {
+            content: "+";
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            margin-right: 10px;
+            border-radius: 8px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: #93c5fd;
+            font-weight: 900;
+        }
+
+        .technical-collapsible[open] .technical-summary::before {
+            content: "–";
+        }
+
+        .technical-summary span {
+            display: inline-flex;
+            align-items: center;
+            flex: 1;
+        }
+
+        .technical-summary small {
+            color: #94a3b8;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .technical-collapsible-body {
+            padding: 0 20px 20px 20px;
+        }
+
+        .technical-collapsible + .technical-collapsible {
+            margin-top: 16px;
+        }
     </style>
 
 </head>
-
 
 <body>
 
@@ -1415,7 +1491,6 @@
             style="display: none;"
         >
 
-
             <!-- SUMMARY -->
 
             <section class="summary-grid">
@@ -1434,7 +1509,6 @@
                     </div>
 
                 </div>
-
 
                 <div class="summary-card">
 
@@ -1457,7 +1531,6 @@
 
                 </div>
 
-
                 <div class="summary-card">
 
                     <div class="summary-label">
@@ -1472,7 +1545,6 @@
                     </div>
 
                 </div>
-
 
                 <div class="summary-card">
 
@@ -1979,24 +2051,29 @@
 
             </section>
 
+            <section class="technical-section-intro">
+                <div>
+                    <h2>Detalles técnicos</h2>
+                    <p>
+                        Evidencia persistida de capturas, trabajos de procesamiento y
+                        productos geoespaciales asociados a la campaña.
+                    </p>
+                </div>
+            </section>
+
             <!-- CAPTURAS -->
-
-            <section class="section-card">
-
-                <div class="section-header">
-
-                    <h2 class="section-title">
+            <details class="section-card technical-collapsible" open>
+                <summary class="technical-summary">
+                    <span>
                         Capturas
-                    </h2>
-
-                    <span
-                        id="captureCount"
-                        class="section-count"
-                    >
-                        0 capturas
                     </span>
 
-                </div>
+                    <small id="captureCount">
+                        0 capturas
+                    </small>
+                </summary>
+
+                <div class="technical-collapsible-body">
 
                 <button
                     id="importRedEdgeButton"
@@ -2025,28 +2102,24 @@
                     style="display: none;"
                 >
 
-            </section>
+                </div>
+            </details>
 
 
             <!-- PROCESSING -->
 
-            <section class="section-card">
-
-                <div class="section-header">
-
-                    <h2 class="section-title">
+            <details class="section-card technical-collapsible">
+                <summary class="technical-summary">
+                    <span>
                         Procesamiento
-                    </h2>
-
-                    <span
-                        id="jobCount"
-                        class="section-count"
-                    >
-                        0 trabajos
                     </span>
 
-                </div>
+                    <small id="jobCount">
+                        0 trabajos
+                    </small>
+                </summary>
 
+                <div class="technical-collapsible-body">
 
                 <div id="jobsContainer">
 
@@ -2062,28 +2135,23 @@
                     class="processing-message"
                 ></div>
 
-            </section>
+                </div>
+            </details>
 
 
             <!-- PRODUCTS -->
-
-            <section class="section-card">
-
-                <div class="section-header">
-
-                    <h2 class="section-title">
+            <details class="section-card technical-collapsible">
+                <summary class="technical-summary">
+                    <span>
                         Productos geoespaciales
-                    </h2>
-
-                    <span
-                        id="productCount"
-                        class="section-count"
-                    >
-                        0 productos
                     </span>
 
-                </div>
+                    <small id="productCount">
+                        0 productos
+                    </small>
+                </summary>
 
+                <div class="technical-collapsible-body">
 
                 <div id="productsContainer">
 
@@ -2093,7 +2161,8 @@
 
                 </div>
 
-            </section>
+                </div>
+            </details>
 
 
         </main>
