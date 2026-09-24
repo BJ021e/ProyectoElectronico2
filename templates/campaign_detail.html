@@ -1047,6 +1047,271 @@
                 );
         }
 
+        /* UI-2A · Rediseño visual del detalle de campaña */
+        body {
+            background:
+                radial-gradient(circle at top left, rgba(37, 99, 235, 0.13), transparent 36%),
+                linear-gradient(135deg, #020617, #0f172a 55%, #111827);
+        }
+
+        .campaign-detail-container {
+            max-width: 1560px;
+        }
+
+        .pe2-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 18px;
+            padding: 14px 18px;
+            margin-bottom: 22px;
+            background: rgba(30, 41, 59, 0.88);
+            border: 1px solid #334155;
+            border-radius: 14px;
+        }
+
+        .pe2-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            color: #f8fafc;
+            text-decoration: none;
+        }
+
+        .pe2-brand-symbol {
+            display: grid;
+            place-items: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #2563eb, #4f46e5);
+            font-size: 0.92rem;
+            font-weight: 800;
+        }
+
+        .pe2-brand-text {
+            display: grid;
+            gap: 3px;
+        }
+
+        .pe2-brand-text strong {
+            font-size: 0.95rem;
+        }
+
+        .pe2-brand-text small {
+            color: #94a3b8;
+            font-size: 0.75rem;
+        }
+
+        .pe2-nav-links {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .pe2-nav-links a {
+            padding: 9px 12px;
+            color: #cbd5e1;
+            font-size: 0.88rem;
+            font-weight: 600;
+            border-radius: 9px;
+            text-decoration: none;
+        }
+
+        .pe2-nav-links a:hover,
+        .pe2-nav-links a:focus-visible {
+            background: rgba(148, 163, 184, 0.12);
+            color: #f8fafc;
+        }
+
+        .pe2-nav-links a.active {
+            background: rgba(37, 99, 235, 0.21);
+            color: #bfdbfe;
+        }
+
+        .detail-header {
+            margin-bottom: 24px;
+        }
+
+        .summary-grid {
+            margin-bottom: 24px;
+        }
+
+        .campaign-gis-map {
+            min-height: 680px;
+        }
+
+        @media (max-width: 900px) {
+            .campaign-detail-container {
+                max-width: 100%;
+            }
+
+            .pe2-topbar {
+                padding: 14px;
+            }
+
+            .pe2-nav-links {
+                width: 100%;
+            }
+
+            .pe2-nav-links a {
+                padding: 9px 10px;
+            }
+
+            .campaign-gis-map {
+                min-height: 520px;
+            }
+        }
+
+        /* UI-2A.2 · Visor GIS principal */
+
+        .gis-workspace-card {
+            padding: 22px;
+        }
+
+        .gis-workspace-header {
+            align-items: center;
+            gap: 18px;
+        }
+
+        .gis-workspace-badge {
+            display: inline-flex;
+            align-items: center;
+            min-height: 34px;
+            padding: 0 12px;
+            border-radius: 999px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: #93c5fd;
+            font-size: 0.78rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .gis-workspace-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(320px, 390px);
+            gap: 18px;
+            align-items: stretch;
+        }
+
+        .gis-map-column {
+            display: grid;
+            grid-template-rows: auto minmax(620px, 72vh);
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .gis-workspace-card .campaign-gis-map {
+            width: 100%;
+            min-height: 620px;
+            height: 72vh;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid #334155;
+        }
+
+        .gis-side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            min-width: 0;
+        }
+
+        .gis-panel-block {
+            border: 1px solid #334155;
+            border-radius: 13px;
+            background: #0f172a;
+            padding: 14px;
+        }
+
+        .gis-panel-block h3 {
+            margin: 0 0 12px 0;
+            color: #f8fafc;
+            font-size: 0.92rem;
+        }
+
+        .gis-summary-compact {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .gis-summary-compact .gis-summary-item {
+            min-width: 0;
+        }
+
+        .gis-side-panel .gis-raster-controls {
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        .gis-side-panel .gis-raster-controls:last-child {
+            margin-bottom: 0;
+        }
+
+        .gis-side-panel .gis-raster-controls label {
+            display: block;
+            margin-bottom: 7px;
+            color: #94a3b8;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .gis-side-panel .gis-raster-controls select {
+            width: 100%;
+        }
+
+        .gis-side-panel .spectral-stat-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .gis-panel-note p {
+            margin: 0;
+            color: #94a3b8;
+            font-size: 0.82rem;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 1180px) {
+            .gis-workspace-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .gis-map-column {
+                grid-template-rows: auto minmax(520px, 64vh);
+            }
+
+            .gis-workspace-card .campaign-gis-map {
+                min-height: 520px;
+                height: 64vh;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .gis-workspace-card {
+                padding: 16px;
+            }
+
+            .gis-workspace-header {
+                align-items: flex-start;
+            }
+
+            .gis-map-column {
+                grid-template-rows: auto minmax(420px, 58vh);
+            }
+
+            .gis-workspace-card .campaign-gis-map {
+                min-height: 420px;
+                height: 58vh;
+            }
+
+            .gis-side-panel .spectral-stat-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 
 </head>
@@ -1058,6 +1323,22 @@
 
     <div class="campaign-detail-container">
 
+        <nav class="pe2-topbar" aria-label="Navegación principal">
+            <a class="pe2-brand" href="/" aria-label="Ir al inicio PE2">
+                <span class="pe2-brand-symbol" aria-hidden="true">PE2</span>
+                <span class="pe2-brand-text">
+                    <strong>Plataforma multiespectral</strong>
+                    <small>Adquisición y análisis geoespacial</small>
+                </span>
+            </a>
+
+            <div class="pe2-nav-links">
+                <a href="/">Inicio</a>
+                <a href="/campaigns" class="active">Campañas</a>
+                <a href="/drone_operation">Operación UAV</a>
+                <a href="/mission_routes">Rutas</a>
+            </div>
+        </nav>
 
         <!-- =====================================
              HEADER
@@ -1074,6 +1355,12 @@
                 <p id="campaignName">
                     Cargando información...
                 </p>
+
+                {% if pe2_demo_mode %}
+                <p class="secondary-value">
+                    Modo demostración · Visualización de datos geoespaciales persistidos.
+                </p>
+                {% endif %}
 
             </div>
 
@@ -1200,13 +1487,275 @@
                         0
                     </div>
 
+                    <div
+                        id="summaryCurrentProcessing"
+                        class="secondary-value"
+                    >
+                        Sin procesamiento real actual
+                    </div>
+
                 </div>
 
             </section>
+            <section class="section-card gis-workspace-card">
+
+                <div class="section-header gis-workspace-header">
+
+                    <div>
+                        <h2 class="section-title">
+                            Visor GIS
+                        </h2>
+
+                        <p class="gis-section-description">
+                            Exploración geoespacial de capturas, productos ráster,
+                            bandas multiespectrales e índices derivados.
+                        </p>
+                    </div>
+
+                    <div class="gis-workspace-badge">
+                        Leaflet · Productos persistidos
+                    </div>
+
+                </div>
 
 
+                <div class="gis-workspace-grid">
+
+                    <div class="gis-map-column">
+
+                        <div
+                            id="campaignMapStatus"
+                            class="gis-map-status"
+                        >
+                            Preparando visor...
+                        </div>
+
+                        <div
+                            id="campaignMap"
+                            class="campaign-gis-map"
+                        ></div>
+
+                    </div>
+
+
+                    <aside
+                        class="gis-side-panel"
+                        aria-label="Controles del visor GIS"
+                    >
+
+                        <div class="gis-panel-block">
+
+                            <h3>
+                                Resumen geoespacial
+                            </h3>
+
+                            <div class="gis-summary gis-summary-compact">
+
+                                <div class="gis-summary-item">
+                                    <span>
+                                        Capturas georreferenciadas
+                                    </span>
+
+                                    <strong id="gisCaptureCount">
+                                        0
+                                    </strong>
+                                </div>
+
+
+                                <div class="gis-summary-item">
+                                    <span>
+                                        Productos con extensión
+                                    </span>
+
+                                    <strong id="gisProductCount">
+                                        0
+                                    </strong>
+                                </div>
+
+
+                                <div class="gis-summary-item">
+                                    <span>
+                                        Ráster visible
+                                    </span>
+
+                                    <strong id="gisRasterCount">
+                                        0
+                                    </strong>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="gis-panel-block">
+
+                            <h3>
+                                Producto visible
+                            </h3>
+
+                            <div
+                                id="gisProductControls"
+                                class="gis-raster-controls"
+                                style="display: none;"
+                            >
+
+                                <label for="gisRasterProduct">
+                                    Producto GIS
+                                </label>
+
+                                <select id="gisRasterProduct">
+                                </select>
+
+                            </div>
+
+
+                            <div
+                                id="gisRasterControls"
+                                class="gis-raster-controls"
+                                style="display: none;"
+                            >
+
+                                <label for="gisRasterMode">
+                                    Capa ráster
+                                </label>
+
+                                <select id="gisRasterMode">
+
+                                    <option value="natural">
+                                        RGB natural
+                                    </option>
+
+                                    <option value="blue">
+                                        Blue
+                                    </option>
+
+                                    <option value="green">
+                                        Green
+                                    </option>
+
+                                    <option value="red">
+                                        Red
+                                    </option>
+
+                                    <option value="nir">
+                                        NIR
+                                    </option>
+
+                                    <option value="red_edge">
+                                        Red Edge
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+                        </div>
+
+
+                        <div
+                            id="spectralMapPanel"
+                            class="spectral-map-panel gis-panel-block"
+                            style="display: none;"
+                        >
+
+                            <h3>
+                                Estadística espectral
+                            </h3>
+
+                            <div class="spectral-stat-grid">
+
+                                <div class="spectral-stat-card">
+                                    <span>
+                                        Mínimo
+                                    </span>
+
+                                    <strong id="spectralStatMin">
+                                        --
+                                    </strong>
+                                </div>
+
+
+                                <div class="spectral-stat-card">
+                                    <span>
+                                        Media
+                                    </span>
+
+                                    <strong id="spectralStatMean">
+                                        --
+                                    </strong>
+                                </div>
+
+
+                                <div class="spectral-stat-card">
+                                    <span>
+                                        Máximo
+                                    </span>
+
+                                    <strong id="spectralStatMax">
+                                        --
+                                    </strong>
+                                </div>
+
+
+                                <div class="spectral-stat-card">
+                                    <span>
+                                        Píxeles válidos
+                                    </span>
+
+                                    <strong id="spectralStatPixels">
+                                        --
+                                    </strong>
+                                </div>
+
+                            </div>
+
+
+                            <div class="spectral-legend-container">
+
+                                <div
+                                    id="spectralLegendGradient"
+                                    class="spectral-legend-gradient"
+                                ></div>
+
+
+                                <div
+                                    id="spectralLegendLabels"
+                                    class="spectral-legend-labels"
+                                ></div>
+
+                            </div>
+
+
+                            <p class="spectral-map-note">
+                                Escala numérica fija de -1 a +1.
+                                Los colores representan únicamente el valor del índice.
+                            </p>
+
+                        </div>
+
+
+                        <div class="gis-panel-block gis-panel-note">
+
+                            <h3>
+                                Lectura del visor
+                            </h3>
+
+                            <p>
+                                Las capas muestran ubicación de capturas, extensión de
+                                productos y previsualización ráster. Los índices espectrales
+                                se presentan como valores de reflectancia derivados, no como
+                                diagnóstico fitosanitario.
+                            </p>
+
+                        </div>
+
+                    </aside>
+
+                </div>
+
+            </section>
             <!-- INFORMACIÓN GENERAL -->
-
             <section class="section-card">
 
                 <div class="section-header">
@@ -1318,226 +1867,6 @@
                 </div>
 
             </section>
-            
-            <section class="section-card">
-
-                <div class="section-header">
-
-                    <div>
-
-                        <h2 class="section-title">
-                            Visor GIS
-                        </h2>
-
-                        <p class="gis-section-description">
-                            Ubicación de capturas y extensión
-                            de productos geoespaciales.
-                        </p>
-
-                    </div>
-
-                </div>
-
-
-                <div class="gis-summary">
-
-                    <div class="gis-summary-item">
-
-                        <span>
-                            Capturas georreferenciadas
-                        </span>
-
-                        <strong id="gisCaptureCount">
-                            0
-                        </strong>
-
-                    </div>
-
-
-                    <div class="gis-summary-item">
-
-                        <span>
-                            Productos con extensión
-                        </span>
-
-                        <strong id="gisProductCount">
-                            0
-                        </strong>
-
-                    </div>
-
-                    <div class="gis-summary-item">
-
-                        <span>
-                            Ráster visible
-                        </span>
-
-                        <strong id="gisRasterCount">
-                            0
-                        </strong>
-
-                    </div>
-
-                </div>
-
-                <div
-                    id="gisProductControls"
-                    class="gis-raster-controls"
-                    style="display: none;"
-                >
-
-                    <label
-                        for="gisRasterProduct"
-                    >
-                        Producto GIS
-                    </label>
-
-                    <select id="gisRasterProduct">
-                    </select>
-
-                </div>
-
-                <div
-                    id="gisRasterControls"
-                    class="gis-raster-controls"
-                    style="display: none;"
-                >
-
-                    <label
-                        for="gisRasterMode"
-                    >
-                        Capa ráster
-                    </label>
-
-                    <select id="gisRasterMode">
-
-                        <option value="natural">
-                            RGB natural
-                        </option>
-
-                        <option value="blue">
-                            Blue
-                        </option>
-
-                        <option value="green">
-                            Green
-                        </option>
-
-                        <option value="red">
-                            Red
-                        </option>
-
-                        <option value="nir">
-                            NIR
-                        </option>
-
-                        <option value="red_edge">
-                            Red Edge
-                        </option>
-
-                    </select>
-
-                </div>
-                
-                <div
-                    id="spectralMapPanel"
-                    class="spectral-map-panel"
-                    style="display: none;"
-                >
-
-                    <div class="spectral-stat-grid">
-
-                        <div class="spectral-stat-card">
-
-                            <span>
-                                Mínimo
-                            </span>
-
-                            <strong id="spectralStatMin">
-                                --
-                            </strong>
-
-                        </div>
-
-
-                        <div class="spectral-stat-card">
-
-                            <span>
-                                Media
-                            </span>
-
-                            <strong id="spectralStatMean">
-                                --
-                            </strong>
-
-                        </div>
-
-
-                        <div class="spectral-stat-card">
-
-                            <span>
-                                Máximo
-                            </span>
-
-                            <strong id="spectralStatMax">
-                                --
-                            </strong>
-
-                        </div>
-
-
-                        <div class="spectral-stat-card">
-
-                            <span>
-                                Píxeles válidos
-                            </span>
-
-                            <strong id="spectralStatPixels">
-                                --
-                            </strong>
-
-                        </div>
-
-                    </div>
-
-
-                    <div class="spectral-legend-container">
-
-                        <div
-                            id="spectralLegendGradient"
-                            class="spectral-legend-gradient"
-                        ></div>
-
-
-                        <div
-                            id="spectralLegendLabels"
-                            class="spectral-legend-labels"
-                        ></div>
-
-                    </div>
-
-
-                    <p class="spectral-map-note">
-                        Escala numérica fija de -1 a +1.
-                        Los colores representan únicamente
-                        el valor del índice.
-                    </p>
-
-                </div>
-
-                <div
-                    id="campaignMapStatus"
-                    class="gis-map-status"
-                >
-                    Preparando visor...
-                </div>
-
-                <div
-                    id="campaignMap"
-                    class="campaign-gis-map"
-                ></div>
-
-            </section>
 
             <section
                 id="spectralAnalysisSection"
@@ -1583,7 +1912,7 @@
                             <strong>NDVI</strong>
 
                             <span>
-                                NIR y Red
+                                NIR y Rojo
                             </span>
                         </div>
 
@@ -1625,7 +1954,7 @@
                             <strong>GNDVI</strong>
 
                             <span>
-                                NIR y Green
+                                NIR y Verde
                             </span>
                         </div>
 
@@ -1966,6 +2295,9 @@ const CAMPAIGN_ID =
 const PROCESSING_ENABLED =
     {{ processing_enabled | tojson }};
 
+const PE2_DEMO_MODE =
+    {{ pe2_demo_mode | tojson }};
+
 let currentCampaign = null;
 let currentCaptures = [];
 let currentJobs = [];
@@ -2256,8 +2588,29 @@ function initializeCaptureLayers() {
     gisCaptureLayers = {
         FLIGHT: L.layerGroup().addTo(campaignMap),
         CALIBRATION: L.layerGroup(),
-        UNKNOWN: L.layerGroup().addTo(campaignMap),
+        UNKNOWN: L.layerGroup(),
     };
+}
+
+function syncUnknownCaptureLayerVisibility(captures) {
+    if (
+        !campaignMap
+        ||
+        typeof campaignMap.hasLayer !== "function"
+    ) {
+        return;
+    }
+
+    const unknownLayer = gisCaptureLayers.UNKNOWN;
+    const hasUnknownCaptures = captures.some(
+        (capture) => getCaptureRole(capture) === "UNKNOWN"
+    );
+
+    if (hasUnknownCaptures && !campaignMap.hasLayer(unknownLayer)) {
+        unknownLayer.addTo(campaignMap);
+    } else if (!hasUnknownCaptures && campaignMap.hasLayer(unknownLayer)) {
+        campaignMap.removeLayer(unknownLayer);
+    }
 }
 
 function getCaptureMarkerStyle(capture) {
@@ -2480,9 +2833,16 @@ function getProductTraceability(product) {
         ? "Sin trabajo asociado" : `Trabajo #${product.processing_job_id}`;
     return [...new Set([
         job.job_code ?? `Trabajo #${job.id}`,
-        job.backend,
+        getProcessingBackendLabel(job.backend),
         getProductProcessingState(product),
     ].filter(Boolean))].join(" · ");
+}
+
+function getProcessingBackendLabel(backend) {
+    return {
+        METASHAPE: "Metashape",
+        MOCK: "Mock",
+    }[String(backend ?? "").toUpperCase()] ?? backend ?? "--";
 }
 
 function getRasterProductOptionLabel(product) {
@@ -2490,7 +2850,10 @@ function getRasterProductOptionLabel(product) {
     return [
         product.product_code || `Producto #${product.id}`,
         getRasterProductLabel(product),
-        ...new Set([job?.backend, getProductProcessingState(product)].filter(Boolean)),
+        ...new Set([
+            job ? getProcessingBackendLabel(job.backend) : null,
+            getProductProcessingState(product),
+        ].filter(Boolean)),
     ].join(" · ");
 }
 
@@ -2595,7 +2958,9 @@ function renderJobs(
                     <td>
                         ${
                             escapeHtml(
-                                job.backend
+                                getProcessingBackendLabel(
+                                    job.backend
+                                )
                             )
                         }
                     </td>
@@ -2681,6 +3046,16 @@ function renderProducts(
     ).textContent =
         products.length;
 
+    const latestCompletedRealJob =
+        getLatestCompletedRealJob();
+
+    document.getElementById(
+        "summaryCurrentProcessing"
+    ).textContent =
+        latestCompletedRealJob
+            ? `Actual: ${latestCompletedRealJob.job_code} · ${getProcessingBackendLabel(latestCompletedRealJob.backend)}`
+            : "Sin procesamiento real actual";
+
 
     document.getElementById(
         "productCount"
@@ -2753,7 +3128,9 @@ function renderProducts(
                             <span class="product-type">
                                 ${
                                     escapeHtml(
-                                        product.product_type
+                                        getGeospatialProductTypeLabel(
+                                            product
+                                        )
                                     )
                                 }
                             </span>
@@ -4294,6 +4671,10 @@ function renderCaptureGeometries(
 
     Object.values(gisCaptureLayers).forEach((layer) => layer.clearLayers());
 
+    syncUnknownCaptureLayerVisibility(
+        currentCaptures
+    );
+
 
     let validCount = 0;
 
@@ -5752,14 +6133,29 @@ function isRasterDisplayProduct(
 function getRasterProductLabel(
     product
 ) {
+    return (
+        getGeospatialProductTypeLabel(
+            product
+        )
+        ?? product.name
+        ?? product.product_code
+        ?? "--"
+    );
+}
+
+function getGeospatialProductTypeLabel(
+    product
+) {
 
     const type =
         getGeospatialProductType(
             product
         );
 
-
     const labels = {
+        DSM:
+            "DSM · Modelo digital de superficie",
+
         ORTHOMOSAIC_RGB:
             "Ortomosaico RGB",
 
@@ -5776,11 +6172,8 @@ function getRasterProductLabel(
             "GNDVI",
     };
 
-
     return (
         labels[type]
-        ?? product.name
-        ?? product.product_code
         ?? type
     );
 }

@@ -28,14 +28,18 @@ def test_capture_map_layers_and_counts_are_independent():
     functions = re.findall(r"^function [\s\S]*?^}", html, re.MULTILINE)
     script = "\n".join(functions) + r'''
 const assert = require("node:assert/strict");
-const campaignMap = {};
+const campaignMap = {
+    layers: new Set(),
+    hasLayer(layer) {return this.layers.has(layer);},
+    removeLayer(layer) {this.layers.delete(layer); layer.visible = false;},
+};
 let gisCaptureLayers = {};
 const elements = {};
 const document = {getElementById(id) {return elements[id] ??= {};}};
 const L = {
     layerGroup() {return {
         visible: false, markers: [],
-        addTo() {this.visible = true; return this;},
+        addTo(map) {this.visible = true; map.layers?.add(this); return this;},
         clearLayers() {this.markers = [];},
     };},
     circleMarker(coordinate, style) {return {
@@ -53,11 +57,12 @@ let currentCaptures = [
 initializeCaptureLayers();
 assert.equal(gisCaptureLayers.FLIGHT.visible, true);
 assert.equal(gisCaptureLayers.CALIBRATION.visible, false);
-assert.equal(gisCaptureLayers.UNKNOWN.visible, true);
+assert.equal(gisCaptureLayers.UNKNOWN.visible, false);
 assert.notEqual(gisCaptureLayers.FLIGHT, gisCaptureLayers.CALIBRATION);
 assert.deepEqual(getCaptureRoleCounts(currentCaptures), {FLIGHT:1, CALIBRATION:1, UNKNOWN:2});
 assert.equal(renderCaptureGeometries([]), 3);
 assert.equal(elements.gisCaptureCount.textContent, 3);
+assert.equal(gisCaptureLayers.UNKNOWN.visible, true);
 for (const layer of Object.values(gisCaptureLayers)) assert.equal(layer.markers.length, 1);
 assert.deepEqual(gisCaptureLayers.CALIBRATION.markers[0].coordinate, [3, 4]);
 assert.notDeepEqual(getCaptureMarkerStyle(currentCaptures[0]), getCaptureMarkerStyle(currentCaptures[1]));
@@ -73,6 +78,9 @@ assert.equal(elements.captureUnknownCount.textContent, 2);
 renderCaptures([]);
 assert.equal(elements.captureFlightCount.textContent, 0);
 assert.equal(elements.captureUnknownCount.textContent, 0);
+currentCaptures = currentCaptures.filter((capture) => getCaptureRole(capture) !== "UNKNOWN");
+renderCaptureGeometries([]);
+assert.equal(gisCaptureLayers.UNKNOWN.visible, false);
 '''
     result = subprocess.run([node, "-"], input=script, text=True, encoding="utf-8", capture_output=True)
     assert result.returncode == 0, result.stderr
@@ -103,6 +111,49 @@ def test_campaigns_view_is_available():
         "/api/campaigns"
         in html
     )
+
+
+
+def test_pe2_demo_mode_hides_legacy_navigation_but_keeps_direct_routes(
+    monkeypatch,
+):
+    from InterfazInit import Config
+
+    monkeypatch.setattr(Config, "PE2_DEMO_MODE", True)
+    client = app.test_client()
+
+    # El nuevo inicio PE2 se muestra directamente.
+    index_response = client.get("/")
+    assert index_response.status_code == 200
+
+    home_html = index_response.get_data(as_text=True)
+    assert "Plataforma UAV multiespectral" in home_html
+    assert 'href="/campaigns"' in home_html
+    assert 'href="/drone_operation"' in home_html
+
+    # Ocultar accesos legacy durante la demostración.
+    assert 'href="/flight_history"' not in home_html
+    assert 'href="/ground_login"' not in home_html
+
+    # Verificar navegación de campañas.
+    campaigns_html = client.get("/campaigns").get_data(
+        as_text=True
+    )
+    assert 'href="/flight_history"' not in campaigns_html
+    assert "Campañas de adquisición" in campaigns_html
+
+    # Verificar el detalle de campaña en modo demo.
+    detail_html = client.get(
+        "/campaigns/123"
+    ).get_data(as_text=True)
+
+    assert "Modo demostración" in detail_html
+    assert "const PE2_DEMO_MODE =\n    true;" in detail_html
+    assert "/api/campaigns/${CAMPAIGN_ID}/products" in detail_html
+
+    # Las rutas antiguas permanecen disponibles directamente.
+    assert client.get("/ground_login").status_code == 200
+    assert client.get("/flight_history").status_code == 200
 
 
 def test_campaign_detail_view_is_available():
@@ -215,6 +266,22 @@ def test_campaign_detail_disables_processing_without_hiding_visualization(
     assert "const PROCESSING_ENABLED =\n    false;" in html
     assert "Procesamiento deshabilitado" in html
     assert "/api/campaigns/${CAMPAIGN_ID}/products" in html
+
+
+def test_campaign_detail_uses_presentation_labels_for_pe2():
+
+    html = app.test_client().get("/campaigns/123").get_data(as_text=True)
+
+    for marker in (
+        "DSM · Modelo digital de superficie",
+        "Ortomosaico multiespectral",
+        "NIR y Rojo",
+        "NIR y Red Edge",
+        "NIR y Verde",
+        "getProcessingBackendLabel",
+        "summaryCurrentProcessing",
+    ):
+        assert marker in html
 
 def test_campaign_detail_contains_rededge_import_controls():
 
@@ -859,7 +926,7 @@ assert.equal(hasSpectralIndex("NDRE"), true);
 assert.equal(getProductProcessingState(currentProducts[0]), "MOCK");
 assert.equal(getProductProcessingState(currentProducts[1]), "HISTORICO");
 assert.equal(getProductProcessingState(currentProducts[2]), "ACTUAL");
-assert.match(getRasterProductOptionLabel(currentProducts[2]), /^GP-test.*METASHAPE.*ACTUAL$/);
+assert.match(getRasterProductOptionLabel(currentProducts[2]), /^GP-test.*Metashape.*ACTUAL$/);
 assert.equal(getPreferredRasterProduct([currentProducts[0], currentProducts[3]]).id, 104);
 assert.equal(getPreferredRasterProduct(currentProducts.slice(0, 2)).id, 102);
 assert.equal(formatProductResolution({epsg:4326, resolution:{x:9.0471e-7,y:7.2969e-7}}), "9.0471e-7° × 7.2969e-7°/px");
