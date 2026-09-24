@@ -141,6 +141,8 @@ from services.processing_executor import (
     ProcessingExecutorError,
 )
 
+from datetime import datetime, timezone
+
 app = Flask(__name__)
 app.secret_key = Config.SECRET_KEY
 
@@ -196,7 +198,13 @@ def process_preview_image(tif_path, output_name):
 
 # ---------------- RUTAS ----------------
 @app.route("/")
-def index(): return redirect(url_for('ground_login'))
+def index():
+    return render_template(
+        "pe2_home.html",
+        pe2_demo_mode=Config.PE2_DEMO_MODE,
+        processing_enabled=Config.PROCESSING_ENABLED,
+        photogrammetry_backend=Config.PHOTOGRAMMETRY_BACKEND,
+    )
 
 @app.route("/ground_login", methods=["GET", "POST"])
 def ground_login():
@@ -693,7 +701,8 @@ def flight_history():
 @app.route("/campaigns")
 def campaigns_view():
     return render_template(
-        "campaigns.html"
+        "campaigns.html",
+        pe2_demo_mode=Config.PE2_DEMO_MODE,
     )
 
 
@@ -707,6 +716,7 @@ def campaign_detail_view(
         processing_enabled=(
             Config.PROCESSING_ENABLED
         ),
+        pe2_demo_mode=Config.PE2_DEMO_MODE,
     )
 
 @app.route("/flight_history/<int:flight_id>")
@@ -1092,7 +1102,54 @@ def api_drone_simulator_disconnect():
             "error": True,
             "msg": str(e)
         }), 400
-    
+
+@app.route("/dji-cloud")
+def dji_cloud_probe():
+    """
+    Página mínima para verificar que DJI Pilot 2 puede abrir
+    la plataforma PE2 desde Servicios en la nube / Plataformas abiertas.
+    """
+    client_ip = request.headers.get(
+        "X-Forwarded-For",
+        request.remote_addr,
+    )
+
+    user_agent = request.headers.get(
+        "User-Agent",
+        "",
+    )
+
+    app.logger.info(
+        "DJI Cloud probe abierto desde ip=%s user_agent=%s",
+        client_ip,
+        user_agent,
+    )
+
+    return render_template(
+        "dji_cloud_probe.html",
+        client_ip=client_ip,
+        user_agent=user_agent,
+        server_time=datetime.now(timezone.utc).isoformat(),
+    )
+
+
+@app.route("/api/dji-cloud/ping", methods=["GET", "POST"])
+def api_dji_cloud_ping():
+    """
+    Endpoint de prueba para confirmar comunicación WebView DJI Pilot 2 → Flask.
+    No implementa aún licencia DJI ni telemetría real.
+    """
+    payload = request.get_json(silent=True) or {}
+
+    return jsonify({
+        "ok": True,
+        "source": "pe2-dji-cloud-probe",
+        "remote_addr": request.remote_addr,
+        "user_agent": request.headers.get("User-Agent", ""),
+        "received": payload,
+        "server_time": datetime.now(timezone.utc).isoformat(),
+    })
+
 @app.route("/drone_operation")
 def drone_operation():
     return render_template(
