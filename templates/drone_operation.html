@@ -512,6 +512,221 @@
 
         }
 
+
+        /* UI-3A · Panel operativo PE2 */
+
+        body {
+            background:
+                radial-gradient(circle at top left, rgba(37, 99, 235, 0.13), transparent 36%),
+                linear-gradient(135deg, #020617, #0f172a 55%, #111827);
+        }
+
+        .operation-container {
+            max-width: 1600px;
+        }
+
+        .pe2-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 18px;
+            padding: 14px 18px;
+            margin-bottom: 22px;
+            background: rgba(30, 41, 59, 0.88);
+            border: 1px solid #334155;
+            border-radius: 14px;
+        }
+
+        .pe2-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            color: #f8fafc;
+            text-decoration: none;
+        }
+
+        .pe2-brand-symbol {
+            display: grid;
+            place-items: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #2563eb, #4f46e5);
+            font-size: 0.92rem;
+            font-weight: 800;
+        }
+
+        .pe2-brand-text {
+            display: grid;
+            gap: 3px;
+        }
+
+        .pe2-brand-text strong {
+            font-size: 0.95rem;
+        }
+
+        .pe2-brand-text small {
+            color: #94a3b8;
+            font-size: 0.75rem;
+        }
+
+        .pe2-nav-links {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .pe2-nav-links a {
+            padding: 9px 12px;
+            color: #cbd5e1;
+            font-size: 0.88rem;
+            font-weight: 600;
+            border-radius: 9px;
+            text-decoration: none;
+        }
+
+        .pe2-nav-links a:hover,
+        .pe2-nav-links a:focus-visible {
+            background: rgba(148, 163, 184, 0.12);
+            color: #f8fafc;
+        }
+
+        .pe2-nav-links a.active {
+            background: rgba(37, 99, 235, 0.21);
+            color: #bfdbfe;
+        }
+
+        .operation-hero {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 20px;
+            align-items: start;
+            margin-bottom: 20px;
+        }
+
+        .operation-title-group h1 {
+            margin: 0;
+            font-size: 2.25rem;
+        }
+
+        .operation-title-group p {
+            margin: 9px 0 0 0;
+            color: #94a3b8;
+            font-size: 1rem;
+        }
+
+        .operation-mode-note {
+            margin-top: 7px;
+            color: #93c5fd;
+            font-size: 0.82rem;
+        }
+
+        .operation-status-stack {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .operation-actions-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .operation-workspace {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(350px, 420px);
+            gap: 20px;
+            align-items: start;
+            margin-bottom: 20px;
+        }
+
+        .operation-main-column,
+        .operation-side-column {
+            display: grid;
+            gap: 20px;
+            min-width: 0;
+        }
+
+        .map-panel {
+            margin-bottom: 0;
+        }
+
+        .map-panel #operationMap {
+            height: 72vh;
+            min-height: 640px;
+            border: 1px solid #334155;
+        }
+
+        .operation-side-column .telemetry-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .operation-side-column .stream-frame {
+            min-height: 260px;
+        }
+
+        .integration-details-card {
+            display: grid;
+            gap: 10px;
+        }
+
+        .integration-details-card span {
+            color: #94a3b8;
+            font-size: 0.83rem;
+        }
+
+        .integration-details-card strong {
+            color: #f8fafc;
+        }
+
+        .operation-note {
+            color: #94a3b8;
+            font-size: 0.86rem;
+            line-height: 1.55;
+            margin: 0;
+        }
+
+        @media (max-width: 1180px) {
+            .operation-hero,
+            .operation-workspace {
+                grid-template-columns: 1fr;
+            }
+
+            .operation-status-stack {
+                justify-content: flex-start;
+            }
+
+            .map-panel #operationMap {
+                height: 62vh;
+                min-height: 520px;
+            }
+        }
+
+        @media (max-width: 700px) {
+            .pe2-topbar {
+                padding: 14px;
+            }
+
+            .pe2-nav-links {
+                width: 100%;
+            }
+
+            .pe2-nav-links a {
+                padding: 9px 10px;
+            }
+
+            .map-panel #operationMap {
+                height: 55vh;
+                min-height: 420px;
+            }
+        }
+
     </style>
 
 </head>
@@ -523,124 +738,86 @@
 
     <div class="operation-container">
 
+        <nav class="pe2-topbar" aria-label="Navegación principal">
+            <a class="pe2-brand" href="/" aria-label="Ir al inicio PE2">
+                <span class="pe2-brand-symbol" aria-hidden="true">PE2</span>
+                <span class="pe2-brand-text">
+                    <strong>Plataforma multiespectral</strong>
+                    <small>Adquisición y análisis geoespacial</small>
+                </span>
+            </a>
 
-        <!-- =======================================
-             HEADER
-             ======================================= -->
+            <div class="pe2-nav-links">
+                <a href="/">Inicio</a>
+                <a href="{{ url_for('campaigns_view') }}">Campañas</a>
+                <a href="/drone_operation" class="active" aria-current="page">Operación UAV</a>
+                <a href="/mission_routes">Rutas</a>
+            </div>
+        </nav>
 
-        <header class="operation-header">
+        <header class="operation-hero">
 
-            <div>
-
+            <div class="operation-title-group">
                 <h1>
-                    Operación de vuelo
+                    Operación UAV
                 </h1>
 
                 <p>
-                    Supervisión del dron, telemetría
-                    y ruta planificada.
+                    Supervisión operacional de ruta planificada,
+                    telemetría simulada y punto de integración futura con DJI.
                 </p>
 
-            </div>
-            
-            <div class="operation-navigation">
-
-                <a href="/flight_history">
-                    Historial de vuelos
-                </a>
-
-                <a
-                    href="{{ url_for('campaigns_view') }}"
-                >
-                    Campañas
-                </a>
-
-            </div>
-
-            <div class="connection-area">
-
-                <div
-                    id="providerBadge"
-                    class="provider-badge"
-                >
-                    SIN PROVEEDOR
+                <div class="operation-mode-note">
+                    Panel de monitoreo y simulación. No ejecuta control real de vuelo.
                 </div>
 
+                <div class="operation-actions-row">
+                    <a class="control-button" href="{{ url_for('campaigns_view') }}">
+                        Campañas
+                    </a>
 
-                <div
-                    id="connectionBadge"
-                    class="
-                        connection-badge
-                        connection-offline
-                    "
-                >
-                    DESCONECTADO
+                    <a class="control-button" href="/mission_routes">
+                        Rutas
+                    </a>
+
+                    <a class="control-button" href="/flight_history">
+                        Historial de vuelos
+                    </a>
                 </div>
+            </div>
 
-                                <div
-                    class="integration-status-group"
-                >
+            <div>
+                <div class="operation-status-stack">
+                    <div
+                        id="providerBadge"
+                        class="provider-badge"
+                    >
+                        SIN PROVEEDOR
+                    </div>
+
+                    <div
+                        id="connectionBadge"
+                        class="connection-badge connection-offline"
+                    >
+                        DESCONECTADO
+                    </div>
 
                     <div
                         id="integrationBadge"
-                        class="
-                            integration-badge
-                            integration-not-configured
-                        "
+                        class="integration-badge integration-not-configured"
                     >
                         INTEGRACIÓN: NO CONFIGURADO
                     </div>
-
-
-                    <div
-                        class="integration-details"
-                    >
-
-                        <span>
-                            Aeronave:
-                            <strong
-                                id="integrationAircraftValue"
-                            >
-                                --
-                            </strong>
-                        </span>
-
-
-                        <span>
-                            Telemetría:
-                            <strong
-                                id="integrationTelemetryValue"
-                            >
-                                --
-                            </strong>
-                        </span>
-
-
-                        <span
-                            id="integrationLastSignalValue"
-                        >
-                            Sin telemetría
-                        </span>
-
-                    </div>
-
                 </div>
-
             </div>
 
         </header>
 
-
-        <!-- =======================================
-             CONTROL
-             ======================================= -->
-
         <section class="panel mission-control">
 
             <h2 class="panel-title">
-                Control de misión
+                Preparación de misión
             </h2>
-
 
             <div class="control-row">
 
@@ -653,14 +830,12 @@
                     </option>
                 </select>
 
-
                 <button
                     id="setupButton"
                     class="control-button"
                 >
                     Configurar
                 </button>
-
 
                 <button
                     id="connectButton"
@@ -669,14 +844,12 @@
                     Conectar
                 </button>
 
-
                 <button
                     id="startButton"
                     class="control-button"
                 >
                     Iniciar
                 </button>
-
 
                 <button
                     id="stopButton"
@@ -685,7 +858,6 @@
                     Detener
                 </button>
 
-
                 <button
                     id="resetButton"
                     class="control-button"
@@ -693,13 +865,9 @@
                     Reset
                 </button>
 
-
                 <button
                     id="disconnectButton"
-                    class="
-                        control-button
-                        danger-button
-                    "
+                    class="control-button danger-button"
                 >
                     Desconectar
                 </button>
@@ -712,7 +880,7 @@
                 </button>
 
             </div>
-            
+
             <div class="operation-flight-context">
 
                 <div>
@@ -725,7 +893,6 @@
                     </strong>
                 </div>
 
-
                 <div>
                     <span class="context-label">
                         Estado
@@ -735,7 +902,6 @@
                         SIN OPERACIÓN
                     </strong>
                 </div>
-
 
                 <a
                     id="flightHistoryButton"
@@ -751,226 +917,163 @@
             <div
                 id="operationMessage"
                 class="operation-message"
-            >
-            </div>
+            ></div>
 
         </section>
 
+        <section class="operation-workspace">
 
-        <!-- =======================================
-             VIDEO + TELEMETRY
-             ======================================= -->
+            <div class="operation-main-column">
 
-        <section class="operation-grid">
+                <section class="panel map-panel">
 
+                    <h2 class="panel-title">
+                        Mapa operacional
+                    </h2>
 
-            <div class="panel">
+                    <div id="operationMap"></div>
 
-                <h2 class="panel-title">
-                    Vista de cámara
-                </h2>
+                    <div class="map-legend">
 
+                        <div class="legend-item">
+                            <span class="legend-route"></span>
+                            Ruta planificada
+                        </div>
 
-                <div class="stream-frame">
-
-                    <div class="stream-status">
-                        STREAM NO DISPONIBLE
-                    </div>
-
-
-                    <div class="stream-placeholder">
-
-                        <strong>
-                            Video DJI
-                        </strong>
-
-                        El stream se integrará
-                        posteriormente mediante
-                        el proveedor real.
+                        <div class="legend-item">
+                            <span class="legend-drone"></span>
+                            Posición actual
+                        </div>
 
                     </div>
 
-                </div>
+                </section>
+
+                <section class="panel">
+
+                    <h2 class="panel-title">
+                        Vista de cámara
+                    </h2>
+
+                    <div class="stream-frame">
+
+                        <div class="stream-status">
+                            STREAM NO DISPONIBLE
+                        </div>
+
+                        <div class="stream-placeholder">
+
+                            <strong>
+                                Video DJI
+                            </strong>
+
+                            El stream se integrará posteriormente mediante
+                            el proveedor real.
+
+                        </div>
+
+                    </div>
+
+                </section>
 
             </div>
 
+            <aside class="operation-side-column" aria-label="Estado operacional">
 
-            <div class="panel">
+                <section class="panel">
 
-                <h2 class="panel-title">
-                    Telemetría
-                </h2>
+                    <h2 class="panel-title">
+                        Telemetría
+                    </h2>
 
+                    <div class="telemetry-grid">
 
-                <div class="telemetry-grid">
-
-
-                    <div class="telemetry-card">
-
-                        <div class="telemetry-label">
-                            Latitud
+                        <div class="telemetry-card">
+                            <div class="telemetry-label">Latitud</div>
+                            <div id="latitudeValue" class="telemetry-value">--</div>
                         </div>
 
-                        <div
-                            id="latitudeValue"
-                            class="telemetry-value"
-                        >
-                            --
+                        <div class="telemetry-card">
+                            <div class="telemetry-label">Longitud</div>
+                            <div id="longitudeValue" class="telemetry-value">--</div>
                         </div>
 
-                    </div>
-
-
-                    <div class="telemetry-card">
-
-                        <div class="telemetry-label">
-                            Longitud
+                        <div class="telemetry-card">
+                            <div class="telemetry-label">Altitud</div>
+                            <div id="altitudeValue" class="telemetry-value">--</div>
                         </div>
 
-                        <div
-                            id="longitudeValue"
-                            class="telemetry-value"
-                        >
-                            --
+                        <div class="telemetry-card">
+                            <div class="telemetry-label">Velocidad</div>
+                            <div id="speedValue" class="telemetry-value">--</div>
                         </div>
 
-                    </div>
-
-
-                    <div class="telemetry-card">
-
-                        <div class="telemetry-label">
-                            Altitud
+                        <div class="telemetry-card">
+                            <div class="telemetry-label">Heading</div>
+                            <div id="headingValue" class="telemetry-value">--</div>
                         </div>
 
-                        <div
-                            id="altitudeValue"
-                            class="telemetry-value"
-                        >
-                            --
+                        <div class="telemetry-card">
+                            <div class="telemetry-label">Batería</div>
+                            <div id="batteryValue" class="telemetry-value">--</div>
+                        </div>
+
+                        <div class="telemetry-card">
+                            <div class="telemetry-label">GPS</div>
+                            <div id="gpsValue" class="telemetry-value">--</div>
+                        </div>
+
+                        <div class="telemetry-card">
+                            <div class="telemetry-label">Modo</div>
+                            <div id="modeValue" class="telemetry-value">--</div>
                         </div>
 
                     </div>
 
+                </section>
 
-                    <div class="telemetry-card">
+                <section class="panel">
 
-                        <div class="telemetry-label">
-                            Velocidad
-                        </div>
+                    <h2 class="panel-title">
+                        Integración
+                    </h2>
 
-                        <div
-                            id="speedValue"
-                            class="telemetry-value"
-                        >
-                            --
-                        </div>
+                    <div class="integration-details-card">
+                        <span>
+                            Aeronave:
+                            <strong id="integrationAircraftValue">--</strong>
+                        </span>
 
+                        <span>
+                            Telemetría:
+                            <strong id="integrationTelemetryValue">--</strong>
+                        </span>
+
+                        <span id="integrationLastSignalValue">
+                            Sin telemetría
+                        </span>
                     </div>
 
+                </section>
 
-                    <div class="telemetry-card">
+                <section class="panel">
 
-                        <div class="telemetry-label">
-                            Heading
-                        </div>
+                    <h2 class="panel-title">
+                        Alcance operativo
+                    </h2>
 
-                        <div
-                            id="headingValue"
-                            class="telemetry-value"
-                        >
-                            --
-                        </div>
+                    <p class="operation-note">
+                        Esta vista centraliza telemetría, ruta planificada y
+                        estado de integración. Los controles corresponden al
+                        flujo simulado o preparado por backend; la integración
+                        real con DJI queda separada y debe validarse en campo.
+                    </p>
 
-                    </div>
+                </section>
 
-
-                    <div class="telemetry-card">
-
-                        <div class="telemetry-label">
-                            Batería
-                        </div>
-
-                        <div
-                            id="batteryValue"
-                            class="telemetry-value"
-                        >
-                            --
-                        </div>
-
-                    </div>
-
-
-                    <div class="telemetry-card">
-
-                        <div class="telemetry-label">
-                            GPS
-                        </div>
-
-                        <div
-                            id="gpsValue"
-                            class="telemetry-value"
-                        >
-                            --
-                        </div>
-
-                    </div>
-
-
-                    <div class="telemetry-card">
-
-                        <div class="telemetry-label">
-                            Modo
-                        </div>
-
-                        <div
-                            id="modeValue"
-                            class="telemetry-value"
-                        >
-                            --
-                        </div>
-
-                    </div>
-
-
-                </div>
-
-            </div>
+            </aside>
 
         </section>
-
-
-        <!-- =======================================
-             MAP
-             ======================================= -->
-
-        <section class="panel map-panel">
-
-            <h2 class="panel-title">
-                Mapa operacional
-            </h2>
-
-
-            <div id="operationMap"></div>
-
-
-            <div class="map-legend">
-
-                <div class="legend-item">
-                    <span class="legend-route"></span>
-                    Ruta planificada
-                </div>
-
-
-                <div class="legend-item">
-                    <span class="legend-drone"></span>
-                    Posición actual
-                </div>
-
-            </div>
-
-        </section>
-
 
     </div>
 
@@ -1027,7 +1130,6 @@ function setMessage(
         `operation-message ${type}`;
 }
 
-
 function formatNumber(
     value,
     decimals = 4
@@ -1040,15 +1142,12 @@ function formatNumber(
         return "--";
     }
 
-
     const number =
         Number(value);
-
 
     if (!Number.isFinite(number)) {
         return "--";
     }
-
 
     return number.toFixed(
         decimals
@@ -1070,7 +1169,6 @@ function initializeMap() {
             [-12.06, -77.03],
             17
         );
-
 
     L.tileLayer(
         "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -1095,7 +1193,6 @@ function renderPlannedRoute(
     activeRoute =
         route;
 
-
     if (routeLayer) {
 
         operationMap.removeLayer(
@@ -1105,10 +1202,8 @@ function renderPlannedRoute(
         routeLayer = null;
     }
 
-
     const waypoints =
         route?.waypoints ?? [];
-
 
     const coordinates =
         waypoints
@@ -1134,11 +1229,9 @@ function renderPlannedRoute(
                 )
         );
 
-
     if (!coordinates.length) {
         return;
     }
-
 
     routeLayer =
         L.polyline(
@@ -1156,7 +1249,6 @@ function renderPlannedRoute(
         .addTo(
             operationMap
         );
-
 
     operationMap.fitBounds(
         routeLayer.getBounds(),
@@ -1277,14 +1369,11 @@ function renderDroneState(
         providerBadge.textContent =
             "SIN PROVEEDOR";
 
-
         connectionBadge.textContent =
             "DESCONECTADO";
 
-
         connectionBadge.className =
             "connection-badge connection-offline";
-
 
         return;
     }
@@ -1292,19 +1381,15 @@ function renderDroneState(
     const state =
         payload.state;
 
-
     providerBadge.textContent =
         state.provider;
-
 
     if (
         state.connected &&
         state.aircraft_online
     ) {
-
         connectionBadge.textContent =
             "CONECTADO";
-
 
         connectionBadge.className =
             "connection-badge connection-online";
@@ -1314,12 +1399,10 @@ function renderDroneState(
         connectionBadge.textContent =
             "DESCONECTADO";
 
-
         connectionBadge.className =
             "connection-badge connection-offline";
 
     }
-
 
     document.getElementById(
         "latitudeValue"
@@ -1329,7 +1412,6 @@ function renderDroneState(
             6
         );
 
-
     document.getElementById(
         "longitudeValue"
     ).textContent =
@@ -1337,7 +1419,6 @@ function renderDroneState(
             state.longitude,
             6
         );
-
 
     document.getElementById(
         "altitudeValue"
@@ -1349,7 +1430,6 @@ function renderDroneState(
             )} m`
             : "--";
 
-
     document.getElementById(
         "speedValue"
     ).textContent =
@@ -1359,7 +1439,6 @@ function renderDroneState(
                 1
             )} m/s`
             : "--";
-
 
     document.getElementById(
         "headingValue"
@@ -1371,7 +1450,6 @@ function renderDroneState(
             )}°`
             : "--";
 
-
     document.getElementById(
         "batteryValue"
     ).textContent =
@@ -1382,20 +1460,17 @@ function renderDroneState(
             )} %`
             : "--";
 
-
     document.getElementById(
         "gpsValue"
     ).textContent =
         state.gps_sats
         ?? "--";
 
-
     document.getElementById(
         "modeValue"
     ).textContent =
         state.flight_mode
         ?? "--";
-
 
     renderDronePosition(
         state
@@ -1462,16 +1537,13 @@ function formatTelemetryAge(
         return "Sin telemetría";
     }
 
-
     const seconds =
         Number(value);
-
 
     if (!Number.isFinite(seconds)) {
 
         return "Sin telemetría";
     }
-
 
     const safeSeconds =
         Math.max(
@@ -1487,7 +1559,6 @@ function formatTelemetryAge(
         );
     }
 
-
     if (safeSeconds < 60) {
 
         return (
@@ -1495,12 +1566,10 @@ function formatTelemetryAge(
         );
     }
 
-
     const minutes =
         Math.floor(
             safeSeconds / 60
         );
-
 
     if (minutes < 60) {
 
@@ -1509,12 +1578,10 @@ function formatTelemetryAge(
         );
     }
 
-
     const hours =
         Math.floor(
             minutes / 60
         );
-
 
     return (
         `Hace ${hours} h`
@@ -1531,29 +1598,24 @@ function renderIntegrationStatus(
             "integrationBadge"
         );
 
-
     const aircraftValue =
         document.getElementById(
             "integrationAircraftValue"
         );
-
 
     const telemetryValue =
         document.getElementById(
             "integrationTelemetryValue"
         );
 
-
     const lastSignalValue =
         document.getElementById(
             "integrationLastSignalValue"
         );
 
-
     const health =
         status?.health
         ?? "ERROR";
-
 
     const presentation =
         INTEGRATION_HEALTH_PRESENTATION[
@@ -1562,16 +1624,13 @@ function renderIntegrationStatus(
         ??
         INTEGRATION_HEALTH_PRESENTATION.ERROR;
 
-
     badge.textContent =
         `INTEGRACIÓN: ${presentation.label}`;
-
 
     badge.className =
         "integration-badge "
         +
         presentation.className;
-
 
     if (!status?.configured) {
 
@@ -1585,7 +1644,6 @@ function renderIntegrationStatus(
             ? "En línea"
             : "Sin conexión";
     }
-
 
     if (!status?.telemetry_available) {
 
@@ -1605,13 +1663,11 @@ function renderIntegrationStatus(
             "Desactualizada";
     }
 
-
     lastSignalValue.textContent =
         formatTelemetryAge(
             status
                 ?.telemetry_age_seconds
         );
-
 
     if (status?.last_error) {
 
@@ -1642,7 +1698,6 @@ async function getIntegrationStatus() {
 
         let data = null;
 
-
         try {
 
             data =
@@ -1653,7 +1708,6 @@ async function getIntegrationStatus() {
             data = null;
         }
 
-
         throw new Error(
             data?.message
             ??
@@ -1663,10 +1717,8 @@ async function getIntegrationStatus() {
         );
     }
 
-
     const data =
         await response.json();
-
 
     renderIntegrationStatus(
         data
@@ -1682,7 +1734,6 @@ async function getDroneState() {
             "/api/drone/state"
         );
 
-
     if (!response.ok) {
 
         throw new Error(
@@ -1690,10 +1741,8 @@ async function getDroneState() {
         );
     }
 
-
     const data =
         await response.json();
-
 
     latestDronePayload = 
         data;
@@ -1711,12 +1760,10 @@ async function pollDroneState() {
         return;
     }
 
-
     try {
 
         const payload =
             await getDroneState();
-
 
         const context =
             await loadOperationContext();
@@ -1726,7 +1773,6 @@ async function pollDroneState() {
         const flight =
             context?.flight;
         
-
         if (
             flight?.status === "COMPLETED"
         ) {
@@ -1736,12 +1782,10 @@ async function pollDroneState() {
                 "success"
             );
 
-
             stopStatePolling();
 
             return;
         }
-
 
     } catch (error) {
 
@@ -1751,7 +1795,6 @@ async function pollDroneState() {
         );
 
     }
-
 
     if (pollingActive) {
 
@@ -1770,9 +1813,7 @@ function startStatePolling() {
         return;
     }
 
-
     pollingActive = true;
-
 
     pollDroneState();
 
@@ -1781,7 +1822,6 @@ function startStatePolling() {
 function stopStatePolling() {
 
     pollingActive = false;
-
 
     if (pollingTimer !== null) {
 
@@ -1803,52 +1843,41 @@ function renderOperationContext(
             "flightCodeValue"
         );
 
-
     const flightStatusElement =
         document.getElementById(
             "flightStatusValue"
         );
-
 
     const historyButton =
         document.getElementById(
             "flightHistoryButton"
         );
 
-
     const flight =
         context?.flight;
-
 
     if (!flight) {
 
         flightCodeElement.textContent =
             "--";
 
-
         flightStatusElement.textContent =
             "SIN OPERACIÓN";
-
 
         historyButton.style.display =
             "none";
 
-
         historyButton.href =
             "#";
-
 
         return;
     }
 
-
     flightCodeElement.textContent =
         flight.flight_code;
 
-
     const mission =
     context.mission;
-
 
     if (
         flight.status === "ACTIVE"
@@ -1865,7 +1894,6 @@ function renderOperationContext(
             flight.status;
     }
 
-
     if (
         flight.status === "COMPLETED"
         ||
@@ -1875,7 +1903,6 @@ function renderOperationContext(
         historyButton.href =
             `/flight_history/${flight.id}`;
 
-
         historyButton.style.display =
             "inline-block";
 
@@ -1883,7 +1910,6 @@ function renderOperationContext(
 
         historyButton.style.display =
             "none";
-
 
         historyButton.href =
             "#";
@@ -1899,12 +1925,10 @@ async function loadOperationContext() {
             "/api/drone/operation/context"
         );
 
-
     if (!response.ok) {
 
         const data =
             await response.json();
-
 
         throw new Error(
             data.msg
@@ -1912,19 +1936,15 @@ async function loadOperationContext() {
         );
     }
 
-
     const context =
         await response.json();
-
 
     latestOperationContext =
         context;
 
-
     renderOperationContext(
         context
     );
-
 
     updateControlState();
 
@@ -1941,11 +1961,9 @@ function setButtonEnabled(
             buttonId
         );
 
-
     if (!button) {
         return;
     }
-
 
     button.disabled =
         !enabled;
@@ -1971,7 +1989,6 @@ function updateControlState() {
 
     const state =
         dronePayload?.state ?? null;
-
 
     /*
      * Mientras una petición importante está
@@ -2018,7 +2035,6 @@ function updateControlState() {
         return;
     }
 
-
     /*
      * ==========================================
      * SIN OPERACIÓN
@@ -2057,37 +2073,30 @@ function updateControlState() {
             false
         );
 
-
         document.getElementById(
             "startButton"
         ).textContent =
             "Iniciar";
 
-
         return;
     }
 
-
     const flightStatus =
         flight.status;
-
 
     const connected =
         Boolean(
             state?.connected
         );
 
-
     const flightMode =
         state?.flight_mode
         ?? null;
-
 
     const missionRunning =
         Boolean(
             mission?.running
         );
-
 
     const missionExecutionActive =
         Boolean(
@@ -2095,8 +2104,6 @@ function updateControlState() {
             ||
             mission?.paused
         );
-
-
     /*
      * ==========================================
      * CREATED
@@ -2112,12 +2119,10 @@ function updateControlState() {
             false
         );
 
-
         setButtonEnabled(
             "connectButton",
             !connected
         );
-
 
         setButtonEnabled(
             "startButton",
@@ -2125,7 +2130,6 @@ function updateControlState() {
             &&
             flightMode === "STANDBY"
         );
-
 
         setButtonEnabled(
             "stopButton",
@@ -2138,24 +2142,20 @@ function updateControlState() {
          * iniciar, pero no necesitamos ofrecerlo
          * como operación habitual.
          */
-
         setButtonEnabled(
             "resetButton",
             false
         );
-
 
         setButtonEnabled(
             "disconnectButton",
             connected
         );
 
-
         document.getElementById(
             "startButton"
         ).textContent =
             "Iniciar";
-
 
         return;
     }
@@ -2176,12 +2176,10 @@ function updateControlState() {
             false
         );
 
-
         setButtonEnabled(
             "connectButton",
             false
         );
-
 
         /*
          * Mision ejecuntadose
@@ -2194,18 +2192,15 @@ function updateControlState() {
                 false
             );
 
-
             setButtonEnabled(
                 "stopButton",
                 true
             );
 
-
             document.getElementById(
                 "startButton"
             ).textContent =
                 "Iniciar";
-
         }
 
         /*
@@ -2221,12 +2216,10 @@ function updateControlState() {
                 true
             );
 
-
             setButtonEnabled(
                 "stopButton",
                 false
             );
-
 
             document.getElementById(
                 "startButton"
@@ -2240,25 +2233,21 @@ function updateControlState() {
                 false
             );
 
-
             setButtonEnabled(
                 "stopButton",
                 false
             );
         }
 
-
         setButtonEnabled(
             "resetButton",
             false
         );
 
-
         setButtonEnabled(
             "disconnectButton",
             false
         );
-
 
          /*
         * IMPORTANTE:
@@ -2272,7 +2261,6 @@ function updateControlState() {
 
         return;
     }
-
 
     /*
      * ==========================================
@@ -2293,30 +2281,25 @@ function updateControlState() {
             true
         );
 
-
         setButtonEnabled(
             "connectButton",
             false
         );
-
 
         setButtonEnabled(
             "startButton",
             false
         );
 
-
         setButtonEnabled(
             "stopButton",
             false
         );
 
-
         setButtonEnabled(
             "resetButton",
             false
         );
-
 
         setButtonEnabled(
             "disconnectButton",
@@ -2327,7 +2310,6 @@ function updateControlState() {
             "cancelButton",
             false
         );
-
 
         document.getElementById(
             "startButton"
@@ -2353,7 +2335,6 @@ async function sendDroneCommand(
         }
     };
 
-
     if (body !== null) {
 
         options.body =
@@ -2362,17 +2343,14 @@ async function sendDroneCommand(
             );
     }
 
-
     const response =
         await fetch(
             endpoint,
             options
         );
 
-
     const data =
         await response.json();
-
 
     if (!response.ok) {
 
@@ -2387,7 +2365,6 @@ async function sendDroneCommand(
     return data;
 }
 
-
 /* ===============================================
    ROUTES
    =============================================== */
@@ -2399,14 +2376,12 @@ async function loadRoutes() {
             "routeSelect"
         );
 
-
     try {
 
         const response =
             await fetch(
                 "/api/routes"
             );
-
 
         if (!response.ok) {
 
@@ -2415,10 +2390,8 @@ async function loadRoutes() {
             );
         }
 
-
         const data =
             await response.json();
-
 
         const routes =
             (data.routes ?? [])
@@ -2427,9 +2400,7 @@ async function loadRoutes() {
                     route.status === "READY"
             );
 
-
         select.innerHTML = "";
-
 
         if (!routes.length) {
 
@@ -2450,7 +2421,6 @@ async function loadRoutes() {
             return;
         }
 
-
         routes.forEach(
             route => {
 
@@ -2459,14 +2429,11 @@ async function loadRoutes() {
                         "option"
                     );
 
-
                 option.value =
                     route.id;
 
-
                 option.textContent =
                     `${route.route_code} — ${route.name}`;
-
 
                 select.appendChild(
                     option
@@ -2474,7 +2441,6 @@ async function loadRoutes() {
 
             }
         );
-
 
     } catch (error) {
 
@@ -2500,14 +2466,12 @@ async function loadRouteDetail(
             `/api/routes/${routeId}`
         );
 
-
     if (!response.ok) {
 
         throw new Error(
             `HTTP ${response.status}`
         );
     }
-
 
     const data =
         await response.json();
@@ -2536,17 +2500,14 @@ async function prepareOperation() {
         return;
     }
 
-
     actionInProgress = true;
 
     updateControlState();
-
 
     const routeId =
         document.getElementById(
             "routeSelect"
         ).value;
-
 
     if (!routeId) {
 
@@ -2562,11 +2523,9 @@ async function prepareOperation() {
         return;
     }
 
-
     try {
 
         stopStatePolling();
-
 
         const result =
             await sendDroneCommand(
@@ -2580,27 +2539,21 @@ async function prepareOperation() {
                 }
             );
 
-
         await loadRouteDetail(
             routeId
         );
 
-
         await getDroneState();
-
 
         await loadOperationContext();
 
-
         const flight =
             result.operation.flight;
-
 
         setMessage(
             `Vuelo ${flight.flight_code} preparado correctamente.`,
             "success"
         );
-
 
     } catch (error) {
 
@@ -2608,7 +2561,6 @@ async function prepareOperation() {
             error.message,
             "error"
         );
-
 
     } finally {
 
@@ -2626,11 +2578,9 @@ async function connectOperation() {
         return;
     }
 
-
     actionInProgress = true;
 
     updateControlState();
-
 
     try {
 
@@ -2638,17 +2588,14 @@ async function connectOperation() {
             "/api/drone/operation/connect"
         );
 
-
         await getDroneState();
 
         await loadOperationContext();
-
 
         setMessage(
             "Simulador conectado.",
             "success"
         );
-
 
     } catch (error) {
 
@@ -2656,7 +2603,6 @@ async function connectOperation() {
             error.message,
             "error"
         );
-
 
     } finally {
 
@@ -2673,27 +2619,21 @@ async function startOperation() {
         return;
     }
 
-
     actionInProgress =
         true;
 
-
     updateControlState();
-
 
     try {
 
         const context =
             latestOperationContext;
 
-
         const flight =
             context?.flight;
 
-
         const mission =
             context?.mission;
-
 
         if (!flight) {
 
@@ -2701,7 +2641,6 @@ async function startOperation() {
                 "No existe una operación preparada."
             );
         }
-
 
         /*
          * ==========================================
@@ -2752,7 +2691,6 @@ async function startOperation() {
                 }
             );
 
-
             setMessage(
                 "Misión reanudada.",
                 "success"
@@ -2766,15 +2704,11 @@ async function startOperation() {
             );
         }
 
-
         await getDroneState();
-
 
         await loadOperationContext();
 
-
         startStatePolling();
-
 
     } catch (error) {
 
@@ -2800,13 +2734,11 @@ async function pauseOperation() {
         return;
     }
 
-
     actionInProgress =
         true;
 
 
     updateControlState();
-
 
     try {
 
@@ -2814,22 +2746,17 @@ async function pauseOperation() {
             "/api/drone/operation/pause"
         );
 
-
         stopStatePolling();
-
 
         await getDroneState();
 
-
         await loadOperationContext();
-
 
         setMessage(
             "Misión pausada. "
             + "Puedes reanudarla cuando estés listo.",
             "success"
         );
-
 
     } catch (error) {
 
@@ -2860,11 +2787,9 @@ async function resetSimulator() {
          * porque el backend puede rechazar
          * la operación.
          */
-
         await sendDroneCommand(
             "/api/drone/simulator/reset"
         );
-
 
         /*
          * Si llegamos hasta aquí significa que
@@ -2873,21 +2798,16 @@ async function resetSimulator() {
 
         stopStatePolling();
 
-
         await getDroneState();
 
-
         await loadOperationContext();
-
 
         setMessage(
             "Simulador reiniciado.",
             "success"
         );
 
-
     } catch (error) {
-
         /*
          * Si el backend rechaza el reset,
          * mantenemos el polling activo.
@@ -2910,20 +2830,16 @@ async function disconnectOperation() {
 
         stopStatePolling();
 
-
         await sendDroneCommand(
             "/api/drone/operation/disconnect"
         );
 
-
         await getDroneState();
-
 
         setMessage(
             "Simulador desconectado.",
             "success"
         );
-
 
     } catch (error) {
 
@@ -2941,23 +2857,19 @@ async function cancelOperation() {
         return;
     }
 
-
     const confirmed =
         window.confirm(
             "¿Deseas cancelar esta misión? "
             + "La telemetría registrada se conservará."
         );
 
-
     if (!confirmed) {
         return;
     }
 
-
     actionInProgress = true;
 
     updateControlState();
-
 
     try {
 
@@ -2969,17 +2881,14 @@ async function cancelOperation() {
 
         stopStatePolling();
 
-
         await getDroneState();
 
         await loadOperationContext();
-
 
         setMessage(
             `Vuelo ${response.flight.flight_code} cancelado.`,
             "success"
         );
-
 
     } catch (error) {
 
@@ -2987,7 +2896,6 @@ async function cancelOperation() {
             error.message,
             "error"
         );
-
 
     } finally {
 
@@ -3009,14 +2917,12 @@ document.getElementById(
     prepareOperation
 );
 
-
 document.getElementById(
     "connectButton"
 ).addEventListener(
     "click",
     connectOperation
 );
-
 
 document.getElementById(
     "startButton"
@@ -3038,7 +2944,6 @@ document.getElementById(
     "click",
     resetSimulator
 );
-
 
 document.getElementById(
     "disconnectButton"
@@ -3069,11 +2974,9 @@ document.addEventListener(
 
         await loadRoutes();
 
-
         try {
 
             await getDroneState();
-
 
             const context =
                 await loadOperationContext();
@@ -3095,7 +2998,6 @@ document.addEventListener(
                     );
             }
 
-
             const mission =
                 context.mission;
 
@@ -3112,7 +3014,6 @@ document.addEventListener(
                 );
             }
 
-
         } catch (error) {
 
             console.error(
@@ -3124,7 +3025,6 @@ document.addEventListener(
 
     }
 );
-
 
 </script>
 
