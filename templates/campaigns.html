@@ -98,6 +98,82 @@
         }
 
         /* =========================================
+        CAMPAIGN TOOLBAR
+        ========================================= */
+
+        .campaign-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 18px;
+            margin: 30px 0 14px 0;
+        }
+
+        .campaign-list-title h2 {
+            margin: 0;
+            font-size: 1.15rem;
+        }
+
+        .campaign-list-title p {
+            margin: 6px 0 0 0;
+            color: #94a3b8;
+            font-size: 0.85rem;
+        }
+
+        .campaign-result-count {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        .campaign-toolbar {
+            display: grid;
+            grid-template-columns: minmax(260px, 1fr) 190px 190px;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .campaign-search,
+        .campaign-filter {
+            width: 100%;
+            box-sizing: border-box;
+
+            min-height: 42px;
+            padding: 0 13px;
+
+            border: 1px solid #334155;
+            border-radius: 9px;
+
+            background: #111827;
+            color: #f8fafc;
+
+            font: inherit;
+        }
+
+        .campaign-search::placeholder {
+            color: #64748b;
+        }
+
+        .campaign-search:focus,
+        .campaign-filter:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .filtered-empty-state {
+            display: none;
+
+            padding: 34px 24px;
+            text-align: center;
+
+            color: #94a3b8;
+
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 14px;
+        }
+
+        /* =========================================
            TABLE
            ========================================= */
 
@@ -405,6 +481,15 @@
                 min-width: 950px;
             }
 
+            .campaign-list-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .campaign-toolbar {
+                grid-template-columns: 1fr;
+            }
+
         }
 
         @media (max-width: 650px) {
@@ -423,6 +508,125 @@
 
         }
 
+        /* UI-1A · Navegación y resumen; no sustituye la tabla ni el modal. */
+        body {
+            background:
+                radial-gradient(circle at top left, rgba(37, 99, 235, 0.13), transparent 36%),
+                linear-gradient(135deg, #020617, #0f172a 55%, #111827);
+        }
+
+        .pe2-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 18px;
+            padding: 14px 18px;
+            margin-bottom: 22px;
+            background: rgba(30, 41, 59, 0.88);
+            border: 1px solid #334155;
+            border-radius: 14px;
+        }
+
+        .pe2-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            color: #f8fafc;
+            text-decoration: none;
+        }
+
+        .pe2-brand-symbol {
+            display: grid;
+            place-items: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #2563eb, #4f46e5);
+            font-size: 0.92rem;
+            font-weight: 800;
+        }
+
+        .pe2-brand-text {
+            display: grid;
+            gap: 3px;
+        }
+
+        .pe2-brand-text strong { font-size: 0.95rem; }
+        .pe2-brand-text small { color: #94a3b8; font-size: 0.75rem; }
+
+        .pe2-nav-links {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .pe2-nav-links a {
+            padding: 9px 12px;
+            color: #cbd5e1;
+            font-size: 0.88rem;
+            font-weight: 600;
+            border-radius: 9px;
+            text-decoration: none;
+        }
+
+        .pe2-nav-links a:hover,
+        .pe2-nav-links a:focus-visible {
+            background: rgba(148, 163, 184, 0.12);
+            color: #f8fafc;
+        }
+
+        .pe2-nav-links a.active {
+            background: rgba(37, 99, 235, 0.21);
+            color: #bfdbfe;
+        }
+
+        .pe2-breadcrumb {
+            display: flex;
+            gap: 9px;
+            align-items: center;
+            margin-bottom: 13px;
+            font-size: 0.76rem;
+            color: #94a3b8;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+        }
+
+        .pe2-breadcrumb strong { color: #93c5fd; }
+
+        .pe2-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .pe2-summary-card {
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+            min-width: 0;
+            padding: 20px;
+            border: 1px solid #334155;
+            border-radius: 14px;
+            background: rgba(30, 41, 59, 0.92);
+        }
+
+        .pe2-summary-label { color: #cbd5e1; font-size: 0.88rem; }
+        .pe2-summary-card strong { color: #f8fafc; font-size: 2rem; line-height: 1.1; }
+        .pe2-summary-context { color: #94a3b8; font-size: 0.76rem; }
+
+        @media (max-width: 900px) {
+            .pe2-summary-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 650px) {
+            .pe2-topbar { padding: 14px; }
+            .pe2-nav-links { width: 100%; }
+            .pe2-nav-links a { padding: 9px 10px; }
+        }
+
     </style>
 
 </head>
@@ -433,6 +637,29 @@
 <div class="campaign-page">
 
     <div class="campaign-container">
+
+        <nav class="pe2-topbar" aria-label="Navegación principal">
+            <a class="pe2-brand" href="/" aria-label="Ir al inicio PE2">
+                <span class="pe2-brand-symbol" aria-hidden="true">PE2</span>
+                <span class="pe2-brand-text">
+                    <strong>Plataforma multiespectral</strong>
+                    <small>Adquisición y análisis geoespacial</small>
+                </span>
+            </a>
+
+            <div class="pe2-nav-links">
+                <a href="/">Inicio</a>
+                <a href="/campaigns" class="active" aria-current="page">Campañas</a>
+                <a href="/drone_operation">Operación UAV</a>
+                <a href="/mission_routes">Rutas</a>
+            </div>
+        </nav>
+
+        <div class="pe2-breadcrumb" aria-label="Ubicación actual">
+            <span>PE2</span>
+            <span aria-hidden="true">/</span>
+            <strong>Campañas</strong>
+        </div>
 
         <header class="campaign-header">
 
@@ -449,9 +676,9 @@
 
             </div>
 
-
             <div class="header-actions">
 
+                {% if not pe2_demo_mode %}
                 <a
                     href="/flight_history"
                     class="
@@ -461,6 +688,7 @@
                 >
                     Historial de vuelos
                 </a>
+                {% endif %}
 
                 <button
                     id="newCampaignButton"
@@ -477,6 +705,82 @@
 
         </header>
 
+        <section class="pe2-summary-grid" aria-label="Resumen de campañas">
+            <article class="pe2-summary-card">
+                <span class="pe2-summary-label">Campañas registradas</span>
+                <strong id="campaignSummaryTotal" aria-live="polite">—</strong>
+                <span class="pe2-summary-context">Total obtenido del registro</span>
+            </article>
+
+            <article class="pe2-summary-card">
+                <span class="pe2-summary-label">Campañas multiespectrales</span>
+                <strong id="campaignSummaryMultispectral" aria-live="polite">—</strong>
+                <span class="pe2-summary-context">Según el tipo de sensor</span>
+            </article>
+
+            <article class="pe2-summary-card">
+                <span class="pe2-summary-label">Campañas finalizadas</span>
+                <strong id="campaignSummaryCompleted" aria-live="polite">—</strong>
+                <span class="pe2-summary-context">Estado de campaña COMPLETED</span>
+            </article>
+        </section>
+
+        <section
+            class="campaign-toolbar"
+            aria-label="Filtros de campañas"
+        >
+            <input
+                id="campaignSearch"
+                class="campaign-search"
+                type="search"
+                placeholder="Buscar por código, nombre o sensor..."
+                autocomplete="off"
+                aria-label="Buscar campañas"
+            >
+
+            <select
+                id="campaignSensorFilter"
+                class="campaign-filter"
+                aria-label="Filtrar por sensor"
+            >
+                <option value="">
+                    Todos los sensores
+                </option>
+
+                <option value="MULTISPECTRAL">
+                    Multiespectral
+                </option>
+
+                <option value="RGB">
+                    RGB
+                </option>
+            </select>
+
+            <select
+                id="campaignStatusFilter"
+                class="campaign-filter"
+                aria-label="Filtrar por estado"
+            >
+                <option value="">
+                    Todos los estados
+                </option>
+
+                <option value="CREATED">CREATED</option>
+                <option value="CAPTURING">CAPTURING</option>
+                <option value="READY">READY</option>
+                <option value="PROCESSING">PROCESSING</option>
+                <option value="COMPLETED">COMPLETED</option>
+                <option value="ERROR">ERROR</option>
+                <option value="ARCHIVED">ARCHIVED</option>
+            </select>
+
+            <div class="campaign-result-count">
+                Mostrando
+                <strong id="campaignVisibleCount">0</strong>
+                de
+                <strong id="campaignTotalCount">0</strong>
+            </div>
+        </section>
 
         <section class="campaign-card">
 
@@ -687,11 +991,12 @@
 
 </div>
 
-
 <script>
 
-function formatDate(value) {
+let allCampaigns = [];
 
+
+function formatDate(value) {
     if (!value) {
         return "--";
     }
@@ -712,7 +1017,6 @@ function formatDate(value) {
 
 
 function escapeHtml(value) {
-
     if (
         value === null ||
         value === undefined
@@ -730,9 +1034,7 @@ function escapeHtml(value) {
 
 
 function getStatusClass(status) {
-
     switch (status) {
-
         case "CREATED":
             return "status-created";
 
@@ -761,7 +1063,6 @@ function getStatusClass(status) {
 
 
 function getSensorClass(sensorType) {
-
     if (
         sensorType === "MULTISPECTRAL"
     ) {
@@ -773,7 +1074,6 @@ function getSensorClass(sensorType) {
 
 
 function getSensorLabel(sensorType) {
-
     if (
         sensorType === "MULTISPECTRAL"
     ) {
@@ -790,8 +1090,160 @@ function getSensorLabel(sensorType) {
 }
 
 
-function renderCampaigns(campaigns) {
+function normalizeSearchValue(value) {
+    return String(value ?? "")
+        .toLocaleLowerCase("es")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+}
 
+
+function setTextContent(id, value) {
+    const element =
+        document.getElementById(id);
+
+    if (!element) {
+        return;
+    }
+
+    element.textContent = value;
+}
+
+
+function updateCampaignSummary(campaigns) {
+    setTextContent(
+        "campaignSummaryTotal",
+        campaigns.length
+    );
+
+    setTextContent(
+        "campaignSummaryMultispectral",
+        campaigns.filter(
+            (campaign) =>
+                campaign.sensor_type === "MULTISPECTRAL"
+        ).length
+    );
+
+    setTextContent(
+        "campaignSummaryCompleted",
+        campaigns.filter(
+            (campaign) =>
+                campaign.status === "COMPLETED"
+        ).length
+    );
+}
+
+
+function updateCampaignResultCount(
+    visibleCount,
+    totalCount
+) {
+    setTextContent(
+        "campaignVisibleCount",
+        visibleCount
+    );
+
+    setTextContent(
+        "campaignTotalCount",
+        totalCount
+    );
+}
+
+
+function getCampaignSearchText(campaign) {
+    return normalizeSearchValue(
+        [
+            campaign.campaign_code,
+            campaign.name,
+            campaign.sensor_model,
+            campaign.sensor_type,
+            campaign.status,
+        ]
+            .filter(Boolean)
+            .join(" ")
+    );
+}
+
+
+function getFilteredCampaigns() {
+    const searchInput =
+        document.getElementById(
+            "campaignSearch"
+        );
+
+    const sensorFilter =
+        document.getElementById(
+            "campaignSensorFilter"
+        );
+
+    const statusFilter =
+        document.getElementById(
+            "campaignStatusFilter"
+        );
+
+    const searchValue =
+        normalizeSearchValue(
+            searchInput
+                ? searchInput.value
+                : ""
+        );
+
+    const sensorValue =
+        sensorFilter
+            ? sensorFilter.value
+            : "";
+
+    const statusValue =
+        statusFilter
+            ? statusFilter.value
+            : "";
+
+    return allCampaigns.filter(
+        (campaign) => {
+            const matchesSearch =
+                !searchValue
+                || getCampaignSearchText(
+                    campaign
+                ).includes(
+                    searchValue
+                );
+
+            const matchesSensor =
+                !sensorValue
+                || campaign.sensor_type
+                    === sensorValue;
+
+            const matchesStatus =
+                !statusValue
+                || campaign.status
+                    === statusValue;
+
+            return (
+                matchesSearch
+                && matchesSensor
+                && matchesStatus
+            );
+        }
+    );
+}
+
+
+function applyCampaignFilters() {
+    const filteredCampaigns =
+        getFilteredCampaigns();
+
+    renderCampaigns(
+        filteredCampaigns
+    );
+
+    updateCampaignResultCount(
+        filteredCampaigns.length,
+        allCampaigns.length
+    );
+}
+
+
+function renderCampaigns(campaigns) {
     const loading =
         document.getElementById(
             "campaignLoading"
@@ -809,9 +1261,7 @@ function renderCampaigns(campaigns) {
 
     body.innerHTML = "";
 
-
     if (!campaigns.length) {
-
         table.style.display =
             "none";
 
@@ -822,15 +1272,15 @@ function renderCampaigns(campaigns) {
             "block";
 
         loading.textContent =
-            "Todavía no existen campañas registradas.";
+            allCampaigns.length
+                ? "No hay campañas que coincidan con los filtros."
+                : "Todavía no existen campañas registradas.";
 
         return;
     }
 
-
     campaigns.forEach(
         (campaign) => {
-
             const row =
                 document.createElement(
                     "tr"
@@ -940,7 +1390,6 @@ function renderCampaigns(campaigns) {
         }
     );
 
-
     loading.style.display =
         "none";
 
@@ -950,21 +1399,18 @@ function renderCampaigns(campaigns) {
 
 
 async function loadCampaigns() {
-
     const loading =
         document.getElementById(
             "campaignLoading"
         );
 
     try {
-
         const response =
             await fetch(
                 "/api/campaigns"
             );
 
         if (!response.ok) {
-
             const data =
                 await response.json();
 
@@ -977,12 +1423,16 @@ async function loadCampaigns() {
         const data =
             await response.json();
 
-        renderCampaigns(
-            data.campaigns ?? []
+        allCampaigns =
+            data.campaigns ?? [];
+
+        updateCampaignSummary(
+            allCampaigns
         );
 
-    } catch (error) {
+        applyCampaignFilters();
 
+    } catch (error) {
         console.error(
             "Error cargando campañas:",
             error
@@ -1001,7 +1451,6 @@ async function loadCampaigns() {
 
 
 function openModal() {
-
     document.getElementById(
         "campaignModal"
     ).classList.add(
@@ -1015,7 +1464,6 @@ function openModal() {
 
 
 function closeModal() {
-
     document.getElementById(
         "campaignModal"
     ).classList.remove(
@@ -1031,7 +1479,6 @@ function closeModal() {
 async function createCampaign(
     event
 ) {
-
     event.preventDefault();
 
     const button =
@@ -1074,7 +1521,6 @@ async function createCampaign(
             || null,
     };
 
-
     button.disabled = true;
 
     message.className =
@@ -1083,9 +1529,7 @@ async function createCampaign(
     message.textContent =
         "Creando campaña...";
 
-
     try {
-
         const response =
             await fetch(
                 "/api/campaigns",
@@ -1108,13 +1552,11 @@ async function createCampaign(
             await response.json();
 
         if (!response.ok) {
-
             throw new Error(
                 data.msg
                 ?? `HTTP ${response.status}`
             );
         }
-
 
         document.getElementById(
             "campaignForm"
@@ -1130,7 +1572,6 @@ async function createCampaign(
         await loadCampaigns();
 
     } catch (error) {
-
         console.error(
             "Error creando campaña:",
             error
@@ -1143,7 +1584,6 @@ async function createCampaign(
             error.message;
 
     } finally {
-
         button.disabled =
             false;
     }
@@ -1151,7 +1591,6 @@ async function createCampaign(
 
 
 function updateSensorModel() {
-
     const sensorType =
         document.getElementById(
             "sensorType"
@@ -1165,18 +1604,16 @@ function updateSensorModel() {
     if (
         sensorType === "MULTISPECTRAL"
     ) {
-
         if (
             !sensorModel.value.trim()
             ||
-            sensorModel.value === "RGB"
+            sensorModel.value
+            === "RGB"
         ) {
             sensorModel.value =
                 "MicaSense RedEdge-3";
         }
-
     } else {
-
         if (
             sensorModel.value
             === "MicaSense RedEdge-3"
@@ -1191,7 +1628,6 @@ function updateSensorModel() {
 document.addEventListener(
     "DOMContentLoaded",
     () => {
-
         document.getElementById(
             "newCampaignButton"
         ).addEventListener(
@@ -1232,7 +1668,6 @@ document.addEventListener(
         ).addEventListener(
             "click",
             (event) => {
-
                 if (
                     event.target.id
                     === "campaignModal"
@@ -1240,6 +1675,27 @@ document.addEventListener(
                     closeModal();
                 }
             }
+        );
+
+        document.getElementById(
+            "campaignSearch"
+        )?.addEventListener(
+            "input",
+            applyCampaignFilters
+        );
+
+        document.getElementById(
+            "campaignSensorFilter"
+        )?.addEventListener(
+            "change",
+            applyCampaignFilters
+        );
+
+        document.getElementById(
+            "campaignStatusFilter"
+        )?.addEventListener(
+            "change",
+            applyCampaignFilters
         );
 
         loadCampaigns();
