@@ -1,82 +1,27 @@
-# =========================
-# Python
-# =========================
-__pycache__/
-*.py[cod]
-*$py.class
-
-# =========================
-# Entorno virtual
-# =========================
-.venv/
-venv/
-env/
-
-# =========================
-# Variables de entorno
-# =========================
+# Entorno local
 .env
 .env.*
 !.env.example
 
-# =========================
-# IDE / editor
-# =========================
-.vscode/
-.idea/
+# Base de datos y datos locales
+data/
+audit_hortalizas_drone/
 
-# =========================
-# Sistema operativo
-# =========================
+# Temporales Ground Control
+static/ground_cache/
+static/ground_mission/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Entornos virtuales
+.venv/
+venv/
+
+# Sistema operativo / IDE
 .DS_Store
 Thumbs.db
-desktop.ini
-
-# =========================
-# Logs
-# =========================
-*.log
-
-# =========================
-# Archivos temporales Python
-# =========================
-*.tmp
-*.temp
-
-# =========================
-# Caché de la aplicación
-# =========================
-static/ground_cache/
-
-# =========================
-# Datos temporales de misión
-# =========================
-static/ground_mission/raw_bands/
-static/ground_mission/results/
-
-# =========================
-# Base de datos local
-# =========================
-data/*.db
-data/*.sqlite
-data/*.sqlite3
-
-data/rededge_staging/
-
-data/campaigns/
-
-static/uploads_parcelas/FOTASOS/
-static/uploads_parcelas/FOTASOS.zip
-
-
-# =========================
-# Runtime legacy / previews
-# =========================
-static/live_cache/
-static/live_cache_cam/
-static/uploads/
-static/uploads_remoto_mosaico/
-static/uploads_remoto_parcelas_cam/
-static/resultados_parcelas/
-static/resultados_remoto_mosaico/
-static/resultados_remoto_parcelas_cam/
+.vscode/
+.idea/
