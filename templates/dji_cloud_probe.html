@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <title>PE2 · DJI Cloud Probe</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+        }
+
+        .page {
+            min-height: 100vh;
+            padding: 28px;
+            box-sizing: border-box;
+        }
+
+        .card {
+            max-width: 760px;
+            margin: 0 auto;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 1.8rem;
+        }
+
+        .status {
+            display: inline-block;
+            margin: 12px 0 20px 0;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            font-weight: 700;
+        }
+
+        .info {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 14px;
+            margin: 12px 0;
+            word-break: break-word;
+        }
+
+        .label {
+            color: #94a3b8;
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid #3b82f6;
+            background: #2563eb;
+            color: #ffffff;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        #pingResult {
+            margin-top: 18px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #cbd5e1;
+        }
+    </style>
+</head>
+
+<body>
+<div class="page">
+    <div class="card">
+        <h1>PE2 · DJI Cloud Probe</h1>
+
+        <div class="status">
+            Conexión WebView activa
+        </div>
+
+        <p>
+            Si esta pantalla aparece dentro de DJI Pilot 2,
+            el Smart Controller puede acceder a la interfaz PE2.
+        </p>
+
+        <div class="info">
+            <div class="label">IP detectada</div>
+            <div>{{ client_ip }}</div>
+        </div>
+
+        <div class="info">
+            <div class="label">User-Agent</div>
+            <div>{{ user_agent }}</div>
+        </div>
+
+        <div class="info">
+            <div class="label">Hora del servidor</div>
+            <div>{{ server_time }}</div>
+        </div>
+
+        <button onclick="sendPing()">
+            Probar ping con PE2
+        </button>
+
+        <div id="pingResult">
+            Esperando prueba...
+        </div>
+    </div>
+</div>
+
+<script>
+async function sendPing() {
+    const output = document.getElementById("pingResult");
+
+    output.textContent = "Enviando ping...";
+
+    try {
+        const response = await fetch("/api/dji-cloud/ping", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                source: "dji-pilot2-webview",
+                browser_time: new Date().toISOString(),
+                user_agent: navigator.userAgent,
+            }),
+        });
+
+        const data = await response.json();
+
+        output.textContent = JSON.stringify(data, null, 2);
+    } catch (error) {
+        output.textContent = "Error de conexión: " + error;
+    }
+}
+</script>
+</body>
+</html>
