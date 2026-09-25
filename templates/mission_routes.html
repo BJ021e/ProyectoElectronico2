@@ -144,7 +144,206 @@
                 min-width: 850px;
             }
         }
+        /* UI-4A · Rutas PE2 */
+        .routes-page {
+            background:
+                radial-gradient(circle at top left, rgba(37, 99, 235, 0.13), transparent 36%),
+                linear-gradient(135deg, #020617, #0f172a 55%, #111827);
+        }
 
+        .pe2-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 18px;
+            padding: 14px 18px;
+            margin-bottom: 26px;
+            background: rgba(30, 41, 59, 0.88);
+            border: 1px solid #334155;
+            border-radius: 14px;
+        }
+
+        .pe2-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            color: #f8fafc;
+            text-decoration: none;
+        }
+
+        .pe2-brand-symbol {
+            display: grid;
+            place-items: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #2563eb, #4f46e5);
+            font-size: 0.92rem;
+            font-weight: 800;
+        }
+
+        .pe2-brand-text {
+            display: grid;
+            gap: 3px;
+        }
+
+        .pe2-brand-text strong {
+            font-size: 0.95rem;
+        }
+
+        .pe2-brand-text small {
+            color: #94a3b8;
+            font-size: 0.75rem;
+        }
+
+        .pe2-nav-links {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .pe2-nav-links a {
+            padding: 9px 12px;
+            color: #cbd5e1;
+            font-size: 0.88rem;
+            font-weight: 600;
+            border-radius: 9px;
+            text-decoration: none;
+        }
+
+        .pe2-nav-links a.active {
+            background: rgba(37, 99, 235, 0.21);
+            color: #bfdbfe;
+        }
+
+        .route-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: #e2e8f0;
+            border: 1px solid #334155;
+            padding: 10px 14px;
+            border-radius: 9px;
+            background: transparent;
+            font-weight: 700;
+        }
+
+        .button-primary {
+            border-color: #3b82f6;
+            color: #60a5fa;
+        }
+
+        .routes-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .routes-summary-card {
+            background: rgba(30, 41, 59, 0.92);
+            border: 1px solid #334155;
+            border-radius: 14px;
+            padding: 18px;
+        }
+
+        .routes-summary-label {
+            display: block;
+            color: #94a3b8;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .routes-summary-card strong {
+            display: block;
+            font-size: 1.7rem;
+            line-height: 1.1;
+            color: #f8fafc;
+        }
+
+        .routes-summary-context {
+            display: block;
+            margin-top: 8px;
+            color: #94a3b8;
+            font-size: 0.78rem;
+        }
+
+        .routes-toolbar {
+            display: grid;
+            grid-template-columns: minmax(280px, 1fr) 200px auto;
+            gap: 12px;
+            align-items: center;
+            margin: 22px 0 14px 0;
+        }
+
+        .route-search,
+        .route-filter {
+            width: 100%;
+            min-height: 42px;
+            box-sizing: border-box;
+            padding: 0 13px;
+            border: 1px solid #334155;
+            border-radius: 9px;
+            background: #111827;
+            color: #f8fafc;
+            font: inherit;
+        }
+
+        .routes-result-count {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .routes-table tbody tr:hover {
+            background: rgba(148, 163, 184, 0.04);
+        }
+
+        .route-name {
+            font-weight: 700;
+        }
+
+        .route-secondary {
+            margin-top: 4px;
+            color: #94a3b8;
+            font-size: 0.8rem;
+        }
+
+        @media (max-width: 1000px) {
+            .routes-summary-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .routes-toolbar {
+                grid-template-columns: 1fr;
+            }
+
+            .routes-result-count {
+                text-align: left;
+            }
+        }
+
+        @media (max-width: 650px) {
+            .routes-summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .pe2-nav-links {
+                width: 100%;
+            }
+        }
     </style>
 
 </head>
@@ -155,6 +354,22 @@
 <div class="routes-page">
 
     <div class="routes-container">
+        <nav class="pe2-topbar" aria-label="Navegación principal">
+            <a class="pe2-brand" href="/" aria-label="Ir al inicio PE2">
+                <span class="pe2-brand-symbol" aria-hidden="true">PE2</span>
+                <span class="pe2-brand-text">
+                    <strong>Plataforma multiespectral</strong>
+                    <small>Adquisición y análisis geoespacial</small>
+                </span>
+            </a>
+
+            <div class="pe2-nav-links">
+                <a href="/">Inicio</a>
+                <a href="/campaigns">Campañas</a>
+                <a href="/drone_operation">Operación UAV</a>
+                <a href="/mission_routes" class="active" aria-current="page">Rutas</a>
+            </div>
+        </nav>
 
         <header class="routes-header">
 
@@ -171,16 +386,82 @@
 
             </div>
 
+            <div class="route-actions">
+                <a
+                    href="/drone_operation"
+                    class="button button-primary"
+                >
+                    Volver a operación
+                </a>
 
-            <a
-                href="{{ url_for('ground_capture_interface') }}"
-                class="back-button"
-            >
-                Volver a operación
-            </a>
-
+                <a
+                    href="/campaigns"
+                    class="button"
+                >
+                    Campañas
+                </a>
+            </div>
         </header>
 
+
+        <section class="routes-summary-grid" aria-label="Resumen de rutas">
+
+            <article class="routes-summary-card">
+                <span class="routes-summary-label">Rutas registradas</span>
+                <strong id="summaryRouteTotal">—</strong>
+                <span class="routes-summary-context">Total obtenido del registro</span>
+            </article>
+
+            <article class="routes-summary-card">
+                <span class="routes-summary-label">Rutas READY</span>
+                <strong id="summaryRouteReady">—</strong>
+                <span class="routes-summary-context">Disponibles para preparación</span>
+            </article>
+
+            <article class="routes-summary-card">
+                <span class="routes-summary-label">Waypoints</span>
+                <strong id="summaryWaypointTotal">—</strong>
+                <span class="routes-summary-context">Suma de puntos planificados</span>
+            </article>
+
+            <article class="routes-summary-card">
+                <span class="routes-summary-label">Última actualización</span>
+                <strong id="summaryLastUpdate">—</strong>
+                <span class="routes-summary-context">Fecha más reciente registrada</span>
+            </article>
+
+        </section>
+
+        <section class="routes-toolbar" aria-label="Filtros de rutas">
+
+            <input
+                id="routeSearch"
+                class="route-search"
+                type="search"
+                placeholder="Buscar por código, nombre o estado..."
+                autocomplete="off"
+                aria-label="Buscar rutas"
+            >
+
+            <select
+                id="routeStatusFilter"
+                class="route-filter"
+                aria-label="Filtrar por estado"
+            >
+                <option value="">Todos los estados</option>
+                <option value="READY">READY</option>
+                <option value="DRAFT">DRAFT</option>
+                <option value="ARCHIVED">ARCHIVED</option>
+            </select>
+
+            <div class="routes-result-count">
+                Mostrando
+                <strong id="routesVisibleCount">0</strong>
+                de
+                <strong id="routesTotalCount">0</strong>
+            </div>
+
+        </section>
 
         <section class="routes-card">
 
@@ -223,11 +504,10 @@
 
 </div>
 
-
 <script>
+let allRoutes = [];
 
 function formatDate(value) {
-
     if (!value) {
         return "--";
     }
@@ -235,101 +515,157 @@ function formatDate(value) {
     const date =
         new Date(value);
 
-    if (
-        Number.isNaN(
-            date.getTime()
-        )
-    ) {
+    if (Number.isNaN(date.getTime())) {
         return value;
     }
 
     return date.toLocaleString();
 }
 
+function escapeHtml(value) {
+    if (value === null || value === undefined) {
+        return "";
+    }
+
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+function normalizeSearchValue(value) {
+    return String(value ?? "")
+        .toLocaleLowerCase("es")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+}
+
+function setTextContent(id, value) {
+    const element =
+        document.getElementById(id);
+
+    if (!element) {
+        return;
+    }
+
+    element.textContent = value;
+}
 
 function getStatusClass(status) {
-
     switch (status) {
-
         case "READY":
             return "status-ready";
-
         case "DRAFT":
             return "status-draft";
-
         case "ARCHIVED":
             return "status-archived";
-
         default:
             return "status-archived";
     }
 }
 
+function updateRouteSummary(routes) {
+    setTextContent("summaryRouteTotal", routes.length);
+
+    setTextContent(
+        "summaryRouteReady",
+        routes.filter((route) => route.status === "READY").length
+    );
+
+    setTextContent(
+        "summaryWaypointTotal",
+        routes.reduce(
+            (total, route) =>
+                total + Number(route.waypoint_count ?? 0),
+            0
+        )
+    );
+
+    const latestDate =
+        routes
+            .map((route) => route.updated_at)
+            .filter(Boolean)
+            .sort()
+            .at(-1);
+
+    setTextContent(
+        "summaryLastUpdate",
+        latestDate ? formatDate(latestDate) : "--"
+    );
+}
+
+function updateRouteResultCount(visibleCount, totalCount) {
+    setTextContent("routesVisibleCount", visibleCount);
+    setTextContent("routesTotalCount", totalCount);
+}
+
+function getRouteSearchText(route) {
+    return normalizeSearchValue(
+        [
+            route.route_code,
+            route.name,
+            route.status,
+        ]
+            .filter(Boolean)
+            .join(" ")
+    );
+}
 
 function renderRoutes(routes) {
-
     const loading =
-        document.getElementById(
-            "routesLoading"
-        );
+        document.getElementById("routesLoading");
 
     const table =
-        document.getElementById(
-            "routesTable"
-        );
+        document.getElementById("routesTable");
 
     const body =
-        document.getElementById(
-            "routesBody"
-        );
-
+        document.getElementById("routesBody");
 
     body.innerHTML = "";
 
-
     if (!routes.length) {
+        table.style.display = "none";
 
-        loading.className =
-            "empty-state";
+        loading.className = "empty-state";
+        loading.style.display = "block";
 
         loading.textContent =
-            "Todavía no existen rutas registradas.";
+            allRoutes.length
+                ? "No hay rutas que coincidan con los filtros."
+                : "Todavía no existen rutas registradas.";
 
         return;
     }
 
-
     routes.forEach((route) => {
-
         const row =
             document.createElement("tr");
 
-
         row.innerHTML = `
-
             <td class="route-code">
-                ${route.route_code}
+                ${escapeHtml(route.route_code)}
             </td>
 
             <td>
-                ${route.name}
+                <div class="route-name">
+                    ${escapeHtml(route.name)}
+                </div>
+
+                <div class="route-secondary">
+                    Ruta planificada para operación UAV
+                </div>
             </td>
 
             <td>
-
-                <span
-                    class="
-                        status-badge
-                        ${getStatusClass(route.status)}
-                    "
-                >
-                    ${route.status}
+                <span class="status-badge ${getStatusClass(route.status)}">
+                    ${escapeHtml(route.status)}
                 </span>
-
             </td>
 
             <td>
-                ${route.waypoint_count}
+                ${escapeHtml(route.waypoint_count)}
             </td>
 
             <td>
@@ -337,80 +673,97 @@ function renderRoutes(routes) {
             </td>
 
             <td>
-
                 <a
                     class="view-button"
                     href="/mission_routes/${route.id}"
                 >
-                    Ver
+                    Ver ruta
                 </a>
-
             </td>
-
         `;
-
 
         body.appendChild(row);
     });
 
-
-    loading.style.display =
-        "none";
-
-    table.style.display =
-        "table";
+    loading.style.display = "none";
+    table.style.display = "table";
 }
 
+function applyRouteFilters() {
+    const searchInput =
+        document.getElementById("routeSearch");
+
+    const statusFilter =
+        document.getElementById("routeStatusFilter");
+
+    const searchValue =
+        normalizeSearchValue(searchInput ? searchInput.value : "");
+
+    const statusValue =
+        statusFilter ? statusFilter.value : "";
+
+    const filteredRoutes =
+        allRoutes.filter((route) => {
+            const matchesSearch =
+                !searchValue
+                || getRouteSearchText(route).includes(searchValue);
+
+            const matchesStatus =
+                !statusValue
+                || route.status === statusValue;
+
+            return matchesSearch && matchesStatus;
+        });
+
+    renderRoutes(filteredRoutes);
+
+    updateRouteResultCount(
+        filteredRoutes.length,
+        allRoutes.length
+    );
+}
 
 async function loadRoutes() {
-
     const loading =
-        document.getElementById(
-            "routesLoading"
-        );
-
+        document.getElementById("routesLoading");
 
     try {
-
         const response =
-            await fetch(
-                "/api/routes"
-            );
-
+            await fetch("/api/routes");
 
         if (!response.ok) {
-
-            throw new Error(
-                `HTTP ${response.status}`
-            );
+            throw new Error(`HTTP ${response.status}`);
         }
-
 
         const data =
             await response.json();
 
+        allRoutes =
+            data.routes ?? [];
 
-        renderRoutes(
-            data.routes ?? []
-        );
-
+        updateRouteSummary(allRoutes);
+        applyRouteFilters();
 
     } catch (error) {
-
         console.error(error);
 
-        loading.className =
-            "error-state";
-
+        loading.className = "error-state";
         loading.textContent =
             "No fue posible cargar las rutas.";
     }
 }
 
-
 document.addEventListener(
     "DOMContentLoaded",
-    loadRoutes
+    () => {
+        document.getElementById("routeSearch")
+            ?.addEventListener("input", applyRouteFilters);
+
+        document.getElementById("routeStatusFilter")
+            ?.addEventListener("change", applyRouteFilters);
+
+        loadRoutes();
+    }
 );
 
 </script>

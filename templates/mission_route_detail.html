@@ -168,6 +168,291 @@
             color: #ffffff;
             font-weight: 700;
         }
+        /* UI-4B · Detalle de ruta PE2 */
+        .route-detail-page {
+            background:
+                radial-gradient(circle at top left, rgba(37, 99, 235, 0.13), transparent 36%),
+                linear-gradient(135deg, #020617, #0f172a 55%, #111827);
+        }
+
+        .pe2-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 18px;
+            padding: 14px 18px;
+            margin-bottom: 26px;
+            background: rgba(30, 41, 59, 0.88);
+            border: 1px solid #334155;
+            border-radius: 14px;
+        }
+
+        .pe2-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            color: #f8fafc;
+            text-decoration: none;
+        }
+
+        .pe2-brand-symbol {
+            display: grid;
+            place-items: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #2563eb, #4f46e5);
+            font-size: 0.92rem;
+            font-weight: 800;
+        }
+
+        .pe2-brand-text {
+            display: grid;
+            gap: 3px;
+        }
+
+        .pe2-brand-text strong {
+            font-size: 0.95rem;
+        }
+
+        .pe2-brand-text small {
+            color: #94a3b8;
+            font-size: 0.75rem;
+        }
+
+        .pe2-nav-links {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .pe2-nav-links a {
+            padding: 9px 12px;
+            color: #cbd5e1;
+            font-size: 0.88rem;
+            font-weight: 600;
+            border-radius: 9px;
+            text-decoration: none;
+        }
+
+        .pe2-nav-links a.active {
+            background: rgba(37, 99, 235, 0.21);
+            color: #bfdbfe;
+        }
+
+        .button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 42px;
+            padding: 0 14px;
+            border-radius: 9px;
+            border: 1px solid #334155;
+            background: transparent;
+            color: #e2e8f0;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .button-primary {
+            border-color: #3b82f6;
+            color: #60a5fa;
+        }
+
+        .route-workspace-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 14px;
+            padding: 22px;
+            margin-bottom: 24px;
+        }
+
+        .route-workspace-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+
+        .route-workspace-description {
+            margin: 0;
+            color: #94a3b8;
+            font-size: 0.92rem;
+        }
+
+        .route-workspace-badge {
+            display: inline-flex;
+            align-items: center;
+            min-height: 34px;
+            padding: 0 12px;
+            border-radius: 999px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: #93c5fd;
+            font-size: 0.78rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .route-workspace-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+            gap: 18px;
+            align-items: stretch;
+        }
+
+        .route-map-column {
+            min-width: 0;
+        }
+
+        .route-workspace-card .route-map {
+            width: 100%;
+            height: 620px;
+            min-height: 620px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            overflow: hidden;
+        }
+
+        .route-side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .route-panel-block {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 13px;
+            padding: 15px;
+        }
+
+        .route-panel-block h3 {
+            margin: 0 0 12px 0;
+            color: #f8fafc;
+            font-size: 0.95rem;
+        }
+
+        .route-panel-block p {
+            margin: 0;
+            color: #94a3b8;
+            font-size: 0.86rem;
+            line-height: 1.55;
+        }
+
+        .route-parameter-list {
+            display: grid;
+            gap: 10px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .route-parameter-list li {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 11px 0;
+            border-bottom: 1px solid #1f2937;
+        }
+
+        .route-parameter-list li:last-child {
+            border-bottom: none;
+        }
+
+        .route-parameter-list span {
+            color: #94a3b8;
+        }
+
+        .route-parameter-list strong {
+            color: #f8fafc;
+            text-align: right;
+        }
+
+        .route-action-stack {
+            display: grid;
+            gap: 10px;
+        }
+
+        .waypoint-collapsible {
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .waypoint-summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            padding: 18px 20px;
+            cursor: pointer;
+            list-style: none;
+            color: #f8fafc;
+            font-weight: 800;
+        }
+
+        .waypoint-summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .waypoint-summary::before {
+            content: "+";
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            margin-right: 10px;
+            border-radius: 8px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: #93c5fd;
+            font-weight: 900;
+        }
+
+        .waypoint-collapsible[open] .waypoint-summary::before {
+            content: "–";
+        }
+
+        .waypoint-summary span {
+            flex: 1;
+        }
+
+        .waypoint-summary small {
+            color: #94a3b8;
+            font-size: 0.78rem;
+        }
+
+        .waypoint-table-wrapper {
+            padding: 0 20px 20px 20px;
+            overflow-x: auto;
+        }
+
+        @media (max-width: 1050px) {
+            .route-workspace-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .route-workspace-card .route-map {
+                height: 520px;
+                min-height: 520px;
+            }
+        }
+
+        @media (max-width: 700px) {
+            .route-workspace-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .route-workspace-card .route-map {
+                height: 430px;
+                min-height: 430px;
+            }
+        }
 
     </style>
 
@@ -179,6 +464,22 @@
 <div class="route-detail-page">
 
     <div class="route-detail-container">
+        <nav class="pe2-topbar" aria-label="Navegación principal">
+            <a class="pe2-brand" href="/" aria-label="Ir al inicio PE2">
+                <span class="pe2-brand-symbol" aria-hidden="true">PE2</span>
+                <span class="pe2-brand-text">
+                    <strong>Plataforma multiespectral</strong>
+                    <small>Adquisición y análisis geoespacial</small>
+                </span>
+            </a>
+
+            <div class="pe2-nav-links">
+                <a href="/">Inicio</a>
+                <a href="/campaigns">Campañas</a>
+                <a href="/drone_operation">Operación UAV</a>
+                <a href="/mission_routes" class="active" aria-current="page">Rutas</a>
+            </div>
+        </nav>
 
         <header class="route-detail-header">
 
@@ -204,7 +505,6 @@
 
         </header>
 
-
         <div
             id="loadingState"
             class="loading-state"
@@ -212,16 +512,13 @@
             Cargando ruta...
         </div>
 
-
         <main
             id="routeContent"
             style="display: none;"
         >
 
             <section class="summary-grid">
-
                 <div class="summary-card">
-
                     <div class="summary-label">
                         Estado
                     </div>
@@ -234,7 +531,6 @@
                     </div>
 
                 </div>
-
 
                 <div class="summary-card">
 
@@ -251,7 +547,6 @@
 
                 </div>
 
-
                 <div class="summary-card">
 
                     <div class="summary-label">
@@ -267,7 +562,6 @@
 
                 </div>
 
-
                 <div class="summary-card">
 
                     <div class="summary-label">
@@ -280,56 +574,157 @@
                     >
                         --
                     </div>
-
                 </div>
 
             </section>
 
+            <section class="route-workspace-card">
 
-            <section class="section-card">
+                <div class="route-workspace-header">
 
-                <h2 class="section-title">
-                    Ruta planificada
-                </h2>
+                    <div>
+                        <h2 class="section-title">
+                            Ruta planificada
+                        </h2>
 
-                <div
-                    id="routeMap"
-                    class="route-map"
-                ></div>
+                        <p class="route-workspace-description">
+                            Visualización espacial de la secuencia de waypoints,
+                            trayectoria prevista y parámetros de vuelo asociados.
+                        </p>
+                    </div>
 
+                    <div class="route-workspace-badge">
+                        Leaflet · Ruta UAV
+                    </div>
+
+                </div>
+
+                <div class="route-workspace-grid">
+
+                    <div class="route-map-column">
+
+                        <div
+                            id="routeMap"
+                            class="route-map"
+                        ></div>
+
+                    </div>
+
+                    <aside
+                        class="route-side-panel"
+                        aria-label="Resumen operacional de la ruta"
+                    >
+
+                        <div class="route-panel-block">
+
+                            <h3>
+                                Uso operacional
+                            </h3>
+
+                            <p>
+                                Esta ruta define una trayectoria planificada para
+                                simulación o preparación de operación UAV. La ejecución
+                                real debe validarse con el entorno, permisos y seguridad
+                                de vuelo correspondientes.
+                            </p>
+
+                        </div>
+
+                        <div class="route-panel-block">
+
+                            <h3>
+                                Parámetros principales
+                            </h3>
+
+                            <ul class="route-parameter-list">
+                                <li>
+                                    <span>Estado</span>
+                                    <strong id="routePanelStatus">--</strong>
+                                </li>
+
+                                <li>
+                                    <span>Waypoints</span>
+                                    <strong id="routePanelWaypointCount">--</strong>
+                                </li>
+
+                                <li>
+                                    <span>Altitud objetivo</span>
+                                    <strong id="routePanelAltitude">--</strong>
+                                </li>
+
+                                <li>
+                                    <span>Velocidad objetivo</span>
+                                    <strong id="routePanelSpeed">--</strong>
+                                </li>
+                            </ul>
+
+                        </div>
+
+                        <div class="route-panel-block">
+
+                            <h3>
+                                Acciones
+                            </h3>
+
+                            <div class="route-action-stack">
+                                <a
+                                    href="/drone_operation"
+                                    class="button button-primary"
+                                >
+                                    Usar en operación UAV
+                                </a>
+
+                                <a
+                                    href="/mission_routes"
+                                    class="button"
+                                >
+                                    Volver a rutas
+                                </a>
+                            </div>
+                        </div>
+                    </aside>
+                </div>
             </section>
 
+            <details class="section-card waypoint-collapsible" open>
 
-            <section class="section-card">
+                <summary class="waypoint-summary">
+                    <span>
+                        Waypoints
+                    </span>
 
-                <h2 class="section-title">
-                    Waypoints
-                </h2>
+                    <small>
+                        Secuencia de navegación planificada
+                    </small>
+                </summary>
+
+                <div class="waypoint-table-wrapper">
+
+                    <table class="waypoint-table">
+
+                        <thead>
+
+                            <tr>
+                                <th>#</th>
+                                <th>Latitud</th>
+                                <th>Longitud</th>
+                                <th>Altitud</th>
+                                <th>Velocidad</th>
+                                <th>Heading</th>
+                                <th>Acción</th>
+                            </tr>
+
+                        </thead>
 
 
-                <table class="waypoint-table">
+                        <tbody id="waypointBody">
+                        </tbody>
 
-                    <thead>
+                    </table>
 
-                        <tr>
-                            <th>#</th>
-                            <th>Latitud</th>
-                            <th>Longitud</th>
-                            <th>Altitud</th>
-                            <th>Velocidad</th>
-                            <th>Heading</th>
-                            <th>Acción</th>
-                        </tr>
+                </div>
 
-                    </thead>
-
-
-                    <tbody id="waypointBody">
-                    </tbody>
-
-                </table>
-
-            </section>
+            </details>
 
         </main>
 
@@ -337,16 +732,13 @@
 
 </div>
 
-
 <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
 </script>
 
-
 <script>
 
 const ROUTE_ID = {{ route_id | tojson }};
-
 
 function getStatusClass(status) {
 
@@ -362,7 +754,6 @@ function getStatusClass(status) {
             return "status-archived";
     }
 }
-
 
 function getUniformValue(
     waypoints,
@@ -384,25 +775,20 @@ function getUniformValue(
         return null;
     }
 
-
     const first =
         values[0];
-
 
     const allEqual =
         values.every(
             value => value === first
         );
 
-
     if (!allEqual) {
         return "VARIABLE";
     }
 
-
     return first;
 }
-
 
 function renderWaypointTable(
     waypoints
@@ -413,9 +799,7 @@ function renderWaypointTable(
             "waypointBody"
         );
 
-
     body.innerHTML = "";
-
 
     waypoints.forEach(
         waypoint => {
@@ -424,7 +808,6 @@ function renderWaypointTable(
                 document.createElement(
                     "tr"
                 );
-
 
             row.innerHTML = `
 
@@ -458,14 +841,12 @@ function renderWaypointTable(
 
             `;
 
-
             body.appendChild(
                 row
             );
         }
     );
 }
-
 
 function renderRouteMap(
     waypoints
@@ -488,10 +869,8 @@ function renderRouteMap(
         return;
     }
 
-
     const map =
         L.map("routeMap");
-
 
     L.tileLayer(
         "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -501,7 +880,6 @@ function renderRouteMap(
                 "&copy; OpenStreetMap contributors"
         }
     ).addTo(map);
-
 
     /*
      * Línea de la ruta planificada
@@ -515,7 +893,6 @@ function renderRouteMap(
             }
         )
         .addTo(map);
-
 
     /*
      * Cada waypoint tendrá
@@ -533,7 +910,6 @@ function renderRouteMap(
                 )
             ];
 
-
             const marker =
                 L.circleMarker(
                     coordinate,
@@ -544,7 +920,6 @@ function renderRouteMap(
                     }
                 )
                 .addTo(map);
-
 
             marker.bindTooltip(
                 String(
@@ -557,7 +932,6 @@ function renderRouteMap(
                         "waypoint-number"
                 }
             );
-
 
             marker.bindPopup(`
                 <strong>
@@ -584,7 +958,6 @@ function renderRouteMap(
         }
     );
 
-
     map.fitBounds(
         routeLine.getBounds(),
         {
@@ -592,14 +965,12 @@ function renderRouteMap(
         }
     );
 
-
     requestAnimationFrame(
         () => {
             map.invalidateSize();
         }
     );
 }
-
 
 async function loadRoute() {
 
@@ -613,14 +984,12 @@ async function loadRoute() {
             "routeContent"
         );
 
-
     try {
 
         const response =
             await fetch(
                 `/api/routes/${ROUTE_ID}`
             );
-
 
         if (!response.ok) {
 
@@ -629,42 +998,34 @@ async function loadRoute() {
             );
         }
 
-
         const data =
             await response.json();
-
 
         const route =
             data.route;
 
-
         const waypoints =
             route.waypoints ?? [];
-
 
         document.getElementById(
             "routeCode"
         ).textContent =
             route.route_code;
 
-
         document.getElementById(
             "routeName"
         ).textContent =
             route.name;
-
 
         document.getElementById(
             "waypointCount"
         ).textContent =
             route.waypoint_count;
 
-
         const statusElement =
             document.getElementById(
                 "routeStatus"
             );
-
 
         statusElement.innerHTML = `
 
@@ -681,13 +1042,11 @@ async function loadRoute() {
 
         `;
 
-
         const altitude =
             getUniformValue(
                 waypoints,
                 "altitude"
             );
-
 
         document.getElementById(
             "routeAltitude"
@@ -698,13 +1057,23 @@ async function loadRoute() {
                     ? `${altitude} m`
                     : "--";
 
+        const altitudeLabel =
+            altitude === "VARIABLE"
+                ? "Variable"
+                : altitude !== null
+                    ? `${altitude} m`
+                    : "--";
+
+        document.getElementById(
+            "routePanelAltitude"
+        ).textContent =
+            altitudeLabel;
 
         const speed =
             getUniformValue(
                 waypoints,
                 "speed"
             );
-
 
         document.getElementById(
             "routeSpeed"
@@ -715,12 +1084,21 @@ async function loadRoute() {
                     ? `${speed} m/s`
                     : "--";
 
-
         renderWaypointTable(
             waypoints
         );
 
+        const speedLabel =
+            speed === "VARIABLE"
+                ? "Variable"
+                : speed !== null
+                    ? `${speed} m/s`
+                    : "--";
 
+        document.getElementById(
+            "routePanelSpeed"
+        ).textContent =
+            speedLabel;
         /*
          * Primero mostramos el contenedor.
          * Después inicializamos Leaflet.
@@ -730,7 +1108,6 @@ async function loadRoute() {
 
         content.style.display =
             "block";
-
 
         requestAnimationFrame(
             () => {
@@ -742,6 +1119,15 @@ async function loadRoute() {
             }
         );
 
+        document.getElementById(
+            "routePanelStatus"
+        ).textContent =
+            route.status;
+
+        document.getElementById(
+            "routePanelWaypointCount"
+        ).textContent =
+            route.waypoint_count;
 
     } catch (error) {
 
@@ -755,7 +1141,6 @@ async function loadRoute() {
     }
 
 }
-
 
 document.addEventListener(
     "DOMContentLoaded",
