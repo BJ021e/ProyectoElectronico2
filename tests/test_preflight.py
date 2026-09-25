@@ -38,6 +38,7 @@ def test_env_bool_and_config_default_keep_debug_disabled():
 
     source = inspect.getsource(Config)
     assert '"FLASK_DEBUG",\n        False' in source
+    assert '"PE2_DEMO_MODE",\n        False' in source
 
 
 def test_preflight_is_ready_for_viewing_without_metashape(tmp_path):
@@ -76,8 +77,26 @@ def test_preflight_accepts_available_simulated_metashape_backend(tmp_path):
 def test_preflight_processing_guard_does_not_block_viewing(tmp_path):
     config = create_demo_config(tmp_path)
     config.PROCESSING_ENABLED = False
+    config.PHOTOGRAMMETRY_BACKEND = "MOCK"
 
     report = preflight.run_preflight(config=config)
 
     assert report["ready_for_viewing"] is True
     assert report["ready_for_processing"] is False
+    checks = {check["label"]: check for check in report["checks"]}
+    assert checks["Processing guard"]["status"] == "INFO"
+    assert checks["Photogrammetry backend"]["status"] == "INFO"
+    assert checks["Metashape executable"]["status"] == "SKIP"
+
+
+def test_preflight_reports_mock_as_processing_error_when_enabled(tmp_path):
+    config = create_demo_config(tmp_path)
+    config.PHOTOGRAMMETRY_BACKEND = "MOCK"
+
+    report = preflight.run_preflight(config=config)
+
+    assert report["ready_for_viewing"] is True
+    assert report["ready_for_processing"] is False
+    checks = {check["label"]: check for check in report["checks"]}
+    assert checks["Photogrammetry backend"]["status"] == "ERROR"
+    assert checks["Metashape executable"]["status"] == "SKIP"

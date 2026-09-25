@@ -90,6 +90,12 @@ class Config:
         "PROCESSING_ENABLED",
         True,
     )
+
+    # Ajusta la navegación para una exposición PE2 sin eliminar rutas legacy.
+    PE2_DEMO_MODE = env_bool(
+        "PE2_DEMO_MODE",
+        False,
+    )
     
     METASHAPE_EXECUTABLE = os.getenv(
         "METASHAPE_EXECUTABLE",
