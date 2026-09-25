@@ -810,7 +810,7 @@
         .campaign-gis-map .leaflet-control-layers {
             color: #111827;
         }
-        
+
         .gis-raster-controls {
             display: flex;
 
@@ -1038,7 +1038,7 @@
 
             font-size: 0.76rem;
         }
-        
+
         .spectral-stat-grid {
             grid-template-columns:
                 repeat(
@@ -2075,23 +2075,20 @@
                 </summary>
 
                 <div class="technical-collapsible-body">
+                    <a
+                        href="/adquisicion_datos"
+                        class="button"
+                    >
+                        Gestionar adquisición de datos
+                    </a>
 
-                <button
-                    id="importRedEdgeButton"
-                    type="button"
-                    class="button"
-                    style="display: none;"
-                >
-                    Importar carpeta RedEdge
-                </button>
+                    <div id="capturesContainer">
 
-                <div id="capturesContainer">
+                        <div class="loading-state">
+                            Cargando capturas...
+                        </div>
 
-                    <div class="loading-state">
-                        Cargando capturas...
                     </div>
-
-                </div>
 
                 <input
                     id="redEdgeFolderInput"
@@ -2197,7 +2194,6 @@
 
             </div>
 
-
             <button
                 id="closeRedEdgeModalButton"
                 type="button"
@@ -2206,7 +2202,6 @@
             >
                 ×
             </button>
-
         </div>
 
 
@@ -2322,7 +2317,6 @@
                 Cancelar
             </button>
 
-
             <button
                 id="importCompleteRedEdgeButton"
                 type="button"
@@ -2331,7 +2325,6 @@
             >
                 Importar solo completas
             </button>
-
 
             <button
                 id="confirmRedEdgeImportButton"
@@ -2609,27 +2602,7 @@ function renderCampaign(
     ).textContent =
         campaign.description
         ?? "Sin descripción";
-
-    const importButton =
-    document.getElementById(
-        "importRedEdgeButton"
-    );
-
-    if (
-        campaign.sensor_type
-        === "MULTISPECTRAL"
-    ) {
-
-        importButton.style.display =
-            "inline-block";
-
-    } else {
-
-        importButton.style.display =
-            "none";
-    }
 }
-
 
 /* ===============================================
    CAPTURAS
@@ -3302,7 +3275,7 @@ function getActiveProcessingJob() {
         ?? null
     );
 }
-   
+
 function updateProcessButton() {
 
     const button =
@@ -4189,7 +4162,7 @@ function initializeCampaignMap() {
         "rasterPreviewPane"
     ).style.pointerEvents =
         "none";
-    
+
     L.tileLayer(
         "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
         {
@@ -4217,7 +4190,7 @@ function initializeCampaignMap() {
         .addTo(
             campaignMap
         );
-    
+
 
     gisLayerControl =
         L.control.layers(
@@ -4967,7 +4940,7 @@ function renderCampaignMap() {
         renderProductGeometries(
             mapBounds
         );
-    
+
     const rasterProduct = renderRasterPreview();
 
     const status =
@@ -5123,7 +5096,7 @@ async function loadCampaignDetail() {
         updateProcessButton();
 
         renderRasterProductSelector();
-        
+
         renderCampaignMap();
 
         await loadSelectedSpectralStatistics();
@@ -5158,7 +5131,7 @@ async function loadCampaignDetail() {
         loading.textContent =
             error.message
             || (
-                "No fue posible cargar la campaña. "            
+                "No fue posible cargar la campaña. "
             );
     }
 }
@@ -5652,20 +5625,11 @@ document.addEventListener(
         );
 
         document.getElementById(
-            "importRedEdgeButton"
-        ).addEventListener(
-            "click",
-            selectRedEdgeFolder
-        );
-
-
-        document.getElementById(
             "redEdgeFolderInput"
         ).addEventListener(
             "change",
             inspectSelectedRedEdgeFolder
         );
-
 
         document.getElementById(
             "confirmRedEdgeImportButton"
@@ -5679,7 +5643,6 @@ document.addEventListener(
             }
         );
 
-
         document.getElementById(
             "importCompleteRedEdgeButton"
         ).addEventListener(
@@ -5692,14 +5655,12 @@ document.addEventListener(
             }
         );
 
-
         document.getElementById(
             "cancelRedEdgeButton"
         ).addEventListener(
             "click",
             cancelRedEdgeImport
         );
-
 
         document.getElementById(
             "closeRedEdgeModalButton"
@@ -5736,9 +5697,9 @@ document.addEventListener(
                 renderCampaignMap();
             }
         );
-        
+
         initializeRasterProductSelector();
-        
+
         loadCampaignDetail()
             .then(
                 () => (
