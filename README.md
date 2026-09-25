@@ -11,15 +11,15 @@ Copie `.env.example` a `.env` y complete los valores locales. Las variables cons
 | Flask y acceso | `FLASK_SECRET_KEY`, `FLASK_HOST`, `FLASK_PORT`, `FLASK_DEBUG`, `ACCESS_CODE` |
 | Raspberry Pi | `RPI_IP`, `RPI_PORT`, `DRONE_TELEMETRY_STALE_SECONDS` |
 | Persistencia | `DATABASE_URL`, `CAMPAIGN_STORAGE_ROOT` |
-| Fotogrametría | `PHOTOGRAMMETRY_BACKEND`, `PROCESSING_ENABLED`, `MOCK_PHOTOGRAMMETRY_DELAY_SECONDS`, `METASHAPE_EXECUTABLE` |
+| Fotogrametría | `PHOTOGRAMMETRY_BACKEND`, `PROCESSING_ENABLED`, `PE2_DEMO_MODE`, `MOCK_PHOTOGRAMMETRY_DELAY_SECONDS`, `METASHAPE_EXECUTABLE` |
 | Importación RedEdge | `RED_EDGE_STAGING_ROOT`, `RED_EDGE_UPLOAD_BATCH_MAX_FILES`, `RED_EDGE_STAGING_MAX_AGE_HOURS` |
 
-`METASHAPE_EXECUTABLE` solo es obligatorio cuando `PHOTOGRAMMETRY_BACKEND=METASHAPE`. `PROCESSING_ENABLED` es un guard operativo de demostración; no es un sistema de autorización.
+`METASHAPE_EXECUTABLE` solo es obligatorio cuando `PHOTOGRAMMETRY_BACKEND=METASHAPE`. `PROCESSING_ENABLED` es un guard operativo de demostración; no es un sistema de autorización. `PE2_DEMO_MODE` orienta la navegación normal a campañas y oculta enlaces legacy, sin eliminar sus rutas directas.
 
 ## Demo PE2
 
 1. Active el entorno: `.\.venv\Scripts\Activate.ps1`.
-2. Prepare `.env` para la demo con `FLASK_DEBUG=false` y `PROCESSING_ENABLED=false`.
+2. Prepare `.env` para la demo con `FLASK_DEBUG=false`, `PROCESSING_ENABLED=false` y `PE2_DEMO_MODE=true`.
 3. Ejecute `python scripts/preflight.py`.
 4. Confirme `READY_FOR_VIEWING YES`.
 5. Inicie una única instancia: `python InterfazInit.py`.
@@ -27,6 +27,18 @@ Copie `.env.example` a `.env` y complete los valores locales. Las variables cons
 7. No pulse **Procesar campaña** durante la exposición. El botón queda deshabilitado y el endpoint devuelve `409` mientras el guard esté desactivado.
 
 La demo no necesita Metashape instalado si solo visualiza productos ya persistidos.
+
+## Checklist: 5 minutos antes de exponer
+
+1. Active `.venv`.
+2. Confirme `FLASK_DEBUG=false`.
+3. Confirme `PROCESSING_ENABLED=false`.
+4. Confirme `PE2_DEMO_MODE=true`.
+5. Ejecute `python scripts/preflight.py` y confirme `READY_FOR_VIEWING YES`.
+6. Inicie una única instancia Flask.
+7. Abra la campaña 6 y compruebe 328 capturas de vuelo y 7 de calibración.
+8. Compruebe ortomosaico, NDVI, NDRE y GNDVI.
+9. No pulse ni pruebe procesamiento durante la exposición.
 
 ## Procesamiento Metashape
 
