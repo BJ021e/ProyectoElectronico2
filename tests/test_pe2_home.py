@@ -30,25 +30,29 @@ def test_pe2_home_outside_demo_mode(monkeypatch):
 
     html = response.get_data(as_text=True)
 
-    assert 'href="/flight_history"' in html
-    assert 'href="/ground_login"' in html
+    assert 'href="/flight_history"' not in html
+    assert 'href="/ground_login"' not in html
+
 
 def test_pe2_home_highlights_data_acquisition_module():
     app.config["TESTING"] = True
 
-    client = app.test_client()
-    response = client.get("/")
-
+    response = app.test_client().get("/")
     assert response.status_code == 200
 
     html = response.get_data(as_text=True)
 
-    for marker in (
-        "Adquisición de datos",
-        'href="/adquisicion_datos"',
-        "Ingresar datos",
-        "Centraliza el ingreso de información multiespectral",
-        "recepción visual desde cámara o bridge",
-        "asociación del lote a la campaña validada",
+    assert "Accesos rápidos" in html
+
+    for href in (
+        "/campaigns",
+        "/campaigns/6",
+        "/adquisicion_datos",
+        "/drone_operation",
+        "/mission_routes",
     ):
-        assert marker in html
+        assert f'href="{href}"' in html
+
+    assert "Adquisición de datos" in html
+    assert "Módulos principales" not in html
+    assert "Accesos complementarios" not in html
