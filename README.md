@@ -23,8 +23,16 @@ Copie `.env.example` a `.env` y complete los valores locales. Las variables cons
 3. Ejecute `python scripts/preflight.py`.
 4. Confirme `READY_FOR_VIEWING YES`.
 5. Inicie una única instancia: `python InterfazInit.py`.
-6. Abra `http://127.0.0.1:5050`, entre a la campaña 6 y muestre los productos persistidos.
-7. No pulse **Procesar campaña** durante la exposición. El botón queda deshabilitado y el endpoint devuelve `409` mientras el guard esté desactivado.
+6. Abra `http://127.0.0.1:5050/`.
+7. Recorra el flujo principal:
+   - Inicio PE2.
+   - Adquisición de datos.
+   - Recepción visual desde cámara/bridge.
+   - Ver campaña completada.
+   - Visor GIS y productos espectrales.
+   - Operación UAV.
+   - Rutas predefinidas.
+8. Mantenga `PROCESSING_ENABLED=false` durante la exposición si solo se visualizan productos persistidos.
 
 La demo no necesita Metashape instalado si solo visualiza productos ya persistidos.
 
@@ -36,9 +44,28 @@ La demo no necesita Metashape instalado si solo visualiza productos ya persistid
 4. Confirme `PE2_DEMO_MODE=true`.
 5. Ejecute `python scripts/preflight.py` y confirme `READY_FOR_VIEWING YES`.
 6. Inicie una única instancia Flask.
-7. Abra la campaña 6 y compruebe 328 capturas de vuelo y 7 de calibración.
-8. Compruebe ortomosaico, NDVI, NDRE y GNDVI.
-9. No pulse ni pruebe procesamiento durante la exposición.
+7. Abra el inicio PE2 en `http://127.0.0.1:5050/`.
+8. Revise la pantalla **Adquisición de datos**:
+   - Campaña destino `CP-20260907-0006`.
+   - Flujo visual de recepción desde cámara/bridge.
+   - Barra de progreso.
+   - Resumen final de transferencia.
+   - Acceso a campaña completada.
+9. Abra la campaña 6 y compruebe:
+   - 335 capturas totales.
+   - 328 capturas de vuelo.
+   - 7 capturas de calibración.
+   - 0 capturas sin clasificar.
+10. Compruebe el visor GIS:
+    - Ortomosaico multiespectral.
+    - NDVI.
+    - NDRE.
+    - GNDVI.
+    - Estadísticas espectrales.
+11. Revise **Operación UAV** como pantalla de ruta, telemetría y estado operacional.
+12. Revise **Rutas predefinidas** y el detalle de ruta.
+13. No pulse ni pruebe procesamiento durante la exposición.
+14. No interprete NDVI, NDRE o GNDVI como diagnóstico de enfermedad; son productos espectrales derivados.
 
 ## Procesamiento Metashape
 
