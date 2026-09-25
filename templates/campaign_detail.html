@@ -363,6 +363,55 @@
         /* =========================================
            CAPTURE ASSETS
            ========================================= */
+        .capture-summary-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(
+                    auto-fit,
+                    minmax(150px, 1fr)
+                );
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .capture-summary-card {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 14px;
+        }
+
+        .capture-summary-label {
+            color: #94a3b8;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            margin-bottom: 7px;
+        }
+
+        .capture-summary-value {
+            color: #f8fafc;
+            font-size: 1.25rem;
+            font-weight: 800;
+        }
+
+        .capture-detail-box {
+            margin-top: 14px;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .capture-detail-box summary {
+            cursor: pointer;
+            padding: 14px 16px;
+            background: #0f172a;
+            color: #bfdbfe;
+            font-weight: 800;
+        }
+
+        .capture-detail-body {
+            padding: 0;
+        }
 
         .asset-list {
             display: flex;
@@ -2678,11 +2727,25 @@ function renderCaptures(
     ).textContent =
         `${captures.length} total`;
 
-    const roleCounts = getCaptureRoleCounts(captures);
-    document.getElementById("captureFlightCount").textContent = roleCounts.FLIGHT;
-    document.getElementById("captureCalibrationCount").textContent = roleCounts.CALIBRATION;
-    document.getElementById("captureUnknownCount").textContent = roleCounts.UNKNOWN;
+    const roleCounts =
+        getCaptureRoleCounts(
+            captures
+        );
 
+    document.getElementById(
+        "captureFlightCount"
+    ).textContent =
+        roleCounts.FLIGHT;
+
+    document.getElementById(
+        "captureCalibrationCount"
+    ).textContent =
+        roleCounts.CALIBRATION;
+
+    document.getElementById(
+        "captureUnknownCount"
+    ).textContent =
+        roleCounts.UNKNOWN;
 
     document.getElementById(
         "captureCount"
@@ -2692,7 +2755,6 @@ function renderCaptures(
                 ? ""
                 : "s"
         }`;
-
 
     if (!captures.length) {
 
@@ -2705,6 +2767,38 @@ function renderCaptures(
         return;
     }
 
+    const bandNames =
+        new Set();
+
+    let georeferencedCount =
+        0;
+
+    captures.forEach(
+        (capture) => {
+
+            (
+                capture.assets
+                ?? []
+            ).forEach(
+                (asset) => {
+
+                    if (asset.band) {
+                        bandNames.add(
+                            asset.band
+                        );
+                    }
+                }
+            );
+
+            if (
+                getCaptureCoordinate(
+                    capture
+                )
+            ) {
+                georeferencedCount += 1;
+            }
+        }
+    );
 
     const rows =
         captures.map(
@@ -2810,34 +2904,98 @@ function renderCaptures(
             }
         ).join("");
 
-
     container.innerHTML = `
-        <div class="table-wrapper">
+        <div class="capture-summary-grid">
 
-            <table class="detail-table">
+            <div class="capture-summary-card">
+                <div class="capture-summary-label">
+                    Total
+                </div>
+                <div class="capture-summary-value">
+                    ${captures.length}
+                </div>
+            </div>
 
-                <thead>
-                    <tr>
-                        <th>Captura</th>
-                        <th>Estado</th>
-                        <th>Bandas</th>
-                        <th>Latitud</th>
-                        <th>Longitud</th>
-                        <th>Altitud</th>
-                        <th>Fecha</th>
-                    </tr>
-                </thead>
+            <div class="capture-summary-card">
+                <div class="capture-summary-label">
+                    Vuelo
+                </div>
+                <div class="capture-summary-value">
+                    ${roleCounts.FLIGHT}
+                </div>
+            </div>
 
-                <tbody>
-                    ${rows}
-                </tbody>
+            <div class="capture-summary-card">
+                <div class="capture-summary-label">
+                    Calibración
+                </div>
+                <div class="capture-summary-value">
+                    ${roleCounts.CALIBRATION}
+                </div>
+            </div>
 
-            </table>
+            <div class="capture-summary-card">
+                <div class="capture-summary-label">
+                    Sin clasificar
+                </div>
+                <div class="capture-summary-value">
+                    ${roleCounts.UNKNOWN}
+                </div>
+            </div>
+
+            <div class="capture-summary-card">
+                <div class="capture-summary-label">
+                    Bandas detectadas
+                </div>
+                <div class="capture-summary-value">
+                    ${bandNames.size}
+                </div>
+            </div>
+
+            <div class="capture-summary-card">
+                <div class="capture-summary-label">
+                    Georreferenciadas
+                </div>
+                <div class="capture-summary-value">
+                    ${georeferencedCount}
+                </div>
+            </div>
 
         </div>
+
+        <details class="capture-detail-box">
+            <summary>
+                Ver detalle técnico de capturas
+            </summary>
+
+            <div class="capture-detail-body">
+                <div class="table-wrapper">
+
+                    <table class="detail-table">
+
+                        <thead>
+                            <tr>
+                                <th>Captura</th>
+                                <th>Estado</th>
+                                <th>Bandas</th>
+                                <th>Latitud</th>
+                                <th>Longitud</th>
+                                <th>Altitud</th>
+                                <th>Fecha</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            ${rows}
+                        </tbody>
+
+                    </table>
+
+                </div>
+            </div>
+        </details>
     `;
 }
-
 
 /* ===============================================
    JOBS
