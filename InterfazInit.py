@@ -1156,6 +1156,10 @@ def drone_operation():
         "drone_operation.html"
     )
 
+@app.route("/adquisicion_datos")
+def data_acquisition_view():
+    return render_template("data_acquisition.html")
+
 @app.route(
     "/api/drone/simulator/auto/status",
     methods=["GET"]

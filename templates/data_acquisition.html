@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Adquisición de datos</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+        }
+
+        .page {
+            min-height: 100vh;
+            padding: 32px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 14px;
+            padding: 14px 18px;
+            margin-bottom: 32px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-badge {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            background: #4f46e5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+        }
+
+        .brand-title {
+            font-weight: 800;
+            font-size: 0.95rem;
+        }
+
+        .brand-subtitle {
+            color: #94a3b8;
+            font-size: 0.78rem;
+            margin-top: 3px;
+        }
+
+        .nav {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .nav a {
+            color: #e2e8f0;
+            text-decoration: none;
+            padding: 10px 12px;
+            border-radius: 9px;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        .nav a.active {
+            background: #1d4ed8;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 24px;
+            margin-bottom: 28px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2rem;
+        }
+
+        .header p {
+            margin: 10px 0 0;
+            color: #bfdbfe;
+            max-width: 780px;
+            line-height: 1.55;
+        }
+
+        .status-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .status-pill {
+            padding: 9px 14px;
+            border-radius: 999px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            color: #cbd5e1;
+            font-size: 0.78rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+
+        .card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 14px;
+            padding: 20px;
+        }
+
+        .card h2 {
+            margin: 0 0 8px;
+            font-size: 1.15rem;
+        }
+
+        .card p {
+            margin: 0 0 18px;
+            color: #94a3b8;
+            line-height: 1.5;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+
+        .button {
+            border: 1px solid #3b82f6;
+            background: transparent;
+            color: #60a5fa;
+            padding: 10px 14px;
+            border-radius: 9px;
+            font-weight: 800;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .button.primary {
+            background: #1d4ed8;
+            color: #ffffff;
+        }
+
+        .button:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .metric {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 14px;
+        }
+
+        .metric-label {
+            color: #93c5fd;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .metric-value {
+            font-size: 1.35rem;
+            font-weight: 900;
+        }
+
+        .progress-wrap {
+            margin-top: 18px;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            color: #cbd5e1;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar {
+            height: 14px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: #3b82f6;
+            transition: width 0.25s ease;
+        }
+
+        .log-box {
+            margin-top: 16px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 14px;
+            color: #cbd5e1;
+            min-height: 120px;
+            font-family: Consolas, monospace;
+            font-size: 0.88rem;
+            line-height: 1.55;
+        }
+
+        .note {
+            background: rgba(59, 130, 246, 0.12);
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            color: #bfdbfe;
+            border-radius: 14px;
+            padding: 16px;
+            line-height: 1.55;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        @media (max-width: 1000px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .topbar,
+            .header {
+                flex-direction: column;
+            }
+
+            .nav {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page">
+        <div class="container">
+
+            <nav class="topbar">
+                <div class="brand">
+                    <div class="brand-badge">
+                        PE2
+                    </div>
+
+                    <div>
+                        <div class="brand-title">
+                            Plataforma multiespectral
+                        </div>
+                        <div class="brand-subtitle">
+                            Adquisición y análisis geoespacial
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav">
+                    <a href="/">Inicio</a>
+                    <a href="/campaigns">Campañas</a>
+                    <a href="/adquisicion_datos" class="active">Adquisición de datos</a>
+                    <a href="/drone_operation">Operación UAV</a>
+                    <a href="/mission_routes">Rutas</a>
+                </div>
+            </nav>
+
+            <header class="header">
+                <div>
+                    <h1>
+                        Adquisición de datos
+                    </h1>
+
+                    <p>
+                        Pantalla dedicada al ingreso de información multiespectral:
+                        importación de carpetas RedEdge, recepción desde cámara o bridge,
+                        validación de capturas y asociación a una campaña.
+                    </p>
+                </div>
+
+                <div class="status-group">
+                    <span class="status-pill">
+                        Modo demo
+                    </span>
+                    <span class="status-pill">
+                        Procesamiento deshabilitado
+                    </span>
+                    <span class="status-pill">
+                        RedEdge preparado
+                    </span>
+                </div>
+            </header>
+
+            <section class="grid">
+                <article class="card">
+                    <h2>
+                        Importar carpeta RedEdge
+                    </h2>
+
+                    <p>
+                        Selecciona una carpeta local con imágenes multibanda para validar
+                        estructura, bandas disponibles y cantidad de archivos antes de asociarla
+                        a una campaña.
+                    </p>
+
+                    <input
+                        id="folderInput"
+                        type="file"
+                        webkitdirectory
+                        multiple
+                    >
+
+                    <div class="button-row">
+                        <button
+                            id="selectFolderButton"
+                            class="button primary"
+                            type="button"
+                        >
+                            Seleccionar carpeta
+                        </button>
+
+                        <button
+                            id="validateFolderButton"
+                            class="button"
+                            type="button"
+                            disabled
+                        >
+                            Validar lote
+                        </button>
+                    </div>
+
+                    <div class="summary-grid">
+                        <div class="metric">
+                            <div class="metric-label">Archivos</div>
+                            <div id="fileCount" class="metric-value">--</div>
+                        </div>
+
+                        <div class="metric">
+                            <div class="metric-label">Bandas</div>
+                            <div id="bandCount" class="metric-value">--</div>
+                        </div>
+
+                        <div class="metric">
+                            <div class="metric-label">Capturas</div>
+                            <div id="captureCount" class="metric-value">--</div>
+                        </div>
+
+                        <div class="metric">
+                            <div class="metric-label">Estado</div>
+                            <div id="folderStatus" class="metric-value">--</div>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="card">
+                    <h2>
+                        Recepción desde cámara
+                    </h2>
+
+                    <p>
+                        Simulación visual del flujo de recepción desde cámara o módulo bridge.
+                        Esta sección representa el avance de transmisión antes de enviar al usuario
+                        a la campaña completada.
+                    </p>
+
+                    <div class="button-row">
+                        <button
+                            id="startReceptionButton"
+                            class="button primary"
+                            type="button"
+                        >
+                            Iniciar recepción
+                        </button>
+
+                        <a
+                            id="viewCampaignButton"
+                            class="button"
+                            href="/campaigns/6"
+                            style="display: none;"
+                        >
+                            Ver campaña completada
+                        </a>
+                    </div>
+
+                    <div class="progress-wrap">
+                        <div class="progress-label">
+                            <span id="progressStatus">Esperando inicio</span>
+                            <span id="progressText">0 / 335</span>
+                        </div>
+
+                        <div class="progress-bar">
+                            <div
+                                id="progressFill"
+                                class="progress-fill"
+                            ></div>
+                        </div>
+                    </div>
+
+                    <div
+                        id="receptionLog"
+                        class="log-box"
+                    >
+                        Sistema listo para iniciar recepción.
+                    </div>
+                </article>
+            </section>
+
+            <section class="note">
+                <strong>Separación funcional:</strong>
+                Operación UAV se mantiene enfocada en ruta, telemetría y estado del dron.
+                Adquisición de datos centraliza el ingreso de imágenes y la validación del lote.
+                Campañas queda como pantalla de revisión de resultados y productos geoespaciales.
+            </section>
+
+        </div>
+    </div>
+
+    <script>
+        const folderInput =
+            document.getElementById(
+                "folderInput"
+            );
+
+        const selectFolderButton =
+            document.getElementById(
+                "selectFolderButton"
+            );
+
+        const validateFolderButton =
+            document.getElementById(
+                "validateFolderButton"
+            );
+
+        const fileCount =
+            document.getElementById(
+                "fileCount"
+            );
+
+        const bandCount =
+            document.getElementById(
+                "bandCount"
+            );
+
+        const captureCount =
+            document.getElementById(
+                "captureCount"
+            );
+
+        const folderStatus =
+            document.getElementById(
+                "folderStatus"
+            );
+
+        selectFolderButton.addEventListener(
+            "click",
+            () => {
+                folderInput.click();
+            }
+        );
+
+        folderInput.addEventListener(
+            "change",
+            () => {
+                const files =
+                    Array.from(
+                        folderInput.files || []
+                    );
+
+                fileCount.textContent =
+                    files.length || "--";
+
+                const tiffFiles =
+                    files.filter(
+                        file =>
+                            file.name.toLowerCase().endsWith(".tif") ||
+                            file.name.toLowerCase().endsWith(".tiff")
+                    );
+
+                const estimatedCaptures =
+                    Math.floor(
+                        tiffFiles.length / 5
+                    );
+
+                bandCount.textContent =
+                    tiffFiles.length > 0
+                        ? "5"
+                        : "--";
+
+                captureCount.textContent =
+                    estimatedCaptures > 0
+                        ? estimatedCaptures
+                        : "--";
+
+                folderStatus.textContent =
+                    files.length > 0
+                        ? "Listo"
+                        : "--";
+
+                validateFolderButton.disabled =
+                    files.length === 0;
+            }
+        );
+
+        validateFolderButton.addEventListener(
+            "click",
+            () => {
+                folderStatus.textContent =
+                    "Validado";
+            }
+        );
+
+        const startReceptionButton =
+            document.getElementById(
+                "startReceptionButton"
+            );
+
+        const viewCampaignButton =
+            document.getElementById(
+                "viewCampaignButton"
+            );
+
+        const progressFill =
+            document.getElementById(
+                "progressFill"
+            );
+
+        const progressText =
+            document.getElementById(
+                "progressText"
+            );
+
+        const progressStatus =
+            document.getElementById(
+                "progressStatus"
+            );
+
+        const receptionLog =
+            document.getElementById(
+                "receptionLog"
+            );
+
+        startReceptionButton.addEventListener(
+            "click",
+            () => {
+                startReceptionButton.disabled =
+                    true;
+
+                viewCampaignButton.style.display =
+                    "none";
+
+                let current =
+                    0;
+
+                const total =
+                    335;
+
+                receptionLog.textContent =
+                    "Iniciando recepción desde cámara/bridge...\n";
+
+                const interval =
+                    setInterval(
+                        () => {
+                            current += 17;
+
+                            if (current >= total) {
+                                current = total;
+                            }
+
+                            const percent =
+                                Math.round(
+                                    current / total * 100
+                                );
+
+                            progressFill.style.width =
+                                `${percent}%`;
+
+                            progressText.textContent =
+                                `${current} / ${total}`;
+
+                            progressStatus.textContent =
+                                current < total
+                                    ? "Transmitiendo imágenes"
+                                    : "Recepción completada";
+
+                            receptionLog.textContent +=
+                                `Recibidas ${current} de ${total} capturas.\n`;
+
+                            if (current === total) {
+                                clearInterval(interval);
+
+                                receptionLog.textContent +=
+                                    "Validación final completada.\n";
+
+                                receptionLog.textContent +=
+                                    "Campaña lista para revisión.\n";
+
+                                viewCampaignButton.style.display =
+                                    "inline-block";
+                            }
+                        },
+                        300
+                    );
+            }
+        );
+    </script>
+</body>
+
+</html>
