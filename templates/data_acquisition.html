@@ -125,6 +125,128 @@
             text-transform: uppercase;
         }
 
+        .destination-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .destination-title {
+            margin: 0 0 8px;
+            font-size: 1.1rem;
+        }
+
+        .destination-code {
+            font-size: 1.6rem;
+            font-weight: 900;
+            margin-bottom: 6px;
+        }
+
+        .destination-description {
+            color: #94a3b8;
+            line-height: 1.5;
+        }
+
+        .stage-list {
+            margin-top: 18px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .stage-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 12px;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            background: #0f172a;
+            color: #94a3b8;
+            font-weight: 700;
+        }
+
+        .stage-marker {
+            width: 24px;
+            height: 24px;
+            border-radius: 999px;
+            display: grid;
+            place-items: center;
+            border: 1px solid #334155;
+            color: #94a3b8;
+            font-size: 0.78rem;
+        }
+
+        .stage-item.active {
+            color: #bfdbfe;
+            border-color: #3b82f6;
+        }
+
+        .stage-item.active .stage-marker {
+            background: #1d4ed8;
+            color: #ffffff;
+            border-color: #3b82f6;
+        }
+
+        .stage-item.done {
+            color: #34d399;
+            border-color: rgba(52, 211, 153, 0.45);
+        }
+
+        .stage-item.done .stage-marker {
+            background: rgba(16, 185, 129, 0.22);
+            color: #34d399;
+            border-color: rgba(52, 211, 153, 0.55);
+        }
+
+        .transfer-result {
+            display: none;
+            margin-top: 16px;
+            border: 1px solid rgba(52, 211, 153, 0.45);
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .transfer-result h3 {
+            margin: 0 0 12px;
+            color: #34d399;
+        }
+
+        .transfer-result-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(
+                    auto-fit,
+                    minmax(130px, 1fr)
+                );
+            gap: 10px;
+        }
+
+        .transfer-result-item {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .transfer-result-label {
+            color: #94a3b8;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .transfer-result-value {
+            font-size: 1.2rem;
+            font-weight: 900;
+        }
+
         .grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -333,6 +455,30 @@
                 </div>
             </header>
 
+            <section class="destination-card">
+                <div>
+                    <h2 class="destination-title">
+                        Campaña destino
+                    </h2>
+
+                    <div class="destination-code">
+                        CP-20260907-0006
+                    </div>
+
+                    <div class="destination-description">
+                        Campaña validada para demostración PE2 · Sensor RedEdge-3 ·
+                        335 capturas asociadas al flujo multiespectral.
+                    </div>
+                </div>
+
+                <a
+                    class="button"
+                    href="/campaigns/6"
+                >
+                    Ver campaña
+                </a>
+            </section>
+
             <section class="grid">
                 <article class="card">
                     <h2>
@@ -443,6 +589,72 @@
                         class="log-box"
                     >
                         Sistema listo para iniciar recepción.
+                    </div>
+
+                    <div
+                        class="stage-list"
+                        aria-label="Etapas de recepción"
+                    >
+                        <div class="stage-item" data-stage="0">
+                            <span class="stage-marker">1</span>
+                            Conectando con cámara / bridge
+                        </div>
+
+                        <div class="stage-item" data-stage="1">
+                            <span class="stage-marker">2</span>
+                            Recibiendo imágenes multiespectrales
+                        </div>
+
+                        <div class="stage-item" data-stage="2">
+                            <span class="stage-marker">3</span>
+                            Validando bandas RedEdge
+                        </div>
+
+                        <div class="stage-item" data-stage="3">
+                            <span class="stage-marker">4</span>
+                            Asociando capturas a campaña
+                        </div>
+
+                        <div class="stage-item" data-stage="4">
+                            <span class="stage-marker">5</span>
+                            Campaña lista para revisión
+                        </div>
+                    </div>
+
+                    <div
+                        id="transferResult"
+                        class="transfer-result"
+                    >
+                        <h3>
+                            Transferencia completada
+                        </h3>
+
+                        <div class="transfer-result-grid">
+                            <div class="transfer-result-item">
+                                <div class="transfer-result-label">Total recibido</div>
+                                <div class="transfer-result-value">335</div>
+                            </div>
+
+                            <div class="transfer-result-item">
+                                <div class="transfer-result-label">Vuelo</div>
+                                <div class="transfer-result-value">328</div>
+                            </div>
+
+                            <div class="transfer-result-item">
+                                <div class="transfer-result-label">Calibración</div>
+                                <div class="transfer-result-value">7</div>
+                            </div>
+
+                            <div class="transfer-result-item">
+                                <div class="transfer-result-label">Bandas</div>
+                                <div class="transfer-result-value">5</div>
+                            </div>
+
+                            <div class="transfer-result-item">
+                                <div class="transfer-result-label">Estado</div>
+                                <div class="transfer-result-value">Validado</div>
+                            </div>
+                        </div>
                     </div>
                 </article>
             </section>
@@ -581,6 +793,40 @@
                 "receptionLog"
             );
 
+        function updateReceptionStages(
+            activeStage
+        ) {
+
+            document.querySelectorAll(
+                ".stage-item"
+            ).forEach(
+                (item) => {
+
+                    const stage =
+                        Number(
+                            item.dataset.stage
+                        );
+
+                    item.classList.remove(
+                        "active",
+                        "done"
+                    );
+
+                    if (stage < activeStage) {
+                        item.classList.add(
+                            "done"
+                        );
+                    }
+
+                    if (stage === activeStage) {
+                        item.classList.add(
+                            "active"
+                        );
+                    }
+                }
+            );
+        }
+
         startReceptionButton.addEventListener(
             "click",
             () => {
@@ -590,14 +836,31 @@
                 viewCampaignButton.style.display =
                     "none";
 
+                document.getElementById(
+                    "transferResult"
+                ).style.display =
+                    "none";
+
                 let current =
                     0;
 
                 const total =
                     335;
 
+                const stageMessages = [
+                    "Conectando con cámara/bridge...",
+                    "Recibiendo imágenes multiespectrales...",
+                    "Validando bandas RedEdge...",
+                    "Asociando capturas a campaña...",
+                    "Campaña lista para revisión.",
+                ];
+
                 receptionLog.textContent =
-                    "Iniciando recepción desde cámara/bridge...\n";
+                    "Iniciando flujo visual de recepción.\n";
+
+                updateReceptionStages(
+                    0
+                );
 
                 const interval =
                     setInterval(
@@ -613,6 +876,18 @@
                                     current / total * 100
                                 );
 
+                            const activeStage =
+                                Math.min(
+                                    4,
+                                    Math.floor(
+                                        percent / 25
+                                    )
+                                );
+
+                            updateReceptionStages(
+                                activeStage
+                            );
+
                             progressFill.style.width =
                                 `${percent}%`;
 
@@ -621,20 +896,32 @@
 
                             progressStatus.textContent =
                                 current < total
-                                    ? "Transmitiendo imágenes"
+                                    ? stageMessages[activeStage]
                                     : "Recepción completada";
 
                             receptionLog.textContent +=
-                                `Recibidas ${current} de ${total} capturas.\n`;
+                                `[${percent}%] ${stageMessages[activeStage]}\n`;
 
                             if (current === total) {
                                 clearInterval(interval);
+
+                                updateReceptionStages(
+                                    5
+                                );
+
+                                progressStatus.textContent =
+                                    "Recepción completada";
 
                                 receptionLog.textContent +=
                                     "Validación final completada.\n";
 
                                 receptionLog.textContent +=
-                                    "Campaña lista para revisión.\n";
+                                    "335 capturas asociadas a CP-20260907-0006.\n";
+
+                                document.getElementById(
+                                    "transferResult"
+                                ).style.display =
+                                    "block";
 
                                 viewCampaignButton.style.display =
                                     "inline-block";
