@@ -820,20 +820,22 @@
         }
 
         .gis-map-status {
-            padding: 11px 14px;
+            display: flex;
+            align-items: center;
 
-            margin-bottom: 12px;
+            min-height: 38px;
+            box-sizing: border-box;
+            padding: 9px 12px;
+            margin: 0;
 
-            border:
-                1px solid #334155;
-
+            border: 1px solid #334155;
             border-radius: 8px;
 
             background: #0f172a;
-
             color: #94a3b8;
 
             font-size: 0.82rem;
+            line-height: 1.4;
         }
 
         .campaign-gis-map {
@@ -1246,9 +1248,11 @@
             align-items: stretch;
         }
 
+
         .gis-map-column {
             display: grid;
-            grid-template-rows: auto minmax(620px, 72vh);
+            grid-template-rows: max-content minmax(620px, 72vh);
+            align-content: start;
             gap: 12px;
             min-width: 0;
         }
@@ -1324,13 +1328,21 @@
             line-height: 1.5;
         }
 
+        .gis-center-button {
+            width: 100%;
+            margin-top: 14px;
+            cursor: pointer;
+            background: #1e293b;
+            font: inherit;
+        }
+
         @media (max-width: 1180px) {
             .gis-workspace-grid {
                 grid-template-columns: 1fr;
             }
 
             .gis-map-column {
-                grid-template-rows: auto minmax(520px, 64vh);
+                grid-template-rows: max-content minmax(520px, 64vh);
             }
 
             .gis-workspace-card .campaign-gis-map {
@@ -1349,7 +1361,7 @@
             }
 
             .gis-map-column {
-                grid-template-rows: auto minmax(420px, 58vh);
+                grid-template-rows: max-content minmax(420px, 58vh);;
             }
 
             .gis-workspace-card .campaign-gis-map {
@@ -1731,6 +1743,13 @@
 
                             </div>
 
+                            <button
+                                id="centerCampaignMapButton"
+                                type="button"
+                                class="button gis-center-button"
+                            >
+                                Centrar en zona de estudio
+                            </button>
 
                             <div
                                 id="gisRasterControls"
@@ -1832,7 +1851,6 @@
 
                             </div>
 
-
                             <div class="spectral-legend-container">
 
                                 <div
@@ -1848,14 +1866,12 @@
 
                             </div>
 
-
                             <p class="spectral-map-note">
                                 Escala numérica fija de -1 a +1.
                                 Los colores representan únicamente el valor del índice.
                             </p>
 
                         </div>
-
 
                         <div class="gis-panel-block gis-panel-note">
 
@@ -4594,7 +4610,6 @@ function initializeRasterProductSelector() {
             "gisRasterProduct"
         );
 
-
     if (!select) {
 
         console.error(
@@ -4605,14 +4620,12 @@ function initializeRasterProductSelector() {
         return;
     }
 
-
     if (
         select.dataset.listenerBound
         === "true"
     ) {
         return;
     }
-
 
     select.addEventListener(
         "change",
@@ -4625,15 +4638,12 @@ function initializeRasterProductSelector() {
                     event.target.value
                 );
 
-
             console.log(
                 "Producto GIS seleccionado:",
                 currentRasterProductId
             );
 
-
-            renderCampaignMap();
-
+            renderRasterPreview();
 
             await (
                 loadSelectedSpectralStatistics()
@@ -5074,6 +5084,56 @@ function renderProductGeometries(
     return validCount;
 }
 
+function centerOnCampaign(fallbackBounds = []) {
+    if (!campaignMap) {
+        return false;
+    }
+
+    const flightCoordinates = currentCaptures
+        .filter(
+            capture => getCaptureRole(capture) === "FLIGHT"
+        )
+        .map(getCaptureCoordinate)
+        .filter(Boolean);
+
+    const rasterProduct = selectRasterPreviewProduct(
+        currentProducts
+    );
+
+    const rasterBounds = rasterProduct
+        ? getProductWgs84Bounds(rasterProduct)
+        : null;
+
+    const targetBounds = flightCoordinates.length >= 2
+        ? flightCoordinates
+        : rasterBounds ?? fallbackBounds;
+
+    campaignMap.invalidateSize();
+
+    if (targetBounds.length > 0) {
+        campaignMap.fitBounds(targetBounds, {
+            padding: [24, 24],
+            maxZoom: 18,
+            animate: false,
+        });
+
+        return true;
+    }
+
+    // Caso excepcional: una sola captura georreferenciada.
+    if (flightCoordinates.length === 1) {
+        campaignMap.setView(
+            flightCoordinates[0],
+            17,
+            { animate: false }
+        );
+
+        return true;
+    }
+
+    return false;
+}
+
 function renderCampaignMap() {
 
     const initialized =
@@ -5084,15 +5144,12 @@ function renderCampaignMap() {
         return;
     }
 
-
     const mapBounds = [];
-
 
     const captureCount =
         renderCaptureGeometries(
             mapBounds
         );
-
 
     const productCount =
         renderProductGeometries(
@@ -5101,26 +5158,27 @@ function renderCampaignMap() {
 
     const rasterProduct = renderRasterPreview();
 
+    const rasterBounds = rasterProduct
+        ? getProductWgs84Bounds(rasterProduct)
+        : null;
+
+    // Coordenadas de vuelo para utilizarlas
+    // si el producto no tiene límites válidos.
+    const flightCoordinates = currentCaptures
+        .filter(
+            capture => getCaptureRole(capture) === "FLIGHT"
+        )
+        .map(getCaptureCoordinate)
+        .filter(Boolean);
+
     const status =
         document.getElementById(
             "campaignMapStatus"
         );
 
+    const hasFocus = centerOnCampaign(mapBounds);
 
-    if (mapBounds.length > 0) {
-
-        campaignMap.fitBounds(
-            mapBounds,
-            {
-                padding: [
-                    30,
-                    30,
-                ],
-
-                maxZoom: 18,
-            }
-        );
-
+    if (hasFocus) {
 
         let statusText =
             (
@@ -5255,16 +5313,14 @@ async function loadCampaignDetail() {
 
         renderRasterProductSelector();
 
+        // El contenedor debe ser visible antes de medir
+        // sus dimensiones e inicializar Leaflet.
+        loading.style.display = "none";
+        content.style.display = "block";
+
         renderCampaignMap();
 
         await loadSelectedSpectralStatistics();
-
-        loading.style.display =
-            "none";
-
-        content.style.display =
-            "block";
-
 
     } catch (error) {
 
@@ -5843,18 +5899,19 @@ document.addEventListener(
             }
         );
 
-        document.getElementById(
-            "gisRasterMode"
-        ).addEventListener(
-            "change",
-            (event) => {
+        document.getElementById("gisRasterMode")
+            .addEventListener("change", (event) => {
+                currentRasterMode = event.target.value;
 
-                currentRasterMode =
-                    event.target.value;
+                // Actualizar únicamente la imagen;
+                // conservar centro y zoom del mapa.
+                renderRasterPreview();
+            });
 
-                renderCampaignMap();
-            }
-        );
+        document.getElementById("centerCampaignMapButton")
+            .addEventListener("click", () => {
+                centerOnCampaign();
+            });
 
         initializeRasterProductSelector();
 
@@ -6510,7 +6567,6 @@ async function loadSelectedSpectralStatistics() {
         return;
     }
 
-
     const productType =
         getGeospatialProductType(
             selected
@@ -6539,7 +6595,6 @@ async function loadSelectedSpectralStatistics() {
         return;
     }
 
-
     try {
 
         const result =
@@ -6551,13 +6606,11 @@ async function loadSelectedSpectralStatistics() {
                 )
             );
 
-
         currentSpectralStatistics =
             result.statistics;
 
         currentSpectralLegend =
             result.legend;
-
 
         renderSpectralMapPanel();
 
@@ -6634,36 +6687,12 @@ function renderSpectralMapPanel() {
             4
         );
 
-
     document.getElementById(
         "spectralStatPixels"
     ).textContent =
         Number(
             statistics.valid_pixel_count
         ).toLocaleString();
-
-    document.getElementById(
-        "gisRasterProduct"
-    ).addEventListener(
-        "change",
-        async (
-            event
-        ) => {
-
-            currentRasterProductId =
-                Number(
-                    event.target.value
-                );
-
-
-            renderCampaignMap();
-
-
-            await (
-                loadSelectedSpectralStatistics()
-            );
-        }
-    );
 
     const gradient =
         document.getElementById(
@@ -6703,7 +6732,6 @@ function renderSpectralMapPanel() {
             }
         );
 
-
     gradient.style.background =
         (
             "linear-gradient("
@@ -6712,12 +6740,10 @@ function renderSpectralMapPanel() {
             + ")"
         );
 
-
     const labels =
         document.getElementById(
             "spectralLegendLabels"
         );
-
 
     labels.innerHTML =
         currentSpectralLegend
