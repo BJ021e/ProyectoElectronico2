@@ -882,6 +882,26 @@ def test_campaign_detail_contains_escaped_expandable_errors():
     ):
         assert marker in html
 
+
+def test_campaign_detail_has_satellite_basemap():
+    app.config["TESTING"] = True
+
+    response = app.test_client().get("/campaigns/40")
+
+    assert response.status_code == 200
+
+    html = response.get_data(as_text=True)
+
+    for marker in (
+        "server.arcgisonline.com",
+        "tile.openstreetmap.org",
+        "satelliteBaseLayer",
+        "streetBaseLayer",
+        "L.control.layers",
+        "rasterPreviewPane",
+    ):
+        assert marker in html
+
 def test_campaign_detail_helpers_behavior():
     import shutil
     import subprocess

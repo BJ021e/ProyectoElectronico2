@@ -1305,7 +1305,7 @@
             display: grid;
             grid-template-columns: minmax(0, 1fr) minmax(320px, 390px);
             gap: 18px;
-            align-items: stretch;
+            align-items: start;
         }
 
         .gis-map-column {
@@ -1352,6 +1352,24 @@
             flex-direction: column;
             gap: 14px;
             min-width: 0;
+        }
+
+        .gis-side-panel #spectralMapPanel .spectral-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        @media (max-width: 1180px) {
+            .gis-workspace-grid {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+
+        @media (max-width: 760px) {
+            .gis-side-panel #spectralMapPanel .spectral-stat-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         .gis-panel-block {
@@ -1800,6 +1818,7 @@
                 </div>
 
             </section>
+
             <section class="section-card gis-workspace-card">
 
                 <div class="section-header gis-workspace-header">
@@ -1821,7 +1840,6 @@
 
                 </div>
 
-
                 <div class="gis-workspace-grid">
 
                     <div class="gis-map-column">
@@ -1839,9 +1857,9 @@
                         ></div>
 
                         <div
-                                id="indexInterpretation"
-                                class="index-interpretation"
-                                hidden
+                            id="indexInterpretation"
+                            class="index-interpretation"
+                            hidden
                             >
                                 <h4 id="indexInterpretationTitle">
                                     Interpretación visual del índice
@@ -1856,10 +1874,9 @@
                                     id="indexInterpretationNote"
                                     class="index-interpretation-note"
                                 ></p>
-                            </div>
+                        </div>
 
                     </div>
-
 
                     <aside
                         class="gis-side-panel"
@@ -1895,7 +1912,6 @@
                                     </strong>
                                 </div>
 
-
                                 <div class="gis-summary-item">
                                     <span>
                                         Ráster visible
@@ -1909,7 +1925,6 @@
                             </div>
 
                         </div>
-
 
                         <div class="gis-panel-block">
 
@@ -1983,8 +1998,6 @@
                                 No corresponde a su color físico ni constituye
                                 un diagnóstico fitosanitario.
                             </p>
-
-                            </div>
 
                         </div>
 
@@ -2069,6 +2082,13 @@
                             <h3>
                                 Lectura del visor
                             </h3>
+
+                            <p class="gis-basemap-note">
+                                Las imágenes satelitales se utilizan como
+                                contexto geográfico. Pueden corresponder
+                                a una fecha y resolución diferentes de las
+                                imágenes capturadas durante la campaña.
+                            </p>
 
                             <p>
                                 Las capas muestran ubicación de capturas, extensión de
@@ -2191,6 +2211,7 @@
 
                 </div>
 
+            <!-- Fin de technical-collapsible-body -->
             </details>
 
             <details
@@ -4468,12 +4489,10 @@ function initializeCampaignMap() {
         return true;
     }
 
-
     const status =
         document.getElementById(
             "campaignMapStatus"
         );
-
 
     if (typeof L === "undefined") {
 
@@ -4482,7 +4501,6 @@ function initializeCampaignMap() {
 
         return false;
     }
-
 
     campaignMap =
         L.map(
@@ -4506,21 +4524,28 @@ function initializeCampaignMap() {
     ).style.pointerEvents =
         "none";
 
-    L.tileLayer(
-        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    const streetBaseLayer = L.tileLayer(
+        "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
         {
             maxZoom: 19,
-
-            attribution:
-                "&copy; OpenStreetMap contributors",
+            attribution: "&copy; OpenStreetMap contributors",
         }
-    ).addTo(
-        campaignMap
     );
 
+    const satelliteBaseLayer = L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        {
+            maxZoom: 19,
+            attribution:
+                "Imagery &copy; Esri, Maxar, " +
+                "Earthstar Geographics, and the GIS User Community",
+        }
+    );
+
+    // El satélite será el fondo inicial.
+    satelliteBaseLayer.addTo(campaignMap);
 
     initializeCaptureLayers();
-
 
     gisProductLayer =
         L.layerGroup()
@@ -4534,28 +4559,22 @@ function initializeCampaignMap() {
             campaignMap
         );
 
-
-    gisLayerControl =
-        L.control.layers(
-            null,
-            {
-                "Capturas de vuelo": gisCaptureLayers.FLIGHT,
-                "Capturas de calibración": gisCaptureLayers.CALIBRATION,
-                "Capturas sin clasificar": gisCaptureLayers.UNKNOWN,
-
-                "Extensión de productos":
-                    gisProductLayer,
-
-                "Vista previa ráster":
-                gisRasterLayer,
-            },
-            {
-                collapsed: false,
-            }
-        ).addTo(
-            campaignMap
-        );
-
+    gisLayerControl = L.control.layers(
+        {
+            "Satélite (Esri)": satelliteBaseLayer,
+            "Mapa (OpenStreetMap)": streetBaseLayer,
+        },
+        {
+            "Capturas de vuelo": gisCaptureLayers.FLIGHT,
+            "Capturas de calibración": gisCaptureLayers.CALIBRATION,
+            "Capturas sin clasificar": gisCaptureLayers.UNKNOWN,
+            "Extensión de productos": gisProductLayer,
+            "Vista previa ráster": gisRasterLayer,
+        },
+        {
+            collapsed: true,
+        }
+    ).addTo(campaignMap);
 
     campaignMap.setView(
         [0, 0],
