@@ -21,6 +21,10 @@ import numpy as np
 import cv2
 import rasterio
 import json
+import logging
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
+from uuid import uuid4
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
@@ -146,6 +150,7 @@ from datetime import datetime, timezone
 app = Flask(__name__)
 app.secret_key = Config.SECRET_KEY
 
+app.logger.setLevel(logging.INFO)
 
 processing_executor = (
     ProcessingExecutor(
@@ -1109,10 +1114,7 @@ def dji_cloud_probe():
     Página mínima para verificar que DJI Pilot 2 puede abrir
     la plataforma PE2 desde Servicios en la nube / Plataformas abiertas.
     """
-    client_ip = request.headers.get(
-        "X-Forwarded-For",
-        request.remote_addr,
-    )
+    client_ip = request.remote_addr
 
     user_agent = request.headers.get(
         "User-Agent",
@@ -1135,19 +1137,59 @@ def dji_cloud_probe():
 
 @app.route("/api/dji-cloud/ping", methods=["GET", "POST"])
 def api_dji_cloud_ping():
-    """
-    Endpoint de prueba para confirmar comunicación WebView DJI Pilot 2 → Flask.
-    No implementa aún licencia DJI ni telemetría real.
-    """
-    payload = request.get_json(silent=True) or {}
+    """Diagnóstico HTTP de comunicación con PE2."""
+
+    payload = (
+        request.get_json(silent=True)
+        if request.method == "POST"
+        else {}
+    )
+
+    if not isinstance(payload, dict):
+        return jsonify({
+            "ok": False,
+            "error": "Se esperaba un objeto JSON.",
+        }), 400
+
+    request_id = uuid4().hex[:12]
+
+    client_request_id = str(
+        payload.get("client_request_id", "")
+    )[:64]
+
+    client_ip = request.remote_addr
+
+    user_agent = request.headers.get(
+        "User-Agent", ""
+    )[:200]
+
+    server_time = datetime.now(
+        timezone.utc
+    ).isoformat()
+
+    app.logger.info(
+        "DJI_PROBE_PING "
+        "request_id=%s "
+        "client_request_id=%s "
+        "method=%s "
+        "ip=%s "
+        "user_agent=%r",
+        request_id,
+        client_request_id,
+        request.method,
+        client_ip,
+        user_agent,
+    )
 
     return jsonify({
         "ok": True,
         "source": "pe2-dji-cloud-probe",
-        "remote_addr": request.remote_addr,
-        "user_agent": request.headers.get("User-Agent", ""),
+        "request_id": request_id,
+        "client_request_id": client_request_id,
+        "remote_addr": client_ip,
+        "user_agent": user_agent,
         "received": payload,
-        "server_time": datetime.now(timezone.utc).isoformat(),
+        "server_time": server_time,
     })
 
 @app.route("/drone_operation")
@@ -2871,10 +2913,47 @@ def api_inspect_rededge_stage(
             "msg": str(exc),
         }), 500
 
+
 if __name__ == "__main__":
+
+    log_dir = (
+        Path(__file__).resolve().parent
+        / "diagnosticos_smart_controller"
+    )
+
+    log_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    log_handler = RotatingFileHandler(
+        log_dir / "flask.log",
+        maxBytes=2_000_000,
+        backupCount=3,
+        encoding="utf-8",
+    )
+
+    log_handler.setLevel(logging.INFO)
+
+    log_handler.setFormatter(
+        logging.Formatter(
+            "%(asctime)s | %(levelname)s | "
+            "%(name)s | %(message)s"
+        )
+    )
+
+    app.logger.addHandler(log_handler)
+    app.logger.setLevel(logging.INFO)
+
+    app.logger.info(
+        "PE2_DIAGNOSTIC_START host=%s port=%s",
+        Config.FLASK_HOST,
+        Config.FLASK_PORT,
+    )
+
     app.run(
         debug=Config.FLASK_DEBUG,
         host=Config.FLASK_HOST,
-        port=Config.FLASK_PORT
+        port=Config.FLASK_PORT,
     )
 

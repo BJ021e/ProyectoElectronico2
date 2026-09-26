@@ -89,7 +89,7 @@
         <h1>PE2 · DJI Cloud Probe</h1>
 
         <div class="status">
-            Conexión WebView activa
+            Página de diagnóstico accesible
         </div>
 
         <p>
@@ -124,30 +124,57 @@
 
 <script>
 async function sendPing() {
-    const output = document.getElementById("pingResult");
+    const output = document.getElementById(
+        "pingResult"
+    );
 
-    output.textContent = "Enviando ping...";
+    const clientRequestId =
+        "probe-"
+        + Date.now().toString(36)
+        + "-"
+        + Math.random().toString(36).slice(2, 8);
+
+    output.textContent =
+        "Enviando solicitud " + clientRequestId;
 
     try {
-        const response = await fetch("/api/dji-cloud/ping", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                source: "dji-pilot2-webview",
-                browser_time: new Date().toISOString(),
-                user_agent: navigator.userAgent,
-            }),
-        });
+        const response = await fetch(
+            "/api/dji-cloud/ping",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    source: "pe2-probe-page",
+                    client_request_id: clientRequestId,
+                    browser_time: new Date().toISOString(),
+                    user_agent: navigator.userAgent,
+                }),
+            }
+        );
 
         const data = await response.json();
 
-        output.textContent = JSON.stringify(data, null, 2);
+        if (!response.ok || !data.ok) {
+            throw new Error(
+                data.error || `HTTP ${response.status}`
+            );
+        }
+
+        output.textContent =
+            "PING OK\n\n"
+            + JSON.stringify(data, null, 2);
+
     } catch (error) {
-        output.textContent = "Error de conexión: " + error;
+        output.textContent =
+            "PING FALLIDO\n"
+            + "ID del cliente: " + clientRequestId
+            + "\n"
+            + String(error);
     }
 }
+
 </script>
 </body>
 </html>
