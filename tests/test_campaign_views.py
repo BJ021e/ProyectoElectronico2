@@ -181,7 +181,7 @@ def test_campaign_detail_view_is_available():
         "123"
         in html
     )
-    
+
 def test_campaign_detail_contains_domain_sections():
 
     app.config["TESTING"] = True
@@ -342,7 +342,7 @@ def test_campaign_detail_uses_rededge_import_api():
         "/rededge/staging/"
         in html
     )
-    
+
 def test_campaign_detail_contains_rededge_progress():
 
     app.config["TESTING"] = True
@@ -401,7 +401,7 @@ def test_campaign_detail_uses_batch_staging_api():
         "/inspect"
         in html
     )
-    
+
 def test_campaign_detail_contains_gis_viewer():
 
     app.config["TESTING"] = True
@@ -583,7 +583,7 @@ def test_campaign_detail_selects_primary_raster_product():
         "ORTHOMOSAIC_MULTISPECTRAL"
         in html
     )
-    
+
 def test_campaign_detail_does_not_convert_missing_coordinates_to_zero():
 
     app.config["TESTING"] = True
@@ -659,7 +659,6 @@ def test_campaign_detail_contains_multispectral_layer_selector():
         in html
     )
 
-
 def test_campaign_detail_preview_uses_raster_mode():
 
     app.config["TESTING"] = True
@@ -674,21 +673,21 @@ def test_campaign_detail_preview_uses_raster_mode():
         as_text=True
     )
 
+    assert "new URLSearchParams" in html
+
+    assert "mode: currentRasterMode" in html
+
+    assert "band_palette: currentBandPalette" in html
+
     assert (
         "currentRasterMode"
         in html
     )
 
-    assert (
-        "encodeURIComponent"
-        in html
-    )
+    assert "previewUrl +=" in html
 
-    assert (
-        "?mode="
-        in html
-    )
-    
+    assert "params.toString()" in html
+
 def test_campaign_detail_contains_spectral_analysis_controls():
 
     app.config["TESTING"] = True
@@ -723,7 +722,6 @@ def test_campaign_detail_contains_spectral_analysis_controls():
         in html
     )
 
-
 def test_campaign_detail_uses_spectral_index_api():
 
     app.config["TESTING"] = True
@@ -757,7 +755,7 @@ def test_campaign_detail_uses_spectral_index_api():
         "hasSpectralIndex"
         in html
     )
-    
+
 def test_campaign_detail_contains_raster_product_selector():
 
     app.config["TESTING"] = True
@@ -786,7 +784,6 @@ def test_campaign_detail_contains_raster_product_selector():
         "currentRasterProductId"
         in html
     )
-
 
 def test_campaign_detail_contains_spectral_statistics_panel():
 
@@ -827,7 +824,6 @@ def test_campaign_detail_contains_spectral_statistics_panel():
         in html
     )
 
-
 def test_campaign_detail_loads_selected_spectral_statistics():
 
     app.config["TESTING"] = True
@@ -857,8 +853,6 @@ def test_campaign_detail_loads_selected_spectral_statistics():
         in html
     )
 
-
-
 def test_campaign_detail_contains_processing_traceability():
     html = app.test_client().get("/campaigns/123").get_data(as_text=True)
     for marker in (
@@ -870,7 +864,6 @@ def test_campaign_detail_contains_processing_traceability():
     ):
         assert marker in html
 
-
 def test_campaign_detail_contains_adaptive_resolution():
     html = app.test_client().get("/campaigns/123").get_data(as_text=True)
     for marker in (
@@ -878,7 +871,6 @@ def test_campaign_detail_contains_adaptive_resolution():
         "toExponential(4)", "epsg === 4326", "32601", "32760", "m/px",
     ):
         assert marker in html
-
 
 def test_campaign_detail_contains_escaped_expandable_errors():
     html = app.test_client().get("/campaigns/123").get_data(as_text=True)
@@ -889,7 +881,6 @@ def test_campaign_detail_contains_escaped_expandable_errors():
         "white-space: pre-wrap", "max-height: 320px", "overflow: auto",
     ):
         assert marker in html
-
 
 def test_campaign_detail_helpers_behavior():
     import shutil
@@ -905,6 +896,7 @@ def test_campaign_detail_helpers_behavior():
     import re
     functions = re.findall(r"^function [\s\S]*?^}", html, re.MULTILINE)
     script = "\n".join(functions) + r'''
+
 const assert = require("node:assert/strict");
 let currentJobs = [
     {id: 91, backend: "MOCK", status: "COMPLETED", finished_at: "2030-02-01"},

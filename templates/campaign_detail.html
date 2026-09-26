@@ -1090,6 +1090,66 @@
             font-size: 0.76rem;
         }
 
+        .index-interpretation {
+            margin-top: 18px;
+            padding-top: 16px;
+            border-top: 1px solid #334155;
+        }
+
+        .index-interpretation[hidden] {
+            display: none;
+        }
+
+        .index-interpretation h4 {
+            margin: 0 0 14px;
+            color: #f8fafc;
+            font-size: 0.95rem;
+        }
+
+        .index-interpretation-rows {
+            display: grid;
+            gap: 10px;
+        }
+
+        .index-interpretation-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            border: 1px solid #334155;
+            border-radius: 9px;
+            background: #0f172a;
+        }
+
+        .index-interpretation-swatch {
+            width: 34px;
+            height: 28px;
+            flex-shrink: 0;
+            border: 1px solid #64748b;
+            border-radius: 5px;
+        }
+
+        .index-interpretation-label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #e2e8f0;
+        }
+
+        .index-interpretation-range {
+            display: block;
+            margin-top: 4px;
+            font-size: 0.74rem;
+            color: #94a3b8;
+        }
+
+        .index-interpretation-note {
+            margin: 14px 0 0;
+            color: #94a3b8;
+            font-size: 0.75rem;
+            line-height: 1.5;
+        }
+
         .spectral-stat-grid {
             grid-template-columns:
                 repeat(
@@ -1248,13 +1308,34 @@
             align-items: stretch;
         }
 
-
         .gis-map-column {
             display: grid;
-            grid-template-rows: max-content minmax(620px, 72vh);
+            grid-template-rows:
+                max-content
+                minmax(620px, 72vh)
+                max-content;
             align-content: start;
             gap: 12px;
             min-width: 0;
+        }
+
+        .gis-map-column .index-interpretation {
+            margin: 0;
+            padding: 20px;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            background: #0f172a;
+            align-self: start;
+        }
+
+        .gis-map-column .index-interpretation-rows {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        @media (max-width: 760px) {
+            .gis-map-column .index-interpretation-rows {
+                grid-template-columns: 1fr;
+            }
         }
 
         .gis-workspace-card .campaign-gis-map {
@@ -1328,9 +1409,13 @@
             line-height: 1.5;
         }
 
-        .gis-center-button {
-            width: 100%;
-            margin-top: 14px;
+        .gis-side-panel #centerCampaignMapButton {
+            display: block;
+            width: min(100%, 320px);
+            margin: 18px auto;
+            padding: 12px 16px;
+            box-sizing: border-box;
+            text-align: center;
             cursor: pointer;
             background: #1e293b;
             font: inherit;
@@ -1342,7 +1427,7 @@
             }
 
             .gis-map-column {
-                grid-template-rows: max-content minmax(520px, 64vh);
+                grid-template-rows: max-content minmax(520px, 64vh) max-content;
             }
 
             .gis-workspace-card .campaign-gis-map {
@@ -1361,7 +1446,7 @@
             }
 
             .gis-map-column {
-                grid-template-rows: max-content minmax(420px, 58vh);;
+                grid-template-rows: max-content minmax(420px, 58vh) max-content;
             }
 
             .gis-workspace-card .campaign-gis-map {
@@ -1450,6 +1535,90 @@
         .technical-collapsible + .technical-collapsible {
             margin-top: 16px;
         }
+
+        .campaign-secondary-details {
+            margin-bottom: 12px;
+        }
+
+        .campaign-secondary-details .technical-summary {
+            padding: 14px 18px;
+            flex-wrap: wrap;
+        }
+
+        .campaign-secondary-details .campaign-information {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .campaign-secondary-details .information-item {
+            padding: 12px;
+        }
+
+        .campaign-secondary-details .spectral-controls {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        @media (max-width: 900px) {
+            .campaign-secondary-details .campaign-information,
+            .campaign-secondary-details .spectral-controls {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 600px) {
+            .campaign-secondary-details .campaign-information,
+            .campaign-secondary-details .spectral-controls {
+                grid-template-columns: 1fr;
+            }
+        }
+        /* Controles de bandas espectrales */
+
+        .gis-side-panel #gisRasterControls,
+        .gis-side-panel #gisBandPaletteControls {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 7px;
+
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+        }
+
+        .gis-side-panel #gisBandPaletteControls {
+            margin-top: 12px;
+        }
+
+        .gis-side-panel #gisRasterControls label,
+        .gis-side-panel #gisBandPaletteControls label {
+            display: block;
+            width: 100%;
+            margin: 0;
+        }
+
+        .gis-side-panel #gisRasterControls select,
+        .gis-side-panel #gisBandPaletteControls select {
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+        }
+
+        .gis-side-panel #gisBandPaletteNote {
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+
+            margin: 4px 0 0;
+
+            white-space: normal;
+            overflow-wrap: break-word;
+            line-height: 1.5;
+        }
+
     </style>
 
 </head>
@@ -1669,6 +1838,26 @@
                             class="campaign-gis-map"
                         ></div>
 
+                        <div
+                                id="indexInterpretation"
+                                class="index-interpretation"
+                                hidden
+                            >
+                                <h4 id="indexInterpretationTitle">
+                                    Interpretación visual del índice
+                                </h4>
+
+                                <div
+                                    id="indexInterpretationRows"
+                                    class="index-interpretation-rows"
+                                ></div>
+
+                                <p
+                                    id="indexInterpretationNote"
+                                    class="index-interpretation-note"
+                                ></p>
+                            </div>
+
                     </div>
 
 
@@ -1756,43 +1945,48 @@
                                 class="gis-raster-controls"
                                 style="display: none;"
                             >
-
                                 <label for="gisRasterMode">
                                     Capa ráster
                                 </label>
 
                                 <select id="gisRasterMode">
-
-                                    <option value="natural">
-                                        RGB natural
-                                    </option>
-
-                                    <option value="blue">
-                                        Blue
-                                    </option>
-
-                                    <option value="green">
-                                        Green
-                                    </option>
-
-                                    <option value="red">
-                                        Red
-                                    </option>
-
-                                    <option value="nir">
-                                        NIR
-                                    </option>
-
-                                    <option value="red_edge">
-                                        Red Edge
-                                    </option>
-
+                                    <option value="natural">RGB natural</option>
+                                    <option value="blue">Blue</option>
+                                    <option value="green">Green</option>
+                                    <option value="red">Red</option>
+                                    <option value="nir">NIR</option>
+                                    <option value="red_edge">Red Edge</option>
                                 </select>
+                            </div>
+
+                            <div
+                                id="gisBandPaletteControls"
+                                class="gis-raster-controls"
+                                style="display: none;"
+                            >
+                                <label for="gisBandPalette">
+                                    Visualización de banda
+                                </label>
+
+                                <select id="gisBandPalette">
+                                    <option value="pseudo">Pseudocolor</option>
+                                    <option value="gray">Escala de grises</option>
+                                </select>
+                            </div>
+
+                            <p
+                                id="gisBandPaletteNote"
+                                class="spectral-map-note"
+                                style="display: none;"
+                            >
+                                Color representativo asignado a la banda.
+                                No corresponde a su color físico ni constituye
+                                un diagnóstico fitosanitario.
+                            </p>
 
                             </div>
 
                         </div>
-
 
                         <div
                             id="spectralMapPanel"
@@ -1816,7 +2010,6 @@
                                     </strong>
                                 </div>
 
-
                                 <div class="spectral-stat-card">
                                     <span>
                                         Media
@@ -1827,7 +2020,6 @@
                                     </strong>
                                 </div>
 
-
                                 <div class="spectral-stat-card">
                                     <span>
                                         Máximo
@@ -1837,7 +2029,6 @@
                                         --
                                     </strong>
                                 </div>
-
 
                                 <div class="spectral-stat-card">
                                     <span>
@@ -1893,17 +2084,17 @@
                 </div>
 
             </section>
+
             <!-- INFORMACIÓN GENERAL -->
-            <section class="section-card">
+            <details
+                class="section-card technical-collapsible campaign-secondary-details"
+            >
+                <summary class="technical-summary">
+                    <span>Información general</span>
+                    <small>Sensor, fechas, vuelo y descripción</small>
+                </summary>
 
-                <div class="section-header">
-
-                    <h2 class="section-title">
-                        Información general
-                    </h2>
-
-                </div>
-
+                <div class="technical-collapsible-body">
 
                 <div class="campaign-information">
 
@@ -1938,7 +2129,6 @@
 
                     </div>
 
-
                     <div class="information-item">
 
                         <div class="information-label">
@@ -1953,7 +2143,6 @@
                         </div>
 
                     </div>
-
 
                     <div class="information-item">
 
@@ -1970,7 +2159,6 @@
 
                     </div>
 
-
                     <div class="information-item">
 
                         <div class="information-label">
@@ -1985,7 +2173,6 @@
                         </div>
 
                     </div>
-
 
                     <div class="information-item">
 
@@ -2004,30 +2191,18 @@
 
                 </div>
 
-            </section>
+            </details>
 
-            <section
+            <details
                 id="spectralAnalysisSection"
-                class="section-card"
+                class="section-card technical-collapsible campaign-secondary-details"
             >
+                <summary class="technical-summary">
+                    <span>Análisis espectral</span>
+                    <small>NDVI · NDRE · GNDVI</small>
+                </summary>
 
-                <div class="section-header">
-
-                    <div>
-
-                        <h2 class="section-title">
-                            Análisis espectral
-                        </h2>
-
-                        <p class="spectral-description">
-                            Generación de índices derivados
-                            del ortomosaico multiespectral.
-                        </p>
-
-                    </div>
-
-                </div>
-
+                <div class="technical-collapsible-body">
 
                 <div
                     id="spectralUnavailable"
@@ -2036,7 +2211,6 @@
                     La campaña todavía no posee un
                     ortomosaico multiespectral disponible.
                 </div>
-
 
                 <div
                     id="spectralControls"
@@ -2064,7 +2238,6 @@
 
                     </div>
 
-
                     <div class="spectral-index-card">
 
                         <div>
@@ -2084,7 +2257,6 @@
                         </button>
 
                     </div>
-
 
                     <div class="spectral-index-card">
 
@@ -2108,14 +2280,13 @@
 
                 </div>
 
-
                 <div
                     id="spectralMessage"
                     class="spectral-message"
                     style="display: none;"
                 ></div>
 
-            </section>
+            </details>
 
             <section class="technical-section-intro">
                 <div>
@@ -2168,7 +2339,6 @@
                 </div>
             </details>
 
-
             <!-- PROCESSING -->
 
             <details class="section-card technical-collapsible">
@@ -2192,7 +2362,6 @@
 
                 </div>
 
-
                 <div
                     id="processingMessage"
                     class="processing-message"
@@ -2200,7 +2369,6 @@
 
                 </div>
             </details>
-
 
             <!-- PRODUCTS -->
             <details class="section-card technical-collapsible">
@@ -2226,7 +2394,6 @@
 
                 </div>
             </details>
-
 
         </main>
 
@@ -2464,6 +2631,8 @@ let currentRasterProductId = null;
 let currentSpectralStatistics = null;
 
 let currentSpectralLegend = null;
+
+let currentBandPalette = "pseudo";
 
 const RED_EDGE_BATCH_MAX_FILES = 25;
 
@@ -4469,18 +4638,15 @@ function renderRasterPreview() {
 
     gisRasterLayer.clearLayers();
 
-
     const counter =
         document.getElementById(
             "gisRasterCount"
         );
 
-
     const product =
         selectRasterPreviewProduct(
             currentProducts
         );
-
 
     const controls =
     document.getElementById(
@@ -4511,6 +4677,26 @@ function renderRasterPreview() {
     );
 
 
+    const showBandPalette = (
+        isMultispectral
+        && currentRasterMode !== "natural"
+    );
+
+    document.getElementById(
+        "gisBandPaletteControls"
+    ).style.display = showBandPalette
+        ? "flex"
+        : "none";
+
+    document.getElementById(
+        "gisBandPaletteNote"
+    ).style.display = (
+        showBandPalette
+        && currentBandPalette === "pseudo"
+    )
+        ? "block"
+        : "none";
+
     controls.style.display =
         isMultispectral
         ? "flex"
@@ -4521,7 +4707,6 @@ function renderRasterPreview() {
             product
         );
 
-
     if (!bounds) {
 
         counter.textContent =
@@ -4530,7 +4715,6 @@ function renderRasterPreview() {
         return null;
     }
 
-
     let previewUrl =
         (
             `/api/geospatial-products/`
@@ -4538,30 +4722,26 @@ function renderRasterPreview() {
             + `/preview.png`
         );
 
-
     if (isMultispectral) {
+        const params = new URLSearchParams({
+            mode: currentRasterMode,
+            band_palette: currentBandPalette,
+        });
 
-        previewUrl +=
-            (
-                `?mode=${encodeURIComponent(
-                    currentRasterMode
-                )}`
-            );
+        previewUrl += `?${params.toString()}`;
     }
-
 
     const overlay =
         L.imageOverlay(
             previewUrl,
             bounds,
             {
-                opacity: 0.82,
+                opacity: 1,
 
                 pane:
                     "rasterPreviewPane",
             }
         );
-
 
     overlay.on(
         "load",
@@ -4571,7 +4751,6 @@ function renderRasterPreview() {
                 "1";
         }
     );
-
 
     overlay.on(
         "error",
@@ -4593,7 +4772,6 @@ function renderRasterPreview() {
                 );
         }
     );
-
 
     overlay.addTo(
         gisRasterLayer
@@ -4650,7 +4828,6 @@ function initializeRasterProductSelector() {
             );
         }
     );
-
 
     select.dataset.listenerBound =
         "true";
@@ -5329,18 +5506,14 @@ async function loadCampaignDetail() {
             error
         );
 
-
         content.style.display =
             "none";
-
 
         loading.style.display =
             "block";
 
-
         loading.className =
             "error-state";
-
 
         loading.textContent =
             error.message
@@ -5349,7 +5522,6 @@ async function loadCampaignDetail() {
             );
     }
 }
-
 
 /* ===============================================
    PROCESAR CAMPAÑA
@@ -5905,6 +6077,12 @@ document.addEventListener(
 
                 // Actualizar únicamente la imagen;
                 // conservar centro y zoom del mapa.
+                renderRasterPreview();
+            });
+
+        document.getElementById("gisBandPalette")
+            .addEventListener("change", event => {
+                currentBandPalette = event.target.value;
                 renderRasterPreview();
             });
 
@@ -6537,7 +6715,6 @@ async function loadSelectedSpectralStatistics() {
             "spectralMapPanel"
         );
 
-
     const selected =
         currentProducts.find(
             (product) =>
@@ -6552,7 +6729,6 @@ async function loadSelectedSpectralStatistics() {
                 )
         );
 
-
     if (!selected) {
 
         panel.style.display =
@@ -6564,6 +6740,8 @@ async function loadSelectedSpectralStatistics() {
         currentSpectralLegend =
             null;
 
+        renderIndexInterpretation();
+
         return;
     }
 
@@ -6571,7 +6749,6 @@ async function loadSelectedSpectralStatistics() {
         getGeospatialProductType(
             selected
         );
-
 
     if (
         ![
@@ -6591,6 +6768,8 @@ async function loadSelectedSpectralStatistics() {
 
         currentSpectralLegend =
             null;
+
+        renderIndexInterpretation();
 
         return;
     }
@@ -6615,16 +6794,189 @@ async function loadSelectedSpectralStatistics() {
         renderSpectralMapPanel();
 
     } catch (error) {
+        panel.style.display = "none";
 
-        panel.style.display =
-            "none";
+        currentSpectralStatistics = null;
+        currentSpectralLegend = null;
+        renderIndexInterpretation();
 
         console.error(
-            "Error cargando estadísticas "
-            + "espectrales:",
+            "Error cargando estadísticas espectrales:",
             error
         );
     }
+}
+
+function getSpectralLegendColor(value) {
+    const stops = (currentSpectralLegend ?? [])
+        .filter(item =>
+            Number.isFinite(Number(item.value))
+            && Array.isArray(item.rgb)
+            && item.rgb.length === 3
+        )
+        .map(item => ({
+            value: Number(item.value),
+            rgb: item.rgb.map(Number),
+        }))
+        .filter(item =>
+            item.rgb.every(Number.isFinite)
+        )
+        .sort((a, b) => a.value - b.value);
+
+    if (!stops.length) {
+        return "rgb(148, 163, 184)";
+    }
+
+    const asColor = rgb =>
+        `rgb(${rgb.map(Math.round).join(", ")})`;
+
+    if (value <= stops[0].value) {
+        return asColor(stops[0].rgb);
+    }
+
+    const last = stops[stops.length - 1];
+
+    if (value >= last.value) {
+        return asColor(last.rgb);
+    }
+
+    for (let i = 1; i < stops.length; i++) {
+        const left = stops[i - 1];
+        const right = stops[i];
+
+        if (value <= right.value) {
+            const fraction =
+                (value - left.value)
+                / (right.value - left.value);
+
+            const rgb = left.rgb.map(
+                (channel, index) =>
+                    channel
+                    + fraction
+                    * (right.rgb[index] - channel)
+            );
+
+            return asColor(rgb);
+        }
+    }
+
+    return asColor(last.rgb);
+}
+
+function renderIndexInterpretation() {
+    const panel = document.getElementById(
+        "indexInterpretation"
+    );
+
+    const rows = document.getElementById(
+        "indexInterpretationRows"
+    );
+
+    const selected = currentProducts.find(
+        product =>
+            Number(product.id)
+            === Number(currentRasterProductId)
+    );
+
+    const type = selected
+        ? getGeospatialProductType(selected)
+        : "";
+
+    if (
+        !["NDVI", "NDRE", "GNDVI"].includes(type)
+        || !currentSpectralLegend?.length
+    ) {
+        panel.hidden = true;
+        rows.replaceChildren();
+        return;
+    }
+
+    const isNDVI = type === "NDVI";
+
+    document.getElementById(
+        "indexInterpretationTitle"
+    ).textContent = `Interpretación visual del ${type}`;
+
+    document.getElementById(
+        "indexInterpretationNote"
+    ).textContent = isNDVI
+        ? (
+            "Rangos ilustrativos del NDVI. "
+            + "La cobertura real depende del cultivo, "
+            + "el suelo y las condiciones de adquisición. "
+            + "No constituyen una clasificación validada "
+            + "ni un diagnóstico fitosanitario."
+        )
+        : (
+            `Los intervalos del ${type} indican únicamente `
+            + "rangos numéricos orientativos. "
+            + "No equivalen directamente a categorías "
+            + "de cobertura vegetal sin calibración "
+            + "específica para el índice y el cultivo."
+        );
+
+    const intervals = [
+        {
+            min: -1,
+            max: 0,
+            ndvi: "Posibles superficies no vegetadas",
+            general: "Valores negativos o nulos",
+        },
+        {
+            min: 0,
+            max: 0.2,
+            ndvi: "Poca cobertura vegetal",
+            general: "Valores bajos",
+        },
+        {
+            min: 0.2,
+            max: 0.5,
+            ndvi: "Cobertura vegetal intermedia",
+            general: "Valores intermedios",
+        },
+        {
+            min: 0.5,
+            max: 1,
+            ndvi: "Cobertura vegetal relativamente alta",
+            general: "Valores altos",
+        },
+    ];
+
+    rows.replaceChildren();
+
+    intervals.forEach(interval => {
+        const row = document.createElement("div");
+        row.className = "index-interpretation-row";
+
+        const swatch = document.createElement("span");
+        swatch.className = "index-interpretation-swatch";
+
+        // Color representativo del punto medio
+        // del intervalo, según la leyenda real.
+        swatch.style.background = getSpectralLegendColor(
+            (interval.min + interval.max) / 2
+        );
+
+        const description = document.createElement("div");
+
+        const label = document.createElement("span");
+        label.className = "index-interpretation-label";
+        label.textContent = isNDVI
+            ? interval.ndvi
+            : interval.general;
+
+        const range = document.createElement("span");
+        range.className = "index-interpretation-range";
+        range.textContent =
+            `${interval.min.toFixed(1)} a `
+            + interval.max.toFixed(1);
+
+        description.append(label, range);
+        row.append(swatch, description);
+        rows.append(row);
+    });
+
+    panel.hidden = false;
 }
 
 function renderSpectralMapPanel() {
@@ -6633,7 +6985,6 @@ function renderSpectralMapPanel() {
         document.getElementById(
             "spectralMapPanel"
         );
-
 
     if (
         !currentSpectralStatistics
@@ -6649,14 +7000,11 @@ function renderSpectralMapPanel() {
         return;
     }
 
-
     panel.style.display =
         "block";
 
-
     const statistics =
         currentSpectralStatistics;
-
 
     document.getElementById(
         "spectralStatMin"
@@ -6667,7 +7015,6 @@ function renderSpectralMapPanel() {
             4
         );
 
-
     document.getElementById(
         "spectralStatMean"
     ).textContent =
@@ -6676,7 +7023,6 @@ function renderSpectralMapPanel() {
         ).toFixed(
             4
         );
-
 
     document.getElementById(
         "spectralStatMax"
@@ -6698,7 +7044,6 @@ function renderSpectralMapPanel() {
         document.getElementById(
             "spectralLegendGradient"
         );
-
 
     const stops =
         currentSpectralLegend.map(
@@ -6766,6 +7111,8 @@ function renderSpectralMapPanel() {
         .join(
             ""
         );
+
+        renderIndexInterpretation();
 }
 
 </script>

@@ -92,7 +92,6 @@ class RasterPreviewService:
             preview_width,
             preview_height,
         )
-        
 
     @classmethod
     def _select_band_indexes(
@@ -327,6 +326,7 @@ class RasterPreviewService:
         product_type: str | None = None,
         display_mode: str = "NATURAL",
         max_dimension: int | None = None,
+        band_palette: str = "GRAY",
     ) -> bytes:
 
         source = Path(
@@ -345,6 +345,19 @@ class RasterPreviewService:
         if max_dimension is None:
             max_dimension = (
                 cls.DEFAULT_MAX_DIMENSION
+            )
+
+        normalized_mode = str(
+            display_mode or "NATURAL"
+        ).strip().upper()
+
+        normalized_palette = str(
+            band_palette or "GRAY"
+        ).strip().upper()
+
+        if normalized_palette not in {"GRAY", "PSEUDO"}:
+            raise InvalidRasterPreviewError(
+                f"Paleta no soportada: {band_palette}."
             )
 
         try:
@@ -447,6 +460,30 @@ class RasterPreviewService:
                 * 255
             )
 
+            if (
+                normalized_palette == "PSEUDO"
+                and normalized_mode in cls.BAND_PSEUDO_COLORS_BGR
+            ):
+                color_bgr = np.asarray(
+                    cls.BAND_PSEUDO_COLORS_BGR[normalized_mode],
+                    dtype=np.float32,
+                )
+
+                intensity = (
+                    grayscale.astype(np.float32)[:, :, None]
+                    / 255.0
+                )
+
+                colored = (
+                    intensity * color_bgr[None, None, :]
+                )
+
+                output[:, :, :3] = np.clip(
+                    colored,
+                    0,
+                    255,
+                ).astype(np.uint8)
+
         else:
 
             channels = []
@@ -524,4 +561,12 @@ class RasterPreviewService:
         "RED": 3,
         "NIR": 4,
         "RED_EDGE": 5,
+    }
+
+    BAND_PSEUDO_COLORS_BGR = {
+        "BLUE": (255, 0, 0),
+        "GREEN": (0, 210, 0),
+        "RED": (0, 0, 255),
+        "NIR": (200, 0, 200),
+        "RED_EDGE": (0, 150, 255),
     }
