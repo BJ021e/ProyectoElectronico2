@@ -1,0 +1,309 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+
+    <title>PE2 | Diagnóstico MQTT</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 32px;
+            font-family: Arial, sans-serif;
+            background: #f3f6fa;
+            color: #172337;
+        }
+
+        main {
+            max-width: 1050px;
+            margin: auto;
+        }
+
+        .subtitle {
+            color: #64748b;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin: 24px 0;
+        }
+
+        .card {
+            background: white;
+            padding: 22px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+        }
+
+        .card h2 {
+            font-size: 14px;
+            color: #64748b;
+            margin-top: 0;
+        }
+
+        .value {
+            font-size: 20px;
+            font-weight: bold;
+            overflow-wrap: anywhere;
+        }
+
+        .note {
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th, td {
+            padding: 14px;
+            border-bottom: 1px solid #e2e8f0;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .ok {
+            color: #15803d;
+            font-weight: bold;
+        }
+
+        .warning {
+            color: #b45309;
+            font-weight: bold;
+        }
+
+        #error {
+            color: #b91c1c;
+        }
+    </style>
+</head>
+
+<body>
+<main>
+    <h1>PE2 · Diagnóstico MQTT</h1>
+
+    <p class="subtitle">
+        Registro de comunicación MQTT.
+        Los eventos corresponden a pruebas de software,
+        no a telemetría del dron.
+    </p>
+
+    <p id="error"></p>
+
+    <section class="cards">
+        <div class="card">
+            <h2>Último mensaje</h2>
+            <div class="value" id="last-time">
+                Consultando...
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Último diagnóstico</h2>
+            <div class="value" id="last-result">
+                Consultando...
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Conexión actual del receptor</h2>
+            <div class="value">
+                No determinada
+            </div>
+            <p class="note">
+                La recepción de un mensaje no demuestra
+                que el receptor siga conectado.
+            </p>
+        </div>
+    </section>
+
+    <h2>Historial reciente</h2>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Tópico</th>
+                    <th>QoS</th>
+                    <th>Bytes</th>
+                    <th>Diagnóstico</th>
+                </tr>
+            </thead>
+
+            <tbody id="events">
+                <tr>
+                    <td colspan="5">
+                        Cargando eventos...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p class="note" id="last-update"></p>
+</main>
+
+<script>
+    function formatDate(value) {
+        if (!value) {
+            return "Sin registros";
+        }
+
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) {
+            return "Fecha no válida";
+        }
+
+        return date.toLocaleString();
+    }
+
+    function addCell(row, value, className = "") {
+        const cell = document.createElement("td");
+
+        cell.textContent = String(value);
+        cell.className = className;
+
+        row.appendChild(cell);
+    }
+
+    async function updateMqttDiagnostics() {
+        const errorElement =
+            document.getElementById("error");
+
+        try {
+            const response = await fetch(
+                "/api/diagnostics/mqtt",
+                { cache: "no-store" }
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    "HTTP " + response.status
+                );
+            }
+
+            const data = await response.json();
+            const last = data.last_event;
+
+            document.getElementById(
+                "last-time"
+            ).textContent = last
+                ? formatDate(last.timestamp)
+                : "Sin registros";
+
+            const resultElement =
+                document.getElementById("last-result");
+
+            if (!last) {
+                resultElement.textContent =
+                    "Sin registros";
+
+                resultElement.className = "value";
+            } else {
+                resultElement.textContent =
+                    last.diagnostic_ok
+                        ? "Mensaje reconocido"
+                        : "Mensaje no reconocido";
+
+                resultElement.className =
+                    "value " +
+                    (last.diagnostic_ok
+                        ? "ok"
+                        : "warning");
+            }
+
+            const tableBody =
+                document.getElementById("events");
+
+            tableBody.replaceChildren();
+
+            const events = [
+                ...(data.recent_events || [])
+            ].reverse();
+
+            if (events.length === 0) {
+                const row =
+                    document.createElement("tr");
+
+                const cell =
+                    document.createElement("td");
+
+                cell.colSpan = 5;
+                cell.textContent =
+                    "No hay eventos registrados.";
+
+                row.appendChild(cell);
+                tableBody.appendChild(row);
+            }
+
+            for (const event of events) {
+                const row =
+                    document.createElement("tr");
+
+                addCell(
+                    row,
+                    formatDate(event.timestamp)
+                );
+
+                addCell(row, event.topic);
+                addCell(row, event.qos);
+                addCell(row, event.payload_bytes);
+
+                addCell(
+                    row,
+                    event.diagnostic_ok
+                        ? "Reconocido"
+                        : "No reconocido",
+                    event.diagnostic_ok
+                        ? "ok"
+                        : "warning"
+                );
+
+                tableBody.appendChild(row);
+            }
+
+            document.getElementById(
+                "last-update"
+            ).textContent =
+                "Última consulta: " +
+                new Date().toLocaleTimeString();
+
+            errorElement.textContent = "";
+
+        } catch (error) {
+            errorElement.textContent =
+                "No se pudo consultar la API MQTT: " +
+                error.message;
+        }
+    }
+
+    updateMqttDiagnostics();
+
+    setInterval(
+        updateMqttDiagnostics,
+        5000
+    );
+</script>
+</body>
+</html>

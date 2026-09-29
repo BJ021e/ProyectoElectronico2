@@ -1397,6 +1397,16 @@ def api_drone_operation_context():
             "msg": str(e)
         }), 400
 
+@app.route("/diagnostics/mqtt", methods=["GET"])
+def mqtt_diagnostics_view():
+    return render_template("mqtt_diagnostics.html")
+
+@app.route("/api/diagnostics/mqtt", methods=["GET"])
+def api_mqtt_diagnostics():
+    from mqtt_diagnostics import read_mqtt_events
+
+    return jsonify(read_mqtt_events())
+
 @app.route(
     "/api/drone/operation/integration-status",
     methods=["GET"]

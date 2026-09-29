@@ -36,6 +36,11 @@ def test_process_campaign_api_rejects_when_processing_is_disabled(
 def test_process_campaign_api_returns_202_without_executing_synchronously(
     monkeypatch,
 ):
+    monkeypatch.setattr(
+        app_module.Config,
+        "PROCESSING_ENABLED",
+        True,
+    )
 
     client = (
         app_module.app.test_client()
@@ -155,6 +160,11 @@ def test_process_campaign_api_returns_202_without_executing_synchronously(
 def test_process_campaign_api_marks_job_failed_if_queue_submission_fails(
     monkeypatch,
 ):
+    monkeypatch.setattr(
+        app_module.Config,
+        "PROCESSING_ENABLED",
+        True,
+    )
 
     client = (
         app_module.app.test_client()
@@ -256,6 +266,12 @@ def test_process_campaign_api_marks_job_failed_if_queue_submission_fails(
 def test_process_campaign_api_returns_404_for_missing_campaign(
     monkeypatch,
 ):
+
+    monkeypatch.setattr(
+        app_module.Config,
+        "PROCESSING_ENABLED",
+        True,
+    )
 
     client = (
         app_module.app.test_client()

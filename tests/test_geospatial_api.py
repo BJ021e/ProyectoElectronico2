@@ -187,7 +187,12 @@ def test_unknown_campaign_returns_404():
     assert response.status_code == 404
 
 
-def test_incomplete_campaign_cannot_process():
+def test_incomplete_campaign_cannot_process(monkeypatch):
+    monkeypatch.setattr(
+        Config,
+        "PROCESSING_ENABLED",
+        True,
+    )
 
     campaign = (
         CampaignService.create_campaign(
@@ -219,6 +224,11 @@ def test_ready_campaign_processes_through_api(
     tmp_path,
     monkeypatch,
 ):
+    monkeypatch.setattr(
+        Config,
+        "PROCESSING_ENABLED",
+        True,
+    )
 
     storage_root = (
         tmp_path
