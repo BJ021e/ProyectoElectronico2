@@ -101,6 +101,22 @@
 <main>
     <h1>PE2 · Diagnóstico MQTT</h1>
 
+    <nav aria-label="Navegación de diagnósticos">
+        <a href="{{ url_for('index') }}">
+            Volver al inicio de PE2
+        </a>
+
+        <form
+            method="post"
+            action="{{ url_for('mqtt_diagnostics_logout') }}"
+            style="display: inline;"
+        >
+            <button type="submit">
+                Cerrar sesión
+            </button>
+        </form>
+    </nav>
+
     <p class="subtitle">
         Registro de comunicación MQTT.
         Los eventos corresponden a pruebas de software,

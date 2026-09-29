@@ -210,6 +210,9 @@ def index():
         pe2_demo_mode=Config.PE2_DEMO_MODE,
         processing_enabled=Config.PROCESSING_ENABLED,
         photogrammetry_backend=Config.PHOTOGRAMMETRY_BACKEND,
+        mqtt_diagnostics_local=(
+            request.remote_addr in ("127.0.0.1", "::1")
+        ),
     )
 
 @app.route("/ground_login", methods=["GET", "POST"])
@@ -1471,7 +1474,6 @@ def mqtt_diagnostics_view():
         "mqtt_diagnostics.html"
     )
 
-
 @app.route(
     "/api/diagnostics/mqtt",
     methods=["GET"],
@@ -1503,6 +1505,17 @@ def api_mqtt_diagnostics():
     )
 
     return jsonify(result)
+
+@app.route("/diagnostics/logout", methods=["POST"])
+def mqtt_diagnostics_logout():
+    if not _mqtt_diagnostics_is_local():
+        return "Acceso remoto no habilitado.", 403
+
+    session.pop("mqtt_diag_access", None)
+
+    return redirect(
+        url_for("mqtt_diagnostics_login")
+    )
 
 @app.route(
     "/api/drone/operation/integration-status",

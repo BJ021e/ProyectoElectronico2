@@ -216,3 +216,56 @@ def test_receiver_status_missing(tmp_path):
 
     assert result["state"] == "unknown"
     assert result["connected"] is None
+
+def test_home_shows_mqtt_link_only_locally():
+    from InterfazInit import app
+
+    client = app.test_client()
+
+    local = client.get(
+        "/",
+        environ_base={
+            "REMOTE_ADDR": "127.0.0.1"
+        },
+    )
+
+    assert local.status_code == 200
+    assert b"/diagnostics/mqtt" in local.data
+
+    remote = client.get(
+        "/",
+        environ_base={
+            "REMOTE_ADDR": "192.168.1.12"
+        },
+    )
+
+    assert remote.status_code == 200
+    assert b"/diagnostics/mqtt" not in remote.data
+
+def test_mqtt_logout_preserves_ground_session():
+    from InterfazInit import app
+
+    client = app.test_client()
+
+    with client.session_transaction() as sess:
+        sess["mqtt_diag_access"] = True
+        sess["user_ground"] = True
+
+    response = client.post(
+        "/diagnostics/logout"
+    )
+
+    assert response.status_code == 302
+    assert "/diagnostics/login" in (
+        response.headers["Location"]
+    )
+
+    with client.session_transaction() as sess:
+        assert not sess.get("mqtt_diag_access")
+        assert sess.get("user_ground") is True
+
+    api_response = client.get(
+        "/api/diagnostics/mqtt"
+    )
+
+    assert api_response.status_code == 401
