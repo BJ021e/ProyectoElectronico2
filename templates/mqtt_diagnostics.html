@@ -106,6 +106,10 @@
             Volver al inicio de PE2
         </a>
 
+        <a href="{{ url_for('integration_diagnostics_view') }}">
+            Diagnóstico integral
+        </a>
+
         <form
             method="post"
             action="{{ url_for('mqtt_diagnostics_logout') }}"

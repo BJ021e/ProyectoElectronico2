@@ -1,0 +1,403 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+
+    <title>PE2 | Diagnóstico integral</title>
+
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 32px 20px;
+            font-family: Arial, sans-serif;
+            background: #f3f6fa;
+            color: #172337;
+        }
+
+        main {
+            max-width: 1100px;
+            margin: auto;
+        }
+
+        h1 { margin-bottom: 10px; }
+
+        .subtitle, .note {
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        nav {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin: 20px 0 28px;
+            flex-wrap: wrap;
+        }
+
+        nav a {
+            color: #2454cf;
+        }
+
+        button {
+            padding: 10px 16px;
+            border-radius: 7px;
+            border: 1px solid #cbd5e1;
+            cursor: pointer;
+            background: white;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(275px, 1fr));
+            gap: 18px;
+        }
+
+        .card {
+            background: white;
+            padding: 24px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+        }
+
+        .card h2 {
+            margin-top: 0;
+            font-size: 19px;
+        }
+
+        .status {
+            font-size: 23px;
+            font-weight: bold;
+            margin-bottom: 18px;
+        }
+
+        .ok { color: #15803d; }
+        .warning { color: #b45309; }
+        .muted { color: #64748b; }
+
+        dl { margin: 0; }
+
+        dt {
+            margin-top: 14px;
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        dd {
+            margin: 5px 0 0;
+            font-weight: bold;
+            overflow-wrap: anywhere;
+        }
+
+        .footer {
+            margin-top: 22px;
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        #error { color: #b91c1c; }
+    </style>
+</head>
+
+<body>
+<main>
+    <h1>PE2 · Diagnóstico integral</h1>
+
+    <p class="subtitle">
+        Supervisión de la infraestructura MQTT,
+        los contactos HTTP del Cloud Probe
+        y el estado del backend DJI.
+    </p>
+
+    <nav>
+        <a href="{{ url_for('index') }}">
+            Inicio de PE2
+        </a>
+
+        <a href="{{ url_for('mqtt_diagnostics_view') }}">
+            Historial MQTT
+        </a>
+
+        <form method="post"
+              action="{{ url_for('mqtt_diagnostics_logout') }}">
+            <button type="submit">
+                Cerrar sesión
+            </button>
+        </form>
+    </nav>
+
+    <p id="error" role="alert"></p>
+
+    <section class="grid">
+        <article class="card">
+            <h2>Infraestructura MQTT</h2>
+
+            <div class="status muted" id="mqtt-state">
+                Consultando...
+            </div>
+
+            <dl>
+                <dt>Último heartbeat</dt>
+                <dd id="mqtt-heartbeat">—</dd>
+
+                <dt>Último tópico</dt>
+                <dd id="mqtt-topic">—</dd>
+
+                <dt>Último diagnóstico</dt>
+                <dd id="mqtt-result">—</dd>
+            </dl>
+        </article>
+
+        <article class="card">
+            <h2>DJI Cloud Probe</h2>
+
+            <div class="status muted" id="probe-state">
+                Consultando...
+            </div>
+
+            <dl>
+                <dt>Último contacto HTTP</dt>
+                <dd id="probe-contact">—</dd>
+
+                <dt>Última apertura</dt>
+                <dd id="probe-open">—</dd>
+
+                <dt>Último ping</dt>
+                <dd id="probe-ping">—</dd>
+
+                <dt>IP del último cliente</dt>
+                <dd id="probe-ip">—</dd>
+            </dl>
+
+            <p class="note">
+                La IP identifica el origen observado por
+                Flask, no demuestra por sí sola que
+                el dispositivo sea DJI Pilot 2.
+            </p>
+        </article>
+
+        <article class="card">
+            <h2>Backend DJI Cloud API</h2>
+
+            <div class="status muted" id="dji-state">
+                Consultando...
+            </div>
+
+            <dl>
+                <dt>Proveedor</dt>
+                <dd id="dji-provider">—</dd>
+
+                <dt>Transporte conectado</dt>
+                <dd id="dji-transport">—</dd>
+
+                <dt>Telemetría disponible</dt>
+                <dd id="dji-telemetry">—</dd>
+
+                <dt>Último error reportado</dt>
+                <dd id="dji-error">—</dd>
+            </dl>
+
+            <p class="note">
+                Este bloque refleja el backend real.
+                Un ping HTTP correcto no modifica
+                su estado de integración.
+            </p>
+        </article>
+    </section>
+
+    <p class="footer" id="last-update"></p>
+</main>
+
+<script>
+    function setText(id, value) {
+        document.getElementById(id).textContent =
+            value ?? "No disponible";
+    }
+
+    function setStatus(id, label, statusClass) {
+        const element = document.getElementById(id);
+
+        element.textContent = label;
+        element.className = "status " + statusClass;
+    }
+
+    function formatDate(value) {
+        if (!value) return "Sin registros";
+
+        const date = new Date(value);
+
+        return Number.isNaN(date.getTime())
+            ? "Fecha no válida"
+            : date.toLocaleString();
+    }
+
+    function yesNo(value) {
+        if (value === true) return "Sí";
+        if (value === false) return "No";
+
+        return "No determinado";
+    }
+
+    async function updateIntegration() {
+        try {
+            const response = await fetch(
+                "/api/diagnostics/integration",
+                {
+                    cache: "no-store",
+                    credentials: "same-origin"
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    "HTTP " + response.status
+                );
+            }
+
+            const data = await response.json();
+
+            // Infraestructura MQTT.
+            const mqtt = data.mqtt || {};
+            const receiver = mqtt.receiver || {};
+            const lastEvent = mqtt.last_event;
+
+            const receiverLabels = {
+                connected: "Conectado",
+                disconnected: "Desconectado",
+                stopped: "Detenido",
+                stale: "Sin señal",
+                unknown: "Desconocido"
+            };
+
+            setStatus(
+                "mqtt-state",
+                receiverLabels[receiver.state]
+                    || "Desconocido",
+                receiver.state === "connected"
+                    ? "ok"
+                    : "warning"
+            );
+
+            setText(
+                "mqtt-heartbeat",
+                formatDate(receiver.last_heartbeat_at)
+            );
+
+            setText(
+                "mqtt-topic",
+                lastEvent
+                    ? lastEvent.topic
+                    : "Sin registros"
+            );
+
+            setText(
+                "mqtt-result",
+                lastEvent
+                    ? (
+                        lastEvent.diagnostic_ok
+                            ? "Reconocido"
+                            : "No reconocido"
+                    )
+                    : "Sin registros"
+            );
+
+            // Contactos HTTP del Cloud Probe.
+            const probe = data.dji_cloud_probe || {};
+            const hasContact = Boolean(
+                probe.last_contact_at
+            );
+
+            setStatus(
+                "probe-state",
+                hasContact
+                    ? "Contacto HTTP registrado"
+                    : "Sin contactos registrados",
+                hasContact ? "ok" : "muted"
+            );
+
+            setText(
+                "probe-contact",
+                formatDate(probe.last_contact_at)
+            );
+
+            setText(
+                "probe-open",
+                formatDate(probe.last_page_open_at)
+            );
+
+            setText(
+                "probe-ping",
+                formatDate(probe.last_ping_at)
+            );
+
+            setText(
+                "probe-ip",
+                probe.last_remote_addr || "Sin registros"
+            );
+
+            // Backend DJI real.
+            const backend = data.dji_backend || {};
+            const dji = backend.status || {};
+
+            const health = backend.available
+                ? (dji.health || "UNKNOWN")
+                : "BACKEND_ERROR";
+
+            setStatus(
+                "dji-state",
+                health,
+                dji.configured && dji.transport_connected
+                    ? "ok"
+                    : "warning"
+            );
+
+            setText(
+                "dji-provider",
+                dji.provider || "No configurado"
+            );
+
+            setText(
+                "dji-transport",
+                yesNo(dji.transport_connected)
+            );
+
+            setText(
+                "dji-telemetry",
+                yesNo(dji.telemetry_available)
+            );
+
+            setText(
+                "dji-error",
+                backend.error
+                    || dji.last_error
+                    || "Ninguno reportado"
+            );
+
+            setText(
+                "last-update",
+                "Última consulta: "
+                + new Date().toLocaleTimeString()
+            );
+
+            setText("error", "");
+
+        } catch (error) {
+            setText(
+                "error",
+                "No se pudo actualizar el diagnóstico: "
+                + error.message
+            );
+        }
+    }
+
+    updateIntegration();
+
+    setInterval(updateIntegration, 5000);
+</script>
+</body>
+</html>

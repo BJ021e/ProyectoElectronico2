@@ -1628,6 +1628,23 @@ def mqtt_diagnostics_logout():
     )
 
 @app.route(
+    "/diagnostics/integration",
+    methods=["GET"],
+)
+def integration_diagnostics_view():
+    if not _mqtt_diagnostics_is_local():
+        return "Acceso remoto no habilitado.", 403
+
+    if not session.get("mqtt_diag_access"):
+        return redirect(
+            url_for("mqtt_diagnostics_login")
+        )
+
+    return render_template(
+        "integration_diagnostics.html"
+    )
+
+@app.route(
     "/api/drone/operation/integration-status",
     methods=["GET"]
 )
