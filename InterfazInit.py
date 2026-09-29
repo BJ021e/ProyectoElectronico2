@@ -1118,7 +1118,13 @@ def dji_cloud_probe():
     Página mínima para verificar que DJI Pilot 2 puede abrir
     la plataforma PE2 desde Servicios en la nube / Plataformas abiertas.
     """
+
     client_ip = request.remote_addr
+
+    user_agent = request.headers.get(
+        "User-Agent",
+        "",
+    )[:300]
 
     try:
         from dji_cloud_diagnostics import (
@@ -1128,6 +1134,7 @@ def dji_cloud_probe():
         record_dji_cloud_contact(
             event_type="page_open",
             remote_addr=client_ip,
+            user_agent=user_agent,
         )
 
     except (OSError, ValueError) as exc:
@@ -1135,11 +1142,6 @@ def dji_cloud_probe():
             "No se pudo registrar contacto DJI Cloud: %s",
             exc,
         )
-
-    user_agent = request.headers.get(
-        "User-Agent",
-        "",
-    )
 
     app.logger.info(
         "DJI Cloud probe abierto desde ip=%s user_agent=%s",
@@ -1151,11 +1153,15 @@ def dji_cloud_probe():
         "dji_cloud_probe.html",
         client_ip=client_ip,
         user_agent=user_agent,
-        server_time=datetime.now(timezone.utc).isoformat(),
+        server_time=datetime.now(
+            timezone.utc
+        ).isoformat(),
     )
 
-
-@app.route("/api/dji-cloud/ping", methods=["GET", "POST"])
+@app.route(
+    "/api/dji-cloud/ping",
+    methods=["GET", "POST"],
+)
 def api_dji_cloud_ping():
     """Diagnóstico HTTP de comunicación con PE2."""
 
@@ -1174,13 +1180,17 @@ def api_dji_cloud_ping():
     request_id = uuid4().hex[:12]
 
     client_request_id = str(
-        payload.get("client_request_id", "")
+        payload.get(
+            "client_request_id",
+            "",
+        )
     )[:64]
 
     client_ip = request.remote_addr
 
     user_agent = request.headers.get(
-        "User-Agent", ""
+        "User-Agent",
+        "",
     )[:200]
 
     server_time = datetime.now(
@@ -1209,7 +1219,10 @@ def api_dji_cloud_ping():
         record_dji_cloud_contact(
             event_type="ping",
             remote_addr=client_ip,
-            client_request_id=client_request_id,
+            client_request_id=(
+                client_request_id
+            ),
+            user_agent=user_agent,
         )
 
     except (OSError, ValueError) as exc:
@@ -1222,7 +1235,9 @@ def api_dji_cloud_ping():
         "ok": True,
         "source": "pe2-dji-cloud-probe",
         "request_id": request_id,
-        "client_request_id": client_request_id,
+        "client_request_id": (
+            client_request_id
+        ),
         "remote_addr": client_ip,
         "user_agent": user_agent,
         "received": payload,

@@ -47,6 +47,7 @@ def test_records_ping_without_losing_page_open(
         event_type="ping",
         remote_addr="192.168.1.20",
         client_request_id="probe-test-001",
+        user_agent="PE2-Test-Client/1.0",
         status_path=path,
     )
 
@@ -58,6 +59,11 @@ def test_records_ping_without_losing_page_open(
     )
 
     assert result["last_ping_at"] is not None
+
+    assert (
+        result["last_user_agent"]
+        == "PE2-Test-Client/1.0"
+    )
 
     assert (
         result["last_client_request_id"]

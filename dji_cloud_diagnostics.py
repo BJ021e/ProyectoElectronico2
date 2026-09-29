@@ -30,6 +30,7 @@ def _empty_status():
         "last_ping_at": None,
         "last_remote_addr": None,
         "last_client_request_id": None,
+        "last_user_agent": None,
     }
 
 
@@ -59,12 +60,12 @@ def read_dji_cloud_status(status_path=None):
 
     return result
 
-
 def record_dji_cloud_contact(
     *,
     event_type,
     remote_addr,
     client_request_id=None,
+    user_agent=None,
     status_path=None,
 ):
     if event_type not in {
@@ -99,6 +100,11 @@ def record_dji_cloud_contact(
                 remote_addr[:64]
             )
 
+        if isinstance(user_agent, str):
+            status["last_user_agent"] = (
+                user_agent[:300]
+            )
+
         if event_type == "page_open":
             status["last_page_open_at"] = now
 
@@ -106,9 +112,11 @@ def record_dji_cloud_contact(
             status["last_ping_at"] = now
 
             if client_request_id:
-                status["last_client_request_id"] = (
-                    str(client_request_id)[:64]
-                )
+                status[
+                    "last_client_request_id"
+                ] = str(
+                    client_request_id
+                )[:64]
 
         temp_path = path.with_suffix(
             ".json.tmp"

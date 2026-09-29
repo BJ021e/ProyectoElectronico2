@@ -172,6 +172,9 @@
 
                 <dt>IP del último cliente</dt>
                 <dd id="probe-ip">—</dd>
+
+                <dt>Cliente HTTP observado</dt>
+                <dd id="probe-user-agent">—</dd>
             </dl>
 
             <p class="note">
@@ -338,6 +341,11 @@
             setText(
                 "probe-ip",
                 probe.last_remote_addr || "Sin registros"
+            );
+
+            setText(
+                "probe-user-agent",
+                probe.last_user_agent || "Sin registros"
             );
 
             // Backend DJI real.
