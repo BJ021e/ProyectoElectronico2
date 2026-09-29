@@ -1403,9 +1403,19 @@ def mqtt_diagnostics_view():
 
 @app.route("/api/diagnostics/mqtt", methods=["GET"])
 def api_mqtt_diagnostics():
-    from mqtt_diagnostics import read_mqtt_events
+    from mqtt_diagnostics import (
+        read_mqtt_events,
+        read_receiver_status,
+    )
 
-    return jsonify(read_mqtt_events())
+    result = read_mqtt_events()
+
+    receiver = read_receiver_status()
+
+    result["receiver"] = receiver
+    result["receiver_connected"] = receiver["connected"]
+
+    return jsonify(result)
 
 @app.route(
     "/api/drone/operation/integration-status",

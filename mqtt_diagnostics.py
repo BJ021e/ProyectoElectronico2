@@ -4,6 +4,7 @@ import json
 from collections import deque
 from pathlib import Path
 
+from datetime import datetime, timezone
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 
@@ -13,6 +14,92 @@ DEFAULT_LOG_PATH = (
     / "mqtt_events.jsonl"
 )
 
+DEFAULT_STATUS_PATH = (
+    PROJECT_ROOT
+    / "diagnosticos_smart_controller"
+    / "mqtt_receiver_status.json"
+)
+
+def read_receiver_status(
+    status_path=None,
+    *,
+    now=None,
+    timeout_seconds=15,
+):
+    """Consultar el último heartbeat del receptor."""
+
+    path = (
+        Path(status_path)
+        if status_path is not None
+        else DEFAULT_STATUS_PATH
+    )
+
+    unknown = {
+        "state": "unknown",
+        "connected": None,
+        "last_heartbeat_at": None,
+    }
+
+    if not path.is_file():
+        return unknown
+
+    try:
+        with path.open("r", encoding="utf-8") as file:
+            data = json.load(file)
+
+        timestamp = data["timestamp"]
+
+        if (
+            not isinstance(timestamp, str)
+            or type(data["process_running"]) is not bool
+            or type(data["broker_connected"]) is not bool
+            or type(data["subscribed"]) is not bool
+        ):
+            return unknown
+
+        heartbeat_at = datetime.fromisoformat(
+            timestamp.replace("Z", "+00:00")
+        )
+
+        if heartbeat_at.tzinfo is None:
+            return unknown
+
+    except (OSError, ValueError, TypeError, KeyError):
+        return unknown
+
+    current_time = now or datetime.now(timezone.utc)
+
+    age_seconds = (
+        current_time - heartbeat_at
+    ).total_seconds()
+
+    if (
+        age_seconds < -5
+        or age_seconds > timeout_seconds
+    ):
+        state = "stale"
+        connected = False
+
+    elif not data["process_running"]:
+        state = "stopped"
+        connected = False
+
+    elif (
+        data["broker_connected"]
+        and data["subscribed"]
+    ):
+        state = "connected"
+        connected = True
+
+    else:
+        state = "disconnected"
+        connected = False
+
+    return {
+        "state": state,
+        "connected": connected,
+        "last_heartbeat_at": timestamp,
+    }
 
 def normalize_event(raw):
     """Devolver únicamente metadatos de diagnóstico válidos."""

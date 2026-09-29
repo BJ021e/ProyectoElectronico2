@@ -1,7 +1,8 @@
 import json
 
 from mqtt_diagnostics import read_mqtt_events
-
+from datetime import datetime, timedelta, timezone
+from mqtt_diagnostics import read_receiver_status
 
 def test_missing_log(tmp_path):
     result = read_mqtt_events(
@@ -90,3 +91,45 @@ def test_mqtt_diagnostics_page():
     assert response.status_code == 200
     assert b"Diagn" in response.data
     assert b"/api/diagnostics/mqtt" in response.data
+
+def test_receiver_status_connected_and_stale(tmp_path):
+    status_file = tmp_path / "receiver.json"
+
+    now = datetime(
+        2026, 9, 29, 12, 0,
+        tzinfo=timezone.utc,
+    )
+
+    status_file.write_text(
+        json.dumps({
+            "timestamp": now.isoformat(),
+            "process_running": True,
+            "broker_connected": True,
+            "subscribed": True,
+        }),
+        encoding="utf-8",
+    )
+
+    connected = read_receiver_status(
+        status_file,
+        now=now,
+    )
+
+    assert connected["state"] == "connected"
+    assert connected["connected"] is True
+
+    stale = read_receiver_status(
+        status_file,
+        now=now + timedelta(seconds=20),
+    )
+
+    assert stale["state"] == "stale"
+    assert stale["connected"] is False
+
+def test_receiver_status_missing(tmp_path):
+    result = read_receiver_status(
+        tmp_path / "missing.json"
+    )
+
+    assert result["state"] == "unknown"
+    assert result["connected"] is None

@@ -3,7 +3,7 @@ import getpass
 import json
 import threading
 import time
-
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -26,6 +26,28 @@ subscribed = threading.Event()
 
 connection_errors = []
 
+STATUS_FILE = LOG_DIR / "mqtt_receiver_status.json"
+
+def write_receiver_status(client, *, running=True):
+    """Publicar el estado actual del proceso receptor."""
+
+    status = {
+        "timestamp": timestamp(),
+        "process_running": running,
+        "broker_connected": (
+            running and client.is_connected()
+        ),
+        "subscribed": (
+            running and subscribed.is_set()
+        ),
+    }
+
+    temp_file = STATUS_FILE.with_suffix(".json.tmp")
+
+    with temp_file.open("w", encoding="utf-8") as file:
+        json.dump(status, file)
+
+    os.replace(temp_file, STATUS_FILE)
 
 def timestamp():
     return datetime.now(
@@ -41,6 +63,8 @@ def on_connect(
     properties,
 ):
     print("MQTT CONNECT:", reason_code)
+
+    subscribed.clear()
 
     if reason_code != 0:
         connection_errors.append(str(reason_code))
@@ -105,6 +129,15 @@ def on_message(client, userdata, message):
         json.dumps(event),
     )
 
+def on_disconnect(
+    client,
+    userdata,
+    disconnect_flags,
+    reason_code,
+    properties,
+):
+    subscribed.clear()
+    print("MQTT DISCONNECT:", reason_code)
 
 def main():
     LOG_DIR.mkdir(
@@ -130,6 +163,7 @@ def main():
     client.on_connect = on_connect
     client.on_subscribe = on_subscribe
     client.on_message = on_message
+    client.on_disconnect = on_disconnect
 
     try:
         print("Conectando con Mosquitto...")
@@ -167,7 +201,8 @@ def main():
         print("Registro:", LOG_FILE)
 
         while True:
-            time.sleep(1)
+            write_receiver_status(client)
+            time.sleep(5)
 
     except KeyboardInterrupt:
         print("\nDeteniendo receptor PE2...")
@@ -175,6 +210,7 @@ def main():
     finally:
         client.disconnect()
         client.loop_stop()
+        write_receiver_status(client, running=False)
 
 
 if __name__ == "__main__":

@@ -126,12 +126,13 @@
 
         <div class="card">
             <h2>Conexión actual del receptor</h2>
-            <div class="value">
-                No determinada
+
+            <div class="value" id="receiver-state">
+                Consultando...
             </div>
-            <p class="note">
-                La recepción de un mensaje no demuestra
-                que el receptor siga conectado.
+
+            <p class="note" id="receiver-detail">
+                Esperando información del proceso.
             </p>
         </div>
     </section>
@@ -205,6 +206,38 @@
 
             const data = await response.json();
             const last = data.last_event;
+
+            const receiver = data.receiver || {
+                state: "unknown"
+            };
+
+            const receiverLabels = {
+                connected: "Conectado",
+                disconnected: "Desconectado",
+                stopped: "Detenido",
+                stale: "Sin señal",
+                unknown: "Desconocido"
+            };
+
+            const receiverElement =
+                document.getElementById("receiver-state");
+
+            receiverElement.textContent =
+                receiverLabels[receiver.state] || "Desconocido";
+
+            receiverElement.className =
+                "value " +
+                (receiver.state === "connected"
+                    ? "ok"
+                    : "warning");
+
+            document.getElementById(
+                "receiver-detail"
+            ).textContent =
+                receiver.last_heartbeat_at
+                    ? "Última señal: " +
+                    formatDate(receiver.last_heartbeat_at)
+                    : "No hay señales registradas.";
 
             document.getElementById(
                 "last-time"
