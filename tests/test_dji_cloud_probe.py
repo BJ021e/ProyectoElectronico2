@@ -31,3 +31,22 @@ def test_dji_cloud_ping_post():
     assert data["ok"] is True
     assert data["client_request_id"] == "test-001"
     assert len(data["request_id"]) == 12
+
+
+def test_dji_cloud_probe_has_bridge_diagnostics():
+    app.config["TESTING"] = True
+
+    response = app.test_client().get("/dji-cloud")
+
+    assert response.status_code == 200
+
+    html = response.get_data(as_text=True)
+
+    for marker in (
+        "checkDjiBridge",
+        "platformVerifyLicense",
+        "platformLoadComponent",
+        "platformSetWorkspaceId",
+        "platformSetInformation",
+    ):
+        assert marker in html

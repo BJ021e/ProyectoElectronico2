@@ -116,6 +116,21 @@
             Probar ping con PE2
         </button>
 
+        <button
+            type="button"
+            onclick="checkDjiBridge()"
+        >
+            Comprobar JSBridge DJI
+        </button>
+
+        <div
+            id="bridgeResult"
+            class="info"
+            style="white-space: pre-wrap;"
+        >
+            Pendiente de comprobación.
+        </div>
+
         <div id="pingResult">
             Esperando prueba...
         </div>
@@ -166,6 +181,8 @@ async function sendPing() {
             "PING OK\n\n"
             + JSON.stringify(data, null, 2);
 
+        bridge_check: getDjiBridgeCapabilities()
+
     } catch (error) {
         output.textContent =
             "PING FALLIDO\n"
@@ -173,6 +190,46 @@ async function sendPing() {
             + "\n"
             + String(error);
     }
+}
+
+function getDjiBridgeCapabilities() {
+    const bridge = window.djiBridge;
+
+    return {
+        bridge_present:
+            bridge !== undefined && bridge !== null,
+
+        verify_license_available:
+            typeof bridge?.platformVerifyLicense
+            === "function",
+
+        load_component_available:
+            typeof bridge?.platformLoadComponent
+            === "function",
+
+        set_workspace_available:
+            typeof bridge?.platformSetWorkspaceId
+            === "function",
+
+        set_information_available:
+            typeof bridge?.platformSetInformation
+            === "function",
+
+        browser_time:
+            new Date().toISOString(),
+    };
+}
+
+function checkDjiBridge() {
+    const result = getDjiBridgeCapabilities();
+
+    document.getElementById(
+        "bridgeResult"
+    ).textContent = JSON.stringify(
+        result,
+        null,
+        2
+    );
 }
 
 </script>
