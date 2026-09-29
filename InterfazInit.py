@@ -22,6 +22,7 @@ import cv2
 import rasterio
 import json
 import logging
+import secrets
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from uuid import uuid4
@@ -1397,23 +1398,109 @@ def api_drone_operation_context():
             "msg": str(e)
         }), 400
 
-@app.route("/diagnostics/mqtt", methods=["GET"])
-def mqtt_diagnostics_view():
-    return render_template("mqtt_diagnostics.html")
 
-@app.route("/api/diagnostics/mqtt", methods=["GET"])
+def _mqtt_diagnostics_is_local():
+    """Restringir temporalmente el diagnóstico a localhost."""
+    return request.remote_addr in {
+        "127.0.0.1",
+        "::1",
+    }
+
+
+@app.route(
+    "/diagnostics/login",
+    methods=["GET", "POST"],
+)
+def mqtt_diagnostics_login():
+    if not _mqtt_diagnostics_is_local():
+        return "Acceso remoto no habilitado.", 403
+
+    if session.get("user_ground"):
+        return redirect(
+            url_for("mqtt_diagnostics_view")
+        )
+
+    error = None
+
+    diagnostic_code = Config.PE2_MQTT_DIAG_ACCESS_CODE
+
+    if not diagnostic_code:
+        return "El acceso MQTT no está configurado.", 503
+
+    if session.get("mqtt_diag_access"):
+        return redirect(
+            url_for("mqtt_diagnostics_view")
+        )
+
+    error = None
+
+    if request.method == "POST":
+        submitted_code = request.form.get("code", "")
+
+        if secrets.compare_digest(
+            submitted_code,
+            diagnostic_code,
+        ):
+            session["mqtt_diag_access"] = True
+
+            return redirect(
+                url_for("mqtt_diagnostics_view")
+            )
+
+        error = "Código incorrecto."
+
+    return render_template(
+        "mqtt_diagnostics_login.html",
+        error=error,
+    )
+
+@app.route(
+    "/diagnostics/mqtt",
+    methods=["GET"],
+)
+def mqtt_diagnostics_view():
+    if not _mqtt_diagnostics_is_local():
+        return "Acceso remoto no habilitado.", 403
+
+    if not session.get("mqtt_diag_access"):
+        return redirect(
+            url_for("mqtt_diagnostics_login")
+        )
+
+    return render_template(
+        "mqtt_diagnostics.html"
+    )
+
+
+@app.route(
+    "/api/diagnostics/mqtt",
+    methods=["GET"],
+)
 def api_mqtt_diagnostics():
+    if not _mqtt_diagnostics_is_local():
+        return jsonify({
+            "error": True,
+            "msg": "Acceso remoto no habilitado.",
+        }), 403
+
+    if not session.get("mqtt_diag_access"):
+        return jsonify({
+            "error": True,
+            "msg": "Autenticación requerida.",
+        }), 401
+
     from mqtt_diagnostics import (
         read_mqtt_events,
         read_receiver_status,
     )
 
     result = read_mqtt_events()
-
     receiver = read_receiver_status()
 
     result["receiver"] = receiver
-    result["receiver_connected"] = receiver["connected"]
+    result["receiver_connected"] = (
+        receiver["connected"]
+    )
 
     return jsonify(result)
 

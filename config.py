@@ -1,4 +1,5 @@
 import os
+import secrets
 from dotenv import load_dotenv
 
 
@@ -23,9 +24,9 @@ def env_bool(name: str, default: bool = False) -> bool:
 
 class Config:
     # Flask
-    SECRET_KEY = os.getenv(
-        "FLASK_SECRET_KEY",
-        "ground_test_super_secret"
+    SECRET_KEY = (
+        os.getenv("FLASK_SECRET_KEY")
+        or secrets.token_hex(32)
     )
 
     FLASK_HOST = os.getenv(
@@ -59,13 +60,13 @@ class Config:
         "ACCESS_CODE",
         "1234"
     )
-    
+
     # Base de datos
     DATABASE_URL = os.getenv(
         "DATABASE_URL",
         "sqlite:///data/ground_control.db"
     )
-    
+
     # Integración de dron
     DRONE_TELEMETRY_STALE_SECONDS = float(
         os.getenv(
@@ -73,12 +74,12 @@ class Config:
             "5.0"
         )
     )
-    
+
     CAMPAIGN_STORAGE_ROOT = os.getenv(
         "CAMPAIGN_STORAGE_ROOT",
         "data/campaigns",
     )
-    
+
     PHOTOGRAMMETRY_BACKEND = os.getenv(
         "PHOTOGRAMMETRY_BACKEND",
         "MOCK",
@@ -96,34 +97,39 @@ class Config:
         "PE2_DEMO_MODE",
         False,
     )
-    
+
     METASHAPE_EXECUTABLE = os.getenv(
         "METASHAPE_EXECUTABLE",
         "",
     ).strip()
-    
+
     MOCK_PHOTOGRAMMETRY_DELAY_SECONDS = float(
         os.getenv(
             "MOCK_PHOTOGRAMMETRY_DELAY_SECONDS",
             "0",
         )
     )
-    
+
     RED_EDGE_STAGING_ROOT = os.getenv(
         "RED_EDGE_STAGING_ROOT",
         "data/rededge_staging",
     )
-    
+
     RED_EDGE_UPLOAD_BATCH_MAX_FILES = int(
         os.getenv(
             "RED_EDGE_UPLOAD_BATCH_MAX_FILES",
             "25",
         )
     )
-    
+
     RED_EDGE_STAGING_MAX_AGE_HOURS = int(
         os.getenv(
             "RED_EDGE_STAGING_MAX_AGE_HOURS",
             "24",
         )
+    )
+
+    PE2_MQTT_DIAG_ACCESS_CODE = os.getenv(
+        "PE2_MQTT_DIAG_ACCESS_CODE",
+        "",
     )

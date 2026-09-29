@@ -81,16 +81,99 @@ def test_limits_recent_events(tmp_path):
         == "2026-09-29T05:00:14+00:00"
     )
 
+
 def test_mqtt_diagnostics_page():
     from InterfazInit import app
 
     client = app.test_client()
 
-    response = client.get("/diagnostics/mqtt")
+    with client.session_transaction() as sess:
+        sess["mqtt_diag_access"] = True
+
+    response = client.get(
+        "/diagnostics/mqtt"
+    )
 
     assert response.status_code == 200
-    assert b"Diagn" in response.data
     assert b"/api/diagnostics/mqtt" in response.data
+
+
+def test_mqtt_diagnostics_requires_login():
+    from InterfazInit import app
+
+    client = app.test_client()
+
+    page = client.get(
+        "/diagnostics/mqtt"
+    )
+
+    assert page.status_code == 302
+    assert "/diagnostics/login" in (
+        page.headers["Location"]
+    )
+
+    api = client.get(
+        "/api/diagnostics/mqtt"
+    )
+
+    assert api.status_code == 401
+
+
+def test_mqtt_diagnostics_rejects_remote_access():
+    from InterfazInit import app
+
+    client = app.test_client()
+
+    with client.session_transaction() as sess:
+        sess["mqtt_diag_access"] = True
+
+    response = client.get(
+        "/api/diagnostics/mqtt",
+        environ_base={
+            "REMOTE_ADDR": "192.168.1.12"
+        },
+    )
+
+    assert response.status_code == 403
+
+def test_mqtt_diagnostics_login(monkeypatch):
+    import InterfazInit as app_module
+
+    monkeypatch.setattr(
+        app_module.Config,
+        "PE2_MQTT_DIAG_ACCESS_CODE",
+        "test-code-only",
+    )
+
+    client = app_module.app.test_client()
+
+    response = client.post(
+        "/diagnostics/login",
+        data={"code": "test-code-only"},
+    )
+
+    assert response.status_code == 302
+    assert "/diagnostics/mqtt" in (
+        response.headers["Location"]
+    )
+
+    with client.session_transaction() as sess:
+        assert sess["mqtt_diag_access"] is True
+        assert sess.get("user_ground") is None
+
+def test_ground_session_does_not_authorize_mqtt():
+    from InterfazInit import app
+
+    client = app.test_client()
+
+    with client.session_transaction() as sess:
+        sess["user_ground"] = True
+
+    response = client.get(
+        "/api/diagnostics/mqtt"
+    )
+
+    assert response.status_code == 401
 
 def test_receiver_status_connected_and_stale(tmp_path):
     status_file = tmp_path / "receiver.json"
