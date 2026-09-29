@@ -1120,6 +1120,22 @@ def dji_cloud_probe():
     """
     client_ip = request.remote_addr
 
+    try:
+        from dji_cloud_diagnostics import (
+            record_dji_cloud_contact,
+        )
+
+        record_dji_cloud_contact(
+            event_type="page_open",
+            remote_addr=client_ip,
+        )
+
+    except (OSError, ValueError) as exc:
+        app.logger.warning(
+            "No se pudo registrar contacto DJI Cloud: %s",
+            exc,
+        )
+
     user_agent = request.headers.get(
         "User-Agent",
         "",
@@ -1184,6 +1200,23 @@ def api_dji_cloud_ping():
         client_ip,
         user_agent,
     )
+
+    try:
+        from dji_cloud_diagnostics import (
+            record_dji_cloud_contact,
+        )
+
+        record_dji_cloud_contact(
+            event_type="ping",
+            remote_addr=client_ip,
+            client_request_id=client_request_id,
+        )
+
+    except (OSError, ValueError) as exc:
+        app.logger.warning(
+            "No se pudo registrar ping DJI Cloud: %s",
+            exc,
+        )
 
     return jsonify({
         "ok": True,
@@ -1505,6 +1538,83 @@ def api_mqtt_diagnostics():
     )
 
     return jsonify(result)
+
+@app.route(
+    "/api/diagnostics/integration",
+    methods=["GET"],
+)
+def api_integration_diagnostics():
+    from dji_cloud_diagnostics import (
+        read_dji_cloud_status,
+    )
+
+    if not _mqtt_diagnostics_is_local():
+        return jsonify({
+            "error": True,
+            "msg": "Acceso remoto no habilitado.",
+        }), 403
+
+    if not session.get("mqtt_diag_access"):
+        return jsonify({
+            "error": True,
+            "msg": "Autenticación requerida.",
+        }), 401
+
+    from mqtt_diagnostics import (
+        read_mqtt_events,
+        read_receiver_status,
+    )
+
+    mqtt_events = read_mqtt_events()
+    mqtt_receiver = read_receiver_status()
+
+    try:
+        dji_status = (
+            DroneService
+            .get_integration_status()
+            .to_dict()
+        )
+
+        dji_backend = {
+            "available": True,
+            "status": dji_status,
+            "error": None,
+        }
+
+    except DroneServiceError as exc:
+        dji_backend = {
+            "available": False,
+            "status": None,
+            "error": str(exc),
+        }
+
+    dji_cloud_status = (
+        read_dji_cloud_status()
+    )
+
+    return jsonify({
+        "source": "pe2-integration-diagnostics",
+
+        "mqtt": {
+            "receiver": mqtt_receiver,
+            "last_event": (
+                mqtt_events.get("last_event")
+            ),
+            "log_exists": (
+                mqtt_events.get("log_exists", False)
+            ),
+        },
+
+        "dji_backend": dji_backend,
+
+        "dji_cloud_probe": {
+            "page_available": True,
+            "page_path": "/dji-cloud",
+            "ping_path": "/api/dji-cloud/ping",
+            "contact_tracking": True,
+            **dji_cloud_status,
+        },
+    })
 
 @app.route("/diagnostics/logout", methods=["POST"])
 def mqtt_diagnostics_logout():
