@@ -139,3 +139,56 @@ def test_dji_cloud_probe_does_not_embed_dji_credentials():
         "DJI_CLOUD_APP_LICENSE"
         not in html
     )
+
+def test_dji_cloud_probe_has_session_readiness():
+    app.config["TESTING"] = True
+
+    response = app.test_client().get(
+        "/dji-cloud"
+    )
+
+    assert response.status_code == 200
+
+    html = response.get_data(
+        as_text=True
+    )
+
+    assert (
+        "Preparación de sesión Pilot 2"
+        in html
+    )
+
+    assert (
+        "/api/dji-cloud/readiness"
+        in html
+    )
+
+    assert (
+        "refreshSessionReadiness"
+        in html
+    )
+
+    assert (
+        "session-bridge"
+        in html
+    )
+
+    assert (
+        "session-license"
+        in html
+    )
+
+    assert (
+        "session-thing"
+        in html
+    )
+
+    assert (
+        "session-thing-connected"
+        in html
+    )
+
+    assert (
+        "session-gateway"
+        in html
+    )

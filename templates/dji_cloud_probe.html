@@ -80,6 +80,151 @@
             font-size: 0.85rem;
             color: #cbd5e1;
         }
+
+        /* =========================================================
+        Pilot 2 session readiness
+        ========================================================= */
+
+        .session-readiness-card {
+            margin: 24px 0;
+            padding: 22px;
+            border: 1px solid #334155;
+            border-radius: 14px;
+            background: #172033;
+        }
+
+        .session-readiness-header {
+            margin-bottom: 20px;
+        }
+
+        .session-readiness-header h3 {
+            margin: 0 0 8px 0;
+            font-size: 1.3rem;
+        }
+
+        .session-readiness-header p {
+            margin: 0;
+            color: #cbd5e1;
+            line-height: 1.5;
+        }
+
+        .session-grid {
+            display: grid;
+            grid-template-columns: minmax(180px, 240px) 1fr;
+            gap: 12px 18px;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        .session-label {
+            color: #cbd5e1;
+            font-weight: 600;
+        }
+
+        .session-value {
+            min-width: 0;
+        }
+
+        .session-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            min-width: 110px;
+            min-height: 28px;
+
+            padding: 4px 12px;
+
+            border-radius: 999px;
+            border: 1px solid transparent;
+
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.025em;
+        }
+
+        .session-badge.ready {
+            background: rgba(16, 185, 129, 0.15);
+            border-color: rgba(16, 185, 129, 0.45);
+            color: #6ee7b7;
+        }
+
+        .session-badge.pending {
+            background: rgba(245, 158, 11, 0.14);
+            border-color: rgba(245, 158, 11, 0.42);
+            color: #fcd34d;
+        }
+
+        .session-badge.neutral {
+            background: rgba(148, 163, 184, 0.12);
+            border-color: rgba(148, 163, 184, 0.32);
+            color: #cbd5e1;
+        }
+
+        .session-badge.error {
+            background: rgba(239, 68, 68, 0.13);
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #fca5a5;
+        }
+
+        .session-badge.simulated {
+            background: rgba(168, 85, 247, 0.13);
+            border-color: rgba(168, 85, 247, 0.4);
+            color: #d8b4fe;
+        }
+
+        .session-target {
+            display: inline-block;
+
+            max-width: 100%;
+            padding: 6px 10px;
+
+            border: 1px solid #334155;
+            border-radius: 7px;
+
+            background: #0f172a;
+            color: #93c5fd;
+
+            font-family:
+                Consolas,
+                "Courier New",
+                monospace;
+
+            overflow-wrap: anywhere;
+        }
+
+        .session-actions {
+            margin-top: 22px;
+        }
+
+        .session-note {
+            margin-top: 16px;
+            padding: 12px 14px;
+
+            border-left: 4px solid #3b82f6;
+            border-radius: 6px;
+
+            background: #0f172a;
+            color: #dbeafe;
+
+            font-family:
+                Consolas,
+                "Courier New",
+                monospace;
+
+            line-height: 1.45;
+        }
+
+        @media (max-width: 720px) {
+            .session-grid {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+
+            .session-value {
+                margin-bottom: 10px;
+            }
+        }
     </style>
 </head>
 
@@ -143,6 +288,148 @@
             Esta prueba se ejecuta localmente dentro del WebView de DJI Pilot 2.
             Las credenciales no se envían al servidor PE2.
         </p>
+
+        <section class="session-readiness-card">
+
+            <div class="session-readiness-header">
+                <h3>
+                    Preparación de sesión Pilot 2
+                </h3>
+
+                <p>
+                    Estado previo de PE2 y de la integración
+                    DJI Cloud API. Este panel no ejecuta
+                    operaciones de vuelo.
+                </p>
+            </div>
+
+            <div class="session-grid">
+
+                <div class="session-label">
+                    Servidor PE2
+                </div>
+
+                <div class="session-value">
+                    <span
+                        id="session-pe2"
+                        class="session-badge neutral"
+                    >
+                        Comprobando
+                    </span>
+                </div>
+
+                <div class="session-label">
+                    Listener DJI MQTT
+                </div>
+
+                <div class="session-value">
+                    <span
+                        id="session-listener"
+                        class="session-badge neutral"
+                    >
+                        Comprobando
+                    </span>
+                </div>
+
+                <div class="session-label">
+                    Destino MQTT
+                </div>
+
+                <div class="session-value">
+                    <span
+                        id="session-mqtt-target"
+                        class="session-target"
+                    >
+                        —
+                    </span>
+                </div>
+
+                <div class="session-label">
+                    JSBridge DJI
+                </div>
+
+                <div class="session-value">
+                    <span
+                        id="session-bridge"
+                        class="session-badge neutral"
+                    >
+                        —
+                    </span>
+                </div>
+
+                <div class="session-label">
+                    Licencia Cloud API
+                </div>
+
+                <div class="session-value">
+                    <span
+                        id="session-license"
+                        class="session-badge neutral"
+                    >
+                        —
+                    </span>
+                </div>
+
+                <div class="session-label">
+                    Módulo Thing
+                </div>
+
+                <div class="session-value">
+                    <span
+                        id="session-thing"
+                        class="session-badge neutral"
+                    >
+                        —
+                    </span>
+                </div>
+
+                <div class="session-label">
+                    MQTT Thing
+                </div>
+
+                <div class="session-value">
+                    <span
+                        id="session-thing-connected"
+                        class="session-badge neutral"
+                    >
+                        —
+                    </span>
+                </div>
+
+                <div class="session-label">
+                    Gateway DJI real
+                </div>
+
+                <div class="session-value">
+                    <span
+                        id="session-gateway"
+                        class="session-badge neutral"
+                    >
+                        —
+                    </span>
+                </div>
+
+            </div>
+
+            <div class="session-actions">
+
+                <button
+                    type="button"
+                    onclick="refreshSessionReadiness()"
+                >
+                    Actualizar estado
+                </button>
+
+            </div>
+
+            <div
+                id="session-readiness-note"
+                class="session-note"
+            >
+                Esperando diagnóstico.
+            </div>
+
+        </section>
 
         <input
             id="dji-app-id"
@@ -485,6 +772,11 @@ function verifyDjiLicense() {
             checkDjiVerification,
             500
         );
+
+        setTimeout(
+            refreshSessionReadiness,
+            800
+        );
         /*
          * Limpiar inmediatamente los valores
          * después de pasarlos al JSBridge.
@@ -782,6 +1074,11 @@ function loadThingComponent() {
             1500
         );
 
+        setTimeout(
+            refreshSessionReadiness,
+            2000
+        );
+
     } catch (error) {
         passwordInput.value = "";
 
@@ -811,6 +1108,11 @@ window.pe2ThingConnectCallback =
             checkThingState,
             500
         );
+
+        setTimeout(
+            refreshSessionReadiness,
+            800
+        );
     };
 
 function initializeThingForm() {
@@ -830,7 +1132,10 @@ function initializeThingForm() {
 
 document.addEventListener(
     "DOMContentLoaded",
-    initializeThingForm
+    function () {
+        initializeThingForm();
+        refreshSessionReadiness();
+    }
 );
 
 async function reportClientState(values) {
@@ -901,6 +1206,436 @@ function extractBridgeBoolean(value) {
     }
 
     return null;
+}
+
+function setSessionValue(
+    id,
+    value
+) {
+    const element =
+        document.getElementById(id);
+
+    if (!element) {
+        return;
+    }
+
+    element.textContent =
+        value ?? "—";
+}
+
+function setSessionBadge(
+    id,
+    text,
+    state
+) {
+    const element =
+        document.getElementById(id);
+
+    if (!element) {
+        return;
+    }
+
+    element.textContent =
+        text ?? "—";
+
+    element.classList.remove(
+        "ready",
+        "pending",
+        "neutral",
+        "error",
+        "simulated"
+    );
+
+    element.classList.add(
+        state || "neutral"
+    );
+}
+
+function sessionBooleanLabel(
+    value
+) {
+    if (value === true) {
+        return "LISTO";
+    }
+
+    if (value === false) {
+        return "PENDIENTE";
+    }
+
+    return "SIN DATOS";
+}
+
+async function refreshSessionReadiness() {
+    const note =
+        document.getElementById(
+            "session-readiness-note"
+        );
+
+    try {
+        const response = await fetch(
+            "/api/dji-cloud/readiness",
+            {
+                method: "GET",
+                cache: "no-store",
+                credentials: "same-origin"
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `HTTP ${response.status}`
+            );
+        }
+
+        const data =
+            await response.json();
+
+
+        // =====================================================
+        // Servidor PE2
+        // =====================================================
+
+        setSessionBadge(
+            "session-pe2",
+            data.ok
+                ? "LISTO"
+                : "ERROR",
+            data.ok
+                ? "ready"
+                : "error"
+        );
+
+
+        // =====================================================
+        // Listener DJI MQTT
+        // =====================================================
+
+        const receiverState =
+            data.mqtt
+                ?.receiver_state;
+
+        if (
+            receiverState
+            === "connected"
+        ) {
+            setSessionBadge(
+                "session-listener",
+                "CONECTADO",
+                "ready"
+            );
+
+        } else if (
+            receiverState
+            === "stopped"
+        ) {
+            setSessionBadge(
+                "session-listener",
+                "DETENIDO",
+                "pending"
+            );
+
+        } else {
+            setSessionBadge(
+                "session-listener",
+                receiverState
+                    ? String(
+                        receiverState
+                    ).toUpperCase()
+                    : "SIN DATOS",
+                "neutral"
+            );
+        }
+
+
+        // =====================================================
+        // Destino MQTT
+        // =====================================================
+
+        const mqttPort =
+            data.mqtt?.port
+                || 1884;
+
+        const mqttTarget =
+            `tcp://${window.location.hostname}:${mqttPort}`;
+
+        setSessionValue(
+            "session-mqtt-target",
+            mqttTarget
+        );
+
+
+        // =====================================================
+        // JSBridge DJI
+        // =====================================================
+
+        const bridgePresent =
+            Boolean(
+                window.djiBridge
+            );
+
+        setSessionBadge(
+            "session-bridge",
+            bridgePresent
+                ? "DISPONIBLE"
+                : "PENDIENTE",
+            bridgePresent
+                ? "ready"
+                : "pending"
+        );
+
+
+        // =====================================================
+        // Licencia Cloud API
+        // =====================================================
+
+        let verified = null;
+
+        if (bridgePresent) {
+            verified =
+                getVerificationState();
+        }
+
+        setSessionBadge(
+            "session-license",
+            verified === true
+                ? "VERIFICADA"
+                : verified === false
+                    ? "NO VERIFICADA"
+                    : "SIN DATOS",
+            verified === true
+                ? "ready"
+                : verified === false
+                    ? "pending"
+                    : "neutral"
+        );
+
+
+        // =====================================================
+        // Componente Thing
+        // =====================================================
+
+        let thingLoaded = null;
+        let thingConnected = null;
+
+        if (
+            bridgePresent &&
+            typeof window.djiBridge
+                .platformIsComponentLoaded
+                === "function"
+        ) {
+            try {
+                const rawLoaded =
+                    window.djiBridge
+                        .platformIsComponentLoaded(
+                            "thing"
+                        );
+
+                thingLoaded =
+                    extractBridgeBoolean(
+                        rawLoaded
+                    );
+
+            } catch (error) {
+                thingLoaded = null;
+            }
+        }
+
+
+        if (
+            bridgePresent &&
+            typeof window.djiBridge
+                .thingGetConnectState
+                === "function"
+        ) {
+            try {
+                const rawConnected =
+                    window.djiBridge
+                        .thingGetConnectState();
+
+                thingConnected =
+                    extractBridgeBoolean(
+                        rawConnected
+                    );
+
+            } catch (error) {
+                thingConnected = null;
+            }
+        }
+
+
+        setSessionBadge(
+            "session-thing",
+            thingLoaded === true
+                ? "CARGADO"
+                : thingLoaded === false
+                    ? "PENDIENTE"
+                    : "SIN DATOS",
+            thingLoaded === true
+                ? "ready"
+                : thingLoaded === false
+                    ? "pending"
+                    : "neutral"
+        );
+
+
+        setSessionBadge(
+            "session-thing-connected",
+            thingConnected === true
+                ? "CONECTADO"
+                : thingConnected === false
+                    ? "DESCONECTADO"
+                    : "SIN DATOS",
+            thingConnected === true
+                ? "ready"
+                : thingConnected === false
+                    ? "pending"
+                    : "neutral"
+        );
+
+
+        // =====================================================
+        // Gateway DJI real
+        // =====================================================
+
+        const realGateway =
+            Boolean(
+                data.gateway
+                    ?.real_observed
+            );
+
+        if (realGateway) {
+            setSessionBadge(
+                "session-gateway",
+                "DETECTADO",
+                "ready"
+            );
+
+        } else if (
+            data.gateway?.simulated
+        ) {
+            setSessionBadge(
+                "session-gateway",
+                "SOLO SIMULADO",
+                "simulated"
+            );
+
+        } else {
+            setSessionBadge(
+                "session-gateway",
+                "PENDIENTE",
+                "pending"
+            );
+        }
+
+
+        // =====================================================
+        // Reportar estado al backend PE2
+        // =====================================================
+
+        if (bridgePresent) {
+            const report = {
+                bridge_present: true
+            };
+
+            if (
+                typeof verified
+                === "boolean"
+            ) {
+                report.license_verified =
+                    verified;
+            }
+
+            if (
+                typeof thingLoaded
+                === "boolean"
+            ) {
+                report.thing_loaded =
+                    thingLoaded;
+            }
+
+            if (
+                typeof thingConnected
+                === "boolean"
+            ) {
+                report.thing_connected =
+                    thingConnected;
+            }
+
+            reportClientState(
+                report
+            );
+        }
+
+
+        // =====================================================
+        // Mensaje de estado
+        // =====================================================
+
+        if (note) {
+
+            if (
+                receiverState
+                !== "connected"
+            ) {
+                note.textContent =
+                    "PE2 está disponible, pero el listener DJI MQTT no está conectado. Inicia el listener antes de cargar Thing.";
+
+            } else if (
+                !bridgePresent
+            ) {
+                note.textContent =
+                    "PE2 está preparado. JSBridge no está disponible en este navegador; esto es normal fuera de DJI Pilot 2.";
+
+            } else if (
+                verified !== true
+            ) {
+                note.textContent =
+                    "JSBridge detectado. El siguiente paso es verificar la licencia Cloud API.";
+
+            } else if (
+                thingLoaded !== true
+            ) {
+                note.textContent =
+                    "Licencia verificada. El siguiente paso es cargar el componente Thing.";
+
+            } else if (
+                thingConnected !== true
+            ) {
+                note.textContent =
+                    "Thing está cargado. Esperando conexión MQTT.";
+
+            } else if (
+                !realGateway
+            ) {
+                note.textContent =
+                    "MQTT Thing está conectado. Esperando topología real del gateway DJI.";
+
+            } else {
+                note.textContent =
+                    "Integración Pilot 2 ↔ PE2 observada correctamente.";
+            }
+        }
+
+    } catch (error) {
+
+        setSessionBadge(
+            "session-pe2",
+            "ERROR",
+            "error"
+        );
+
+        setSessionBadge(
+            "session-listener",
+            "SIN DATOS",
+            "neutral"
+        );
+
+        if (note) {
+            note.textContent =
+                "No se pudo consultar readiness: "
+                + String(error);
+        }
+    }
 }
 </script>
 </body>

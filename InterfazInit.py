@@ -1333,6 +1333,146 @@ def api_dji_cloud_client_state():
         "state": state,
     })
 
+@app.route(
+    "/api/dji-cloud/readiness",
+    methods=["GET"],
+)
+def api_dji_cloud_readiness():
+    """
+    Estado mínimo y no sensible necesario para
+    preparar una sesión DJI Pilot 2.
+    """
+
+    client_ip = (
+        request.remote_addr
+        or ""
+    )
+
+    try:
+        parsed_ip = ip_address(
+            client_ip
+        )
+
+    except ValueError:
+        return jsonify({
+            "ok": False,
+            "error":
+                "Dirección cliente no válida.",
+        }), 403
+
+    if not (
+        parsed_ip.is_private
+        or parsed_ip.is_loopback
+    ):
+        return jsonify({
+            "ok": False,
+            "error":
+                "Readiness remoto no habilitado.",
+        }), 403
+
+    try:
+        from dji_cloud_state import (
+            build_runtime_summary,
+            read_dji_cloud_receiver_status,
+            read_dji_cloud_state,
+            summarize_receiver_status,
+        )
+
+        runtime = (
+            build_runtime_summary(
+                read_dji_cloud_state()
+            )
+        )
+
+        receiver = (
+            summarize_receiver_status(
+                read_dji_cloud_receiver_status()
+            )
+        )
+
+    except (
+        OSError,
+        ValueError,
+        TypeError,
+    ) as exc:
+        app.logger.warning(
+            "No se pudo construir "
+            "DJI Cloud readiness: %s",
+            exc,
+        )
+
+        return jsonify({
+            "ok": False,
+            "error":
+                "No se pudo leer el estado "
+                "DJI Cloud local.",
+        }), 500
+
+    gateway_detected = bool(
+        runtime.get(
+            "gateway_detected"
+        )
+    )
+
+    simulated = bool(
+        runtime.get(
+            "simulated"
+        )
+    )
+
+    real_gateway_observed = (
+        gateway_detected
+        and not simulated
+    )
+
+    return jsonify({
+        "ok": True,
+        "source":
+            "pe2-dji-cloud-readiness",
+
+        "mqtt": {
+            "port": 1884,
+            "receiver_state":
+                receiver.get(
+                    "state"
+                ),
+            "heartbeat_age_seconds":
+                receiver.get(
+                    "heartbeat_age_seconds"
+                ),
+            "ack_topology": True,
+        },
+
+        "gateway": {
+            "detected":
+                gateway_detected,
+            "simulated":
+                simulated,
+            "real_observed":
+                real_gateway_observed,
+            "gateway_id":
+                runtime.get(
+                    "gateway_id"
+                ),
+        },
+
+        "runtime": {
+            "device_count":
+                runtime.get(
+                    "device_count",
+                    0,
+                ),
+            "last_message_at":
+                runtime.get(
+                    "last_message_at"
+                ),
+            "last_channel":
+                runtime.get(
+                    "last_channel"
+                ),
+        },
+    })
+
 @app.route("/drone_operation")
 def drone_operation():
     return render_template(
