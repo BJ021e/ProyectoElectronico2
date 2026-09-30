@@ -192,3 +192,46 @@ def test_dji_cloud_probe_has_session_readiness():
         "session-gateway"
         in html
     )
+
+def test_dji_cloud_probe_has_readiness_polling():
+    app.config["TESTING"] = True
+
+    response = app.test_client().get(
+        "/dji-cloud"
+    )
+
+    assert response.status_code == 200
+
+    html = response.get_data(
+        as_text=True
+    )
+
+    assert (
+        "startSessionReadinessPolling"
+        in html
+    )
+
+    assert (
+        "refreshSessionReadinessSafe"
+        in html
+    )
+
+    assert (
+        "sessionReadinessRunning"
+        in html
+    )
+
+    assert (
+        "setInterval"
+        in html
+    )
+
+    assert (
+        "5000"
+        in html
+    )
+
+    assert (
+        "session-last-update"
+        in html
+    )

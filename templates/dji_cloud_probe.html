@@ -303,6 +303,13 @@
                 </p>
             </div>
 
+            <span
+                id="session-monitor-status"
+                class="session-badge neutral"
+            >
+                INICIANDO
+            </span>
+
             <div class="session-grid">
 
                 <div class="session-label">
@@ -338,6 +345,19 @@
                 <div class="session-value">
                     <span
                         id="session-mqtt-target"
+                        class="session-target"
+                    >
+                        —
+                    </span>
+                </div>
+
+                <div class="session-label">
+                    Última actualización
+                </div>
+
+                <div class="session-value">
+                    <span
+                        id="session-last-update"
                         class="session-target"
                     >
                         —
@@ -415,7 +435,7 @@
 
                 <button
                     type="button"
-                    onclick="refreshSessionReadiness()"
+                    onclick="refreshSessionReadinessSafe()"
                 >
                     Actualizar estado
                 </button>
@@ -1134,8 +1154,13 @@ document.addEventListener(
     "DOMContentLoaded",
     function () {
         initializeThingForm();
-        refreshSessionReadiness();
+        startSessionReadinessPolling();
     }
+);
+
+window.addEventListener(
+    "beforeunload",
+    stopSessionReadinessPolling
 );
 
 async function reportClientState(values) {
@@ -1290,7 +1315,13 @@ async function refreshSessionReadiness() {
         const data =
             await response.json();
 
+        const now =
+            new Date().toLocaleTimeString();
 
+        setSessionValue(
+            "session-last-update",
+            now
+        );
         // =====================================================
         // Servidor PE2
         // =====================================================
@@ -1637,6 +1668,77 @@ async function refreshSessionReadiness() {
         }
     }
 }
+
+let sessionReadinessTimer = null;
+let sessionReadinessRunning = false;
+
+async function refreshSessionReadinessSafe() {
+    if (sessionReadinessRunning) {
+        return;
+    }
+
+    sessionReadinessRunning = true;
+
+    try {
+        await refreshSessionReadiness();
+    } catch (error) {
+        console.error(
+            "Error actualizando readiness:",
+            error
+        );
+    } finally {
+        sessionReadinessRunning = false;
+    }
+}
+
+function startSessionReadinessPolling() {
+    if (sessionReadinessTimer !== null) {
+        return;
+    }
+
+    console.log(
+        "PE2: iniciando monitoreo Pilot 2"
+    );
+
+    refreshSessionReadinessSafe();
+
+    sessionReadinessTimer =
+        window.setInterval(
+            function () {
+                refreshSessionReadinessSafe();
+            },
+            5000
+        );
+
+    setSessionBadge(
+        "session-monitor-status",
+        "MONITOREO ACTIVO",
+        "ready"
+    );
+}
+
+function stopSessionReadinessPolling() {
+    if (sessionReadinessTimer === null) {
+        return;
+    }
+
+    window.clearInterval(
+        sessionReadinessTimer
+    );
+
+    sessionReadinessTimer = null;
+
+    console.log(
+        "PE2: monitoreo Pilot 2 detenido"
+    );
+
+    setSessionBadge(
+        "session-monitor-status",
+        "MONITOREO DETENIDO",
+        "pending"
+    );
+}
+
 </script>
 </body>
 </html>
