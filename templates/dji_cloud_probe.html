@@ -598,17 +598,56 @@ function checkThingState() {
         mqtt_connected: null
     };
 
-    const loaded =
-        extractBridgeBoolean(
-            /* resultado de
-            platformIsComponentLoaded */
-        );
+    let loaded = null;
+    let connected = null;
 
-    const connected =
-        extractBridgeBoolean(
-            /* resultado de
-            thingGetConnectState */
-        );
+    try {
+        if (
+            typeof window.djiBridge
+                .platformIsComponentLoaded
+                === "function"
+        ) {
+            const rawLoaded =
+                window.djiBridge
+                    .platformIsComponentLoaded(
+                        "thing"
+                    );
+
+            result.component_loaded =
+                parseBridgeResponse(
+                    rawLoaded
+                );
+
+            loaded =
+                extractBridgeBoolean(
+                    rawLoaded
+                );
+        }
+
+        if (
+            typeof window.djiBridge
+                .thingGetConnectState
+                === "function"
+        ) {
+            const rawConnected =
+                window.djiBridge
+                    .thingGetConnectState();
+
+            result.mqtt_connected =
+                parseBridgeResponse(
+                    rawConnected
+                );
+
+            connected =
+                extractBridgeBoolean(
+                    rawConnected
+                );
+        }
+
+    } catch (error) {
+        result.error =
+            String(error);
+    }
 
     const report = {
         bridge_present: true
@@ -632,39 +671,9 @@ function checkThingState() {
         report
     );
 
-    try {
-        if (
-            typeof window.djiBridge
-                .platformIsComponentLoaded
-                === "function"
-        ) {
-            result.component_loaded =
-                parseBridgeResponse(
-                    window.djiBridge
-                        .platformIsComponentLoaded(
-                            "thing"
-                        )
-                );
-        }
-
-        if (
-            typeof window.djiBridge
-                .thingGetConnectState
-                === "function"
-        ) {
-            result.mqtt_connected =
-                parseBridgeResponse(
-                    window.djiBridge
-                        .thingGetConnectState()
-                );
-        }
-
-    } catch (error) {
-        result.error =
-            String(error);
-    }
-
-    showThingResult(result);
+    showThingResult(
+        result
+    );
 }
 
 function loadThingComponent() {

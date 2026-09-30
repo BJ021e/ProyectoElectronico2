@@ -99,6 +99,26 @@ def test_dji_cloud_probe_has_thing_diagnostics():
         not in html
     )
 
+    assert (
+        'platformIsComponentLoaded('
+        in html
+    )
+
+    assert (
+        'thingGetConnectState()'
+        in html
+    )
+
+    assert (
+        "report.thing_loaded"
+        in html
+    )
+
+    assert (
+        "report.thing_connected"
+        in html
+    )
+
 def test_dji_cloud_probe_does_not_embed_dji_credentials():
     app.config["TESTING"] = True
 
