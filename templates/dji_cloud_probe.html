@@ -134,6 +134,50 @@
         <div id="pingResult">
             Esperando prueba...
         </div>
+
+        <hr>
+
+        <h3>DJI Cloud API - Licencia</h3>
+
+        <p>
+            Esta prueba se ejecuta localmente dentro del WebView de DJI Pilot 2.
+            Las credenciales no se envían al servidor PE2.
+        </p>
+
+        <input
+            id="dji-app-id"
+            type="password"
+            placeholder="APP ID"
+            autocomplete="off"
+        >
+
+        <input
+            id="dji-app-key"
+            type="password"
+            placeholder="App Key"
+            autocomplete="off"
+        >
+
+        <input
+            id="dji-app-license"
+            type="password"
+            placeholder="App Basic License"
+            autocomplete="off"
+        >
+
+        <br><br>
+
+        <button type="button" onclick="checkDjiVerification()">
+            Consultar autenticación
+        </button>
+
+        <button type="button" onclick="verifyDjiLicense()">
+            Verificar licencia DJI
+        </button>
+
+        <pre id="dji-license-result">
+        Sin ejecutar.
+        </pre>
     </div>
 </div>
 
@@ -232,6 +276,135 @@ function checkDjiBridge() {
     );
 }
 
+function showLicenseResult(value) {
+    const output = document.getElementById(
+        "dji-license-result"
+    );
+
+    output.textContent =
+        typeof value === "string"
+            ? value
+            : JSON.stringify(value, null, 2);
+}
+
+
+function parseDjiResponse(raw) {
+    if (typeof raw !== "string") {
+        return raw;
+    }
+
+    try {
+        return JSON.parse(raw);
+    } catch (error) {
+        return {
+            raw: raw,
+            parse_error: String(error)
+        };
+    }
+}
+
+
+function checkDjiVerification() {
+    if (
+        !window.djiBridge ||
+        typeof window.djiBridge.platformIsVerified
+            !== "function"
+    ) {
+        showLicenseResult({
+            ok: false,
+            error: "platformIsVerified no disponible"
+        });
+        return;
+    }
+
+    try {
+        const raw =
+            window.djiBridge.platformIsVerified();
+
+        showLicenseResult(
+            parseDjiResponse(raw)
+        );
+    } catch (error) {
+        showLicenseResult({
+            ok: false,
+            error: String(error)
+        });
+    }
+}
+
+
+function verifyDjiLicense() {
+    const appId =
+        document.getElementById(
+            "dji-app-id"
+        ).value.trim();
+
+    const appKey =
+        document.getElementById(
+            "dji-app-key"
+        ).value.trim();
+
+    const license =
+        document.getElementById(
+            "dji-app-license"
+        ).value.trim();
+
+    if (!appId || !appKey || !license) {
+        showLicenseResult({
+            ok: false,
+            error: "Falta APP ID, App Key o App Basic License."
+        });
+        return;
+    }
+
+    if (
+        !window.djiBridge ||
+        typeof window.djiBridge.platformVerifyLicense
+            !== "function"
+    ) {
+        showLicenseResult({
+            ok: false,
+            error: "platformVerifyLicense no disponible"
+        });
+        return;
+    }
+
+    try {
+        const raw =
+            window.djiBridge.platformVerifyLicense(
+                appId,
+                appKey,
+                license
+            );
+
+        const result =
+            parseDjiResponse(raw);
+
+        showLicenseResult(result);
+
+        /*
+         * Limpiar inmediatamente los valores
+         * después de pasarlos al JSBridge.
+         */
+        document.getElementById(
+            "dji-app-id"
+        ).value = "";
+
+        document.getElementById(
+            "dji-app-key"
+        ).value = "";
+
+        document.getElementById(
+            "dji-app-license"
+        ).value = "";
+
+    } catch (error) {
+        showLicenseResult({
+            ok: false,
+            error: String(error)
+        });
+    }
+}
 </script>
 </body>
 </html>

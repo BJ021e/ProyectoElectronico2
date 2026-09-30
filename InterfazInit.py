@@ -1607,6 +1607,32 @@ def api_integration_diagnostics():
         read_dji_cloud_status()
     )
 
+    try:
+        from dji_cloud_state import (
+            build_runtime_summary,
+            read_dji_cloud_receiver_status,
+            read_dji_cloud_state,
+            summarize_receiver_status,
+        )
+
+        dji_cloud_mqtt = (
+            build_runtime_summary(
+                read_dji_cloud_state()
+            )
+        )
+
+        dji_cloud_mqtt["receiver"] = (
+            summarize_receiver_status(
+                read_dji_cloud_receiver_status()
+            )
+        )
+
+    except (OSError, ValueError) as exc:
+        dji_cloud_mqtt = {
+            "available": False,
+            "error": str(exc),
+        }
+
     return jsonify({
         "source": "pe2-integration-diagnostics",
 
@@ -1616,11 +1642,12 @@ def api_integration_diagnostics():
                 mqtt_events.get("last_event")
             ),
             "log_exists": (
-                mqtt_events.get("log_exists", False)
+                mqtt_events.get(
+                    "log_exists",
+                    False,
+                )
             ),
         },
-
-        "dji_backend": dji_backend,
 
         "dji_cloud_probe": {
             "page_available": True,
@@ -1629,6 +1656,14 @@ def api_integration_diagnostics():
             "contact_tracking": True,
             **dji_cloud_status,
         },
+
+        "dji_cloud_mqtt": (
+            dji_cloud_mqtt
+        ),
+
+        "dji_backend": (
+            dji_backend
+        ),
     })
 
 @app.route("/diagnostics/logout", methods=["POST"])

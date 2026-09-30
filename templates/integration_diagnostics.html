@@ -211,6 +211,53 @@
                 su estado de integración.
             </p>
         </article>
+
+        <div class="card">
+            <h2>DJI Cloud MQTT</h2>
+
+            <div
+                id="dji-mqtt-status"
+                class="status warning"
+            >
+                Sin datos
+            </div>
+
+            <dl>
+                <dt>Receptor MQTT DJI</dt>
+                <dd id="dji-mqtt-receiver">
+                    —
+                </dd>
+
+                <dt>Heartbeat</dt>
+                <dd id="dji-mqtt-heartbeat">
+                    —
+                </dd>
+
+                <dt>Gateway</dt>
+                <dd id="dji-mqtt-gateway">
+                    —
+                </dd>
+
+                <dt>Dispositivos detectados</dt>
+                <dd id="dji-mqtt-devices">
+                    —
+                </dd>
+
+                <dt>Último canal</dt>
+                <dd id="dji-mqtt-channel">
+                    —
+                </dd>
+
+                <dt>Último mensaje DJI</dt>
+                <dd id="dji-mqtt-last-message">
+                    —
+                </dd>
+            </dl>
+
+            <p id="dji-mqtt-note">
+                Aún no se ha recibido tráfico DJI Cloud MQTT.
+            </p>
+        </div>
     </section>
 
     <p class="footer" id="last-update"></p>
@@ -394,18 +441,176 @@
 
             setText("error", "");
 
+            const djiMqtt =
+                data.dji_cloud_mqtt || {};
+
+            const djiReceiver =
+                djiMqtt.receiver || {};
+
+            const receiverState =
+                djiReceiver.state || "unknown";
+
+            const gatewayDetected =
+                Boolean(
+                    djiMqtt.available &&
+                    djiMqtt.gateway_detected
+                );
+
+            setText(
+                "dji-mqtt-receiver",
+                receiverState
+            );
+
+            const heartbeatAge =
+                djiReceiver.heartbeat_age_seconds;
+
+            setText(
+                "dji-mqtt-heartbeat",
+                heartbeatAge !== null &&
+                heartbeatAge !== undefined
+                    ? `${heartbeatAge} s`
+                    : "—"
+            );
+
+            setText(
+                "dji-mqtt-gateway",
+                djiMqtt.gateway_id || "No detectado"
+            );
+
+            setText(
+                "dji-mqtt-devices",
+                String(
+                    djiMqtt.device_count || 0
+                )
+            );
+
+            setText(
+                "dji-mqtt-channel",
+                djiMqtt.last_channel || "—"
+            );
+
+            setText(
+                "dji-mqtt-last-message",
+                formatDate(
+                    djiMqtt.last_message_at
+                )
+            );
+
+            if (receiverState === "connected") {
+
+                if (
+                    gatewayDetected &&
+                    djiMqtt.simulated
+                ) {
+                    setStatus(
+                        "dji-mqtt-status",
+                        "Conectado · datos simulados",
+                        "warning"
+                    );
+
+                } else if (gatewayDetected) {
+                    setStatus(
+                        "dji-mqtt-status",
+                        "Conectado · gateway detectado",
+                        "ok"
+                    );
+
+                } else {
+                    setStatus(
+                        "dji-mqtt-status",
+                        "Conectado · esperando DJI",
+                        "warning"
+                    );
+                }
+
+            } else if (
+                receiverState === "stale"
+            ) {
+
+                setStatus(
+                    "dji-mqtt-status",
+                    "Heartbeat vencido",
+                    "warning"
+                );
+
+            } else if (
+                receiverState === "stopped"
+            ) {
+
+                setStatus(
+                    "dji-mqtt-status",
+                    "Listener detenido",
+                    "warning"
+                );
+
+            } else if (
+                receiverState === "disconnected"
+            ) {
+
+                setStatus(
+                    "dji-mqtt-status",
+                    "Listener desconectado",
+                    "warning"
+                );
+
+            } else {
+
+                setStatus(
+                    "dji-mqtt-status",
+                    "Estado desconocido",
+                    "warning"
+                );
+            }
+
+            if (djiMqtt.simulated) {
+
+                setText(
+                    "dji-mqtt-note",
+                    "La información actual proviene del simulador local PE2; no representa un Smart Controller conectado actualmente."
+                );
+
+            } else if (gatewayDetected) {
+
+                setText(
+                    "dji-mqtt-note",
+                    "Se ha recibido tráfico MQTT DJI Cloud desde un gateway."
+                );
+
+            } else {
+
+                setText(
+                    "dji-mqtt-note",
+                    "El listener está preparado, pero todavía no se ha recibido topología DJI."
+                );
+            }
+
         } catch (error) {
+
+            console.error(
+                "Error actualizando diagnóstico integral:",
+                error
+            );
+
             setText(
                 "error",
                 "No se pudo actualizar el diagnóstico: "
                 + error.message
+            );
+
+            setText(
+                "last-update",
+                "Último intento: "
+                + new Date().toLocaleTimeString()
             );
         }
     }
 
     updateIntegration();
 
-    setInterval(updateIntegration, 5000);
+    setInterval(
+        updateIntegration,
+        5000
+    );
 </script>
 </body>
 </html>
