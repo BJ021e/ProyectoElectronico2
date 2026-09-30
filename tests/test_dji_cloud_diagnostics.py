@@ -69,3 +69,71 @@ def test_records_ping_without_losing_page_open(
         result["last_client_request_id"]
         == "probe-test-001"
     )
+
+def test_local_contact_does_not_replace_remote_contact(
+    tmp_path,
+):
+    path = tmp_path / "dji.json"
+
+    remote = record_dji_cloud_contact(
+        event_type="ping",
+        remote_addr="172.20.10.2",
+        client_request_id="pilot2-001",
+        user_agent="dji-open-platform",
+        status_path=path,
+    )
+
+    assert (
+        remote[
+            "last_remote_addr_observed"
+        ]
+        == "172.20.10.2"
+    )
+
+    record_dji_cloud_contact(
+        event_type="page_open",
+        remote_addr="127.0.0.1",
+        user_agent="Local-Test",
+        status_path=path,
+    )
+
+    final = read_dji_cloud_status(
+        path
+    )
+
+    assert (
+        final["last_remote_addr"]
+        == "127.0.0.1"
+    )
+
+    assert (
+        final[
+            "last_remote_addr_observed"
+        ]
+        == "172.20.10.2"
+    )
+
+    assert (
+        final[
+            "last_remote_user_agent"
+        ]
+        == "dji-open-platform"
+    )
+
+def test_loopback_only_has_no_remote_contact(
+    tmp_path,
+):
+    path = tmp_path / "dji.json"
+
+    result = record_dji_cloud_contact(
+        event_type="ping",
+        remote_addr="127.0.0.1",
+        status_path=path,
+    )
+
+    assert (
+        result[
+            "last_remote_contact_at"
+        ]
+        is None
+    )

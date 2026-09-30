@@ -50,3 +50,72 @@ def test_dji_cloud_probe_has_bridge_diagnostics():
         "platformSetInformation",
     ):
         assert marker in html
+
+def test_dji_cloud_probe_has_thing_diagnostics():
+    app.config["TESTING"] = True
+
+    response = app.test_client().get(
+        "/dji-cloud"
+    )
+
+    assert response.status_code == 200
+
+    html = response.get_data(
+        as_text=True
+    )
+
+    assert (
+        "platformLoadComponent"
+        in html
+    )
+
+    assert (
+        "platformIsComponentLoaded"
+        in html
+    )
+
+    assert (
+        "thingGetConnectState"
+        in html
+    )
+
+    assert (
+        "pe2ThingConnectCallback"
+        in html
+    )
+
+    assert (
+        "pilot2_cloud"
+        in html
+    )
+
+    assert (
+        "window.location.hostname"
+        in html
+    )
+
+    assert (
+        "thingGetConfigs"
+        not in html
+    )
+
+def test_dji_cloud_probe_does_not_embed_dji_credentials():
+    app.config["TESTING"] = True
+
+    response = app.test_client().get(
+        "/dji-cloud"
+    )
+
+    html = response.get_data(
+        as_text=True
+    )
+
+    assert (
+        "DJI_CLOUD_APP_KEY"
+        not in html
+    )
+
+    assert (
+        "DJI_CLOUD_APP_LICENSE"
+        not in html
+    )

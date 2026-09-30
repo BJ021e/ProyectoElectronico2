@@ -5,7 +5,7 @@ import os
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
-
+from ipaddress import ip_address
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 
@@ -31,6 +31,12 @@ def _empty_status():
         "last_remote_addr": None,
         "last_client_request_id": None,
         "last_user_agent": None,
+
+        "last_remote_contact_at": None,
+        "last_remote_event": None,
+        "last_remote_addr_observed": None,
+        "last_remote_user_agent": None,
+        "last_remote_client_request_id": None,
     }
 
 
@@ -50,13 +56,14 @@ def read_dji_cloud_status(status_path=None):
     except (OSError, ValueError, TypeError):
         return _empty_status()
 
+    if not isinstance(data, dict):
+        return _empty_status()
+
     result = _empty_status()
 
     for key in result:
-        value = data.get(key)
-
-        if value is None or isinstance(value, str):
-            result[key] = value
+        if key in data:
+            result[key] = data[key]
 
     return result
 
@@ -88,19 +95,33 @@ def record_dji_cloud_contact(
     )
 
     with _WRITE_LOCK:
-        status = read_dji_cloud_status(path)
+        # Recuperar TODO el estado anterior.
+        status = read_dji_cloud_status(
+            path
+        )
 
         now = _timestamp()
+
+        # -------------------------------------------------
+        # Estado general: siempre representa el contacto
+        # más reciente, sea local o remoto.
+        # -------------------------------------------------
 
         status["last_contact_at"] = now
         status["last_event"] = event_type
 
-        if isinstance(remote_addr, str):
+        if isinstance(
+            remote_addr,
+            str,
+        ):
             status["last_remote_addr"] = (
                 remote_addr[:64]
             )
 
-        if isinstance(user_agent, str):
+        if isinstance(
+            user_agent,
+            str,
+        ):
             status["last_user_agent"] = (
                 user_agent[:300]
             )
@@ -117,6 +138,51 @@ def record_dji_cloud_contact(
                 ] = str(
                     client_request_id
                 )[:64]
+
+        # -------------------------------------------------
+        # Evidencia histórica remota.
+        #
+        # MUY IMPORTANTE:
+        # solo se modifica cuando la IP NO es loopback.
+        # Un contacto desde 127.0.0.1 NO debe borrar
+        # estos valores.
+        # -------------------------------------------------
+
+        if _is_non_loopback_address(
+            remote_addr
+        ):
+            status[
+                "last_remote_contact_at"
+            ] = now
+
+            status[
+                "last_remote_event"
+            ] = event_type
+
+            status[
+                "last_remote_addr_observed"
+            ] = str(
+                remote_addr
+            )[:64]
+
+            if isinstance(
+                user_agent,
+                str,
+            ):
+                status[
+                    "last_remote_user_agent"
+                ] = user_agent[:300]
+
+            if client_request_id:
+                status[
+                    "last_remote_client_request_id"
+                ] = str(
+                    client_request_id
+                )[:64]
+
+        # IMPORTANTE:
+        # aquí NO debe existir un "else" que coloque
+        # last_remote_* = None.
 
         temp_path = path.with_suffix(
             ".json.tmp"
@@ -138,3 +204,15 @@ def record_dji_cloud_contact(
         )
 
     return status
+
+def _is_non_loopback_address(value):
+    if not isinstance(value, str):
+        return False
+
+    try:
+        return not ip_address(
+            value
+        ).is_loopback
+
+    except ValueError:
+        return False

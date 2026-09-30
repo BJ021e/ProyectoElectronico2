@@ -147,6 +147,7 @@ from services.processing_executor import (
 )
 
 from datetime import datetime, timezone
+from ipaddress import ip_address
 
 app = Flask(__name__)
 app.secret_key = Config.SECRET_KEY
@@ -1244,6 +1245,94 @@ def api_dji_cloud_ping():
         "server_time": server_time,
     })
 
+@app.route(
+    "/api/dji-cloud/client-state",
+    methods=["POST"],
+)
+def api_dji_cloud_client_state():
+    """
+    Recibe únicamente estados booleanos de diagnóstico
+    reportados por la página ejecutada en Pilot 2.
+    """
+
+    client_ip = (
+        request.remote_addr
+        or ""
+    )
+
+    try:
+        parsed_ip = ip_address(
+            client_ip
+        )
+
+    except ValueError:
+        return jsonify({
+            "ok": False,
+            "error":
+                "Dirección cliente no válida.",
+        }), 403
+
+    if not (
+        parsed_ip.is_private
+        or parsed_ip.is_loopback
+    ):
+        return jsonify({
+            "ok": False,
+            "error":
+                "Reporte remoto no habilitado.",
+        }), 403
+
+    payload = request.get_json(
+        silent=True
+    )
+
+    if not isinstance(
+        payload,
+        dict,
+    ):
+        return jsonify({
+            "ok": False,
+            "error":
+                "Se esperaba un objeto JSON.",
+        }), 400
+
+    try:
+        from dji_cloud_client_state import (
+            update_client_state,
+        )
+
+        state = update_client_state(
+            payload,
+            remote_addr=client_ip,
+        )
+
+    except ValueError as exc:
+        return jsonify({
+            "ok": False,
+            "error": str(exc),
+        }), 400
+
+    except OSError as exc:
+        app.logger.warning(
+            "No se pudo registrar "
+            "estado cliente DJI: %s",
+            exc,
+        )
+
+        return jsonify({
+            "ok": False,
+            "error":
+                "No se pudo persistir "
+                "el estado.",
+        }), 500
+
+    return jsonify({
+        "ok": True,
+        "source":
+            "pe2-dji-cloud-client-state",
+        "state": state,
+    })
+
 @app.route("/drone_operation")
 def drone_operation():
     return render_template(
@@ -1633,6 +1722,25 @@ def api_integration_diagnostics():
             "error": str(exc),
         }
 
+    try:
+        from dji_cloud_client_state import (
+            read_client_state,
+            summarize_client_state,
+        )
+
+        dji_cloud_client = (
+            summarize_client_state(
+                read_client_state()
+            )
+        )
+
+    except (OSError, ValueError) as exc:
+        dji_cloud_client = {
+            "reported": False,
+            "fresh": False,
+            "error": str(exc),
+        }
+
     return jsonify({
         "source": "pe2-integration-diagnostics",
 
@@ -1656,6 +1764,10 @@ def api_integration_diagnostics():
             "contact_tracking": True,
             **dji_cloud_status,
         },
+
+        "dji_cloud_client": (
+            dji_cloud_client
+        ),
 
         "dji_cloud_mqtt": (
             dji_cloud_mqtt

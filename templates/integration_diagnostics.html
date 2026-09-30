@@ -175,6 +175,21 @@
 
                 <dt>Cliente HTTP observado</dt>
                 <dd id="probe-user-agent">—</dd>
+
+                <dt>Último contacto remoto</dt>
+                <dd id="probe-remote-contact">
+                    —
+                </dd>
+
+                <dt>IP remota observada</dt>
+                <dd id="probe-remote-ip">
+                    —
+                </dd>
+
+                <dt>Cliente remoto observado</dt>
+                <dd id="probe-remote-agent">
+                    —
+                </dd>
             </dl>
 
             <p class="note">
@@ -256,6 +271,53 @@
 
             <p id="dji-mqtt-note">
                 Aún no se ha recibido tráfico DJI Cloud MQTT.
+            </p>
+        </div>
+
+        <div class="card">
+            <h2>Pilot 2 / JSBridge</h2>
+
+            <div
+                id="dji-client-status"
+                class="status warning"
+            >
+                Sin reportes
+            </div>
+
+            <dl>
+                <dt>Origen del reporte</dt>
+                <dd id="dji-client-origin">
+                    —
+                </dd>
+
+                <dt>JSBridge</dt>
+                <dd id="dji-client-bridge">
+                    —
+                </dd>
+
+                <dt>Licencia Cloud API</dt>
+                <dd id="dji-client-license">
+                    —
+                </dd>
+
+                <dt>Módulo Thing</dt>
+                <dd id="dji-client-thing">
+                    —
+                </dd>
+
+                <dt>MQTT Thing</dt>
+                <dd id="dji-client-connected">
+                    —
+                </dd>
+
+                <dt>Antigüedad del reporte</dt>
+                <dd id="dji-client-age">
+                    —
+                </dd>
+            </dl>
+
+            <p id="dji-client-note">
+                Aún no se han recibido estados del cliente DJI.
             </p>
         </div>
     </section>
@@ -583,6 +645,191 @@
                     "El listener está preparado, pero todavía no se ha recibido topología DJI."
                 );
             }
+
+            // Estado reportado por el cliente DJI / Pilot 2.
+            const djiClient =
+                data.dji_cloud_client || {};
+
+            function booleanLabel(value) {
+                if (value === true) {
+                    return "Sí";
+                }
+
+                if (value === false) {
+                    return "No";
+                }
+
+                return "Sin datos";
+            }
+
+            const clientReported =
+                Boolean(djiClient.reported);
+
+            const clientFresh =
+                Boolean(djiClient.fresh);
+
+            const clientLocalTest =
+                Boolean(djiClient.local_test);
+
+            if (!clientReported) {
+
+                setStatus(
+                    "dji-client-status",
+                    "Sin reportes",
+                    "warning"
+                );
+
+            } else if (clientLocalTest) {
+
+                setStatus(
+                    "dji-client-status",
+                    "Prueba local",
+                    "warning"
+                );
+
+            } else if (!clientFresh) {
+
+                setStatus(
+                    "dji-client-status",
+                    "Reporte antiguo",
+                    "warning"
+                );
+
+            } else if (
+                djiClient.thing_connected === true
+            ) {
+
+                setStatus(
+                    "dji-client-status",
+                    "Cliente conectado",
+                    "ok"
+                );
+
+            } else if (
+                djiClient.bridge_present === true
+            ) {
+
+                setStatus(
+                    "dji-client-status",
+                    "JSBridge reportado",
+                    "ok"
+                );
+
+            } else {
+
+                setStatus(
+                    "dji-client-status",
+                    "Cliente detectado",
+                    "warning"
+                );
+            }
+
+
+            let originLabel = "Desconocido";
+
+            if (djiClient.local_test) {
+                originLabel = "Prueba local";
+            } else if (
+                djiClient.remote_private
+            ) {
+                originLabel =
+                    "Cliente remoto en LAN";
+            }
+
+            setText(
+                "dji-client-origin",
+                originLabel
+            );
+
+            setText(
+                "dji-client-bridge",
+                booleanLabel(
+                    djiClient.bridge_present
+                )
+            );
+
+            setText(
+                "dji-client-license",
+                booleanLabel(
+                    djiClient.license_verified
+                )
+            );
+
+            setText(
+                "dji-client-thing",
+                booleanLabel(
+                    djiClient.thing_loaded
+                )
+            );
+
+            setText(
+                "dji-client-connected",
+                booleanLabel(
+                    djiClient.thing_connected
+                )
+            );
+
+            const clientAge =
+                djiClient.age_seconds;
+
+            setText(
+                "dji-client-age",
+                clientAge !== null &&
+                clientAge !== undefined
+                    ? `${clientAge} s`
+                    : "—"
+            );
+
+            if (clientLocalTest) {
+
+                setText(
+                    "dji-client-note",
+                    "Los valores actuales provienen de una prueba local en la laptop y no constituyen evidencia de Pilot 2."
+                );
+
+            } else if (
+                clientReported &&
+                clientFresh
+            ) {
+
+                setText(
+                    "dji-client-note",
+                    "Se recibió recientemente un reporte desde otro cliente de la red. La identidad del dispositivo debe corroborarse con la sesión Pilot 2."
+                );
+
+            } else if (clientReported) {
+
+                setText(
+                    "dji-client-note",
+                    "Existe un reporte histórico, pero ya no se considera reciente."
+                );
+
+            } else {
+
+                setText(
+                    "dji-client-note",
+                    "Aún no se han recibido estados del cliente DJI."
+                );
+            }
+
+            setText(
+                "probe-remote-contact",
+                formatDate(
+                    probe.last_remote_contact_at
+                )
+            );
+
+            setText(
+                "probe-remote-ip",
+                probe.last_remote_addr_observed
+                    || "Sin registros"
+            );
+
+            setText(
+                "probe-remote-agent",
+                probe.last_remote_user_agent
+                    || "Sin registros"
+            );
 
         } catch (error) {
 

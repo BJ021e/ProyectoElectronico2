@@ -178,6 +178,86 @@
         <pre id="dji-license-result">
         Sin ejecutar.
         </pre>
+
+        <hr>
+
+        <h3>DJI Cloud API - MQTT Thing</h3>
+
+        <p>
+            Esta prueba configura únicamente la conexión MQTT de DJI Pilot 2
+            con el broker PE2. No ejecuta operaciones de vuelo.
+        </p>
+
+        <div>
+            <label for="dji-mqtt-host">
+                Host MQTT PE2
+            </label>
+
+            <input
+                id="dji-mqtt-host"
+                type="text"
+                autocomplete="off"
+            >
+        </div>
+
+        <div>
+            <label for="dji-mqtt-port">
+                Puerto
+            </label>
+
+            <input
+                id="dji-mqtt-port"
+                type="number"
+                value="1884"
+                min="1"
+                max="65535"
+            >
+        </div>
+
+        <div>
+            <label for="dji-mqtt-user">
+                Usuario MQTT
+            </label>
+
+            <input
+                id="dji-mqtt-user"
+                type="text"
+                value="pilot2_cloud"
+                autocomplete="off"
+            >
+        </div>
+
+        <div>
+            <label for="dji-mqtt-password">
+                Contraseña MQTT
+            </label>
+
+            <input
+                id="dji-mqtt-password"
+                type="password"
+                autocomplete="new-password"
+            >
+        </div>
+
+        <br>
+
+        <button
+            type="button"
+            onclick="checkThingState()"
+        >
+            Comprobar módulo Thing
+        </button>
+
+        <button
+            type="button"
+            onclick="loadThingComponent()"
+        >
+            Cargar módulo Thing
+        </button>
+
+        <pre id="dji-thing-result">
+        Sin ejecutar.
+        </pre>
     </div>
 </div>
 
@@ -262,6 +342,12 @@ function getDjiBridgeCapabilities() {
         browser_time:
             new Date().toISOString(),
     };
+
+    if (bridgePresent) {
+        reportClientState({
+            bridge_present: true
+        });
+    }
 }
 
 function checkDjiBridge() {
@@ -324,6 +410,19 @@ function checkDjiVerification() {
         showLicenseResult(
             parseDjiResponse(raw)
         );
+
+        const verified =
+            extractBridgeBoolean(raw);
+
+        if (
+            typeof verified === "boolean"
+        ) {
+            reportClientState({
+                bridge_present: true,
+                license_verified:
+                    verified
+            });
+        }
     } catch (error) {
         showLicenseResult({
             ok: false,
@@ -382,6 +481,10 @@ function verifyDjiLicense() {
 
         showLicenseResult(result);
 
+        setTimeout(
+            checkDjiVerification,
+            500
+        );
         /*
          * Limpiar inmediatamente los valores
          * después de pasarlos al JSBridge.
@@ -404,6 +507,391 @@ function verifyDjiLicense() {
             error: String(error)
         });
     }
+}
+
+function showThingResult(value) {
+    const output =
+        document.getElementById(
+            "dji-thing-result"
+        );
+
+    if (!output) {
+        return;
+    }
+
+    output.textContent =
+        typeof value === "string"
+            ? value
+            : JSON.stringify(
+                value,
+                null,
+                2
+            );
+}
+
+function parseBridgeResponse(raw) {
+    if (typeof raw !== "string") {
+        return raw;
+    }
+
+    try {
+        return JSON.parse(raw);
+    } catch (error) {
+        return raw;
+    }
+}
+
+function getVerificationState() {
+    if (
+        !window.djiBridge ||
+        typeof window.djiBridge
+            .platformIsVerified
+            !== "function"
+    ) {
+        return null;
+    }
+
+    try {
+        const raw =
+            window.djiBridge
+                .platformIsVerified();
+
+        const parsed =
+            parseBridgeResponse(raw);
+
+        if (
+            typeof parsed === "boolean"
+        ) {
+            return parsed;
+        }
+
+        if (
+            parsed &&
+            typeof parsed.data
+                === "boolean"
+        ) {
+            return parsed.data;
+        }
+
+        return null;
+
+    } catch (error) {
+        return null;
+    }
+}
+
+function checkThingState() {
+    if (!window.djiBridge) {
+        showThingResult({
+            ok: false,
+            error:
+                "window.djiBridge no disponible"
+        });
+
+        return;
+    }
+
+    const result = {
+        bridge_present: true,
+        verified: getVerificationState(),
+        component_loaded: null,
+        mqtt_connected: null
+    };
+
+    const loaded =
+        extractBridgeBoolean(
+            /* resultado de
+            platformIsComponentLoaded */
+        );
+
+    const connected =
+        extractBridgeBoolean(
+            /* resultado de
+            thingGetConnectState */
+        );
+
+    const report = {
+        bridge_present: true
+    };
+
+    if (
+        typeof loaded === "boolean"
+    ) {
+        report.thing_loaded =
+            loaded;
+    }
+
+    if (
+        typeof connected === "boolean"
+    ) {
+        report.thing_connected =
+            connected;
+    }
+
+    reportClientState(
+        report
+    );
+
+    try {
+        if (
+            typeof window.djiBridge
+                .platformIsComponentLoaded
+                === "function"
+        ) {
+            result.component_loaded =
+                parseBridgeResponse(
+                    window.djiBridge
+                        .platformIsComponentLoaded(
+                            "thing"
+                        )
+                );
+        }
+
+        if (
+            typeof window.djiBridge
+                .thingGetConnectState
+                === "function"
+        ) {
+            result.mqtt_connected =
+                parseBridgeResponse(
+                    window.djiBridge
+                        .thingGetConnectState()
+                );
+        }
+
+    } catch (error) {
+        result.error =
+            String(error);
+    }
+
+    showThingResult(result);
+}
+
+function loadThingComponent() {
+    if (
+        !window.djiBridge ||
+        typeof window.djiBridge
+            .platformLoadComponent
+            !== "function"
+    ) {
+        showThingResult({
+            ok: false,
+            error:
+                "platformLoadComponent no disponible"
+        });
+
+        return;
+    }
+
+    const verified =
+        getVerificationState();
+
+    if (verified === false) {
+        showThingResult({
+            ok: false,
+            error:
+                "La licencia DJI todavía no está verificada."
+        });
+
+        return;
+    }
+
+    const host =
+        document.getElementById(
+            "dji-mqtt-host"
+        ).value.trim();
+
+    const port =
+        document.getElementById(
+            "dji-mqtt-port"
+        ).value.trim();
+
+    const username =
+        document.getElementById(
+            "dji-mqtt-user"
+        ).value.trim();
+
+    const passwordInput =
+        document.getElementById(
+            "dji-mqtt-password"
+        );
+
+    const password =
+        passwordInput.value;
+
+    if (
+        !host ||
+        !port ||
+        !username ||
+        !password
+    ) {
+        showThingResult({
+            ok: false,
+            error:
+                "Falta host, puerto, usuario o contraseña MQTT."
+        });
+
+        return;
+    }
+
+    const mqttUrl =
+        `tcp://${host}:${port}`;
+
+    const params = {
+        host: mqttUrl,
+        connectCallback:
+            "pe2ThingConnectCallback",
+        username: username,
+        password: password
+    };
+
+    try {
+        const raw =
+            window.djiBridge
+                .platformLoadComponent(
+                    "thing",
+                    JSON.stringify(params)
+                );
+
+        /*
+         * Borramos inmediatamente la contraseña
+         * del formulario.
+         */
+        passwordInput.value = "";
+
+        showThingResult({
+            action:
+                "platformLoadComponent",
+            mqtt_host:
+                mqttUrl,
+            result:
+                parseBridgeResponse(raw)
+        });
+
+        setTimeout(
+            checkThingState,
+            1500
+        );
+
+    } catch (error) {
+        passwordInput.value = "";
+
+        showThingResult({
+            ok: false,
+            error: String(error)
+        });
+    }
+}
+
+window.pe2ThingConnectCallback =
+    function (...args) {
+
+        const safeArgs =
+            args.map(
+                parseBridgeResponse
+            );
+
+        showThingResult({
+            callback:
+                "pe2ThingConnectCallback",
+            received:
+                safeArgs
+        });
+
+        setTimeout(
+            checkThingState,
+            500
+        );
+    };
+
+function initializeThingForm() {
+    const hostInput =
+        document.getElementById(
+            "dji-mqtt-host"
+        );
+
+    if (
+        hostInput &&
+        !hostInput.value
+    ) {
+        hostInput.value =
+            window.location.hostname;
+    }
+}
+
+document.addEventListener(
+    "DOMContentLoaded",
+    initializeThingForm
+);
+
+async function reportClientState(values) {
+    if (
+        !values ||
+        typeof values !== "object"
+    ) {
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            "/api/dji-cloud/client-state",
+            {
+                method: "POST",
+                cache: "no-store",
+                credentials: "same-origin",
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+                body: JSON.stringify(
+                    values
+                )
+            }
+        );
+
+        if (!response.ok) {
+            console.warn(
+                "PE2 client-state HTTP",
+                response.status
+            );
+        }
+
+    } catch (error) {
+        console.warn(
+            "No se pudo reportar "
+            + "client-state:",
+            error
+        );
+    }
+}
+
+function extractBridgeBoolean(value) {
+    const parsed =
+        parseBridgeResponse(value);
+
+    if (
+        typeof parsed === "boolean"
+    ) {
+        return parsed;
+    }
+
+    if (
+        parsed &&
+        typeof parsed.data
+            === "boolean"
+    ) {
+        return parsed.data;
+    }
+
+    if (
+        parsed &&
+        typeof parsed.result
+            === "boolean"
+    ) {
+        return parsed.result;
+    }
+
+    return null;
 }
 </script>
 </body>
