@@ -25,3 +25,20 @@ venv/
 Thumbs.db
 .vscode/
 .idea/
+
+# Diagnósticos y runtime DJI/MQTT
+diagnosticos_smart_controller/
+
+# Runtime / resultados web
+static/live_cache/
+static/live_cache_cam/
+static/resultados/
+static/resultados_parcelas/
+static/resultados_remoto_mosaico/
+static/resultados_remoto_parcelas_cam/
+
+# Uploads locales
+static/uploads/
+static/uploads_parcelas/
+static/uploads_remoto_mosaico/
+static/uploads_remoto_parcelas_cam/
